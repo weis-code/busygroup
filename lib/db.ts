@@ -15,6 +15,9 @@ export function getDb(): ReturnType<typeof postgres> {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
+      ssl: connectionString?.includes('railway') || process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
     });
   }
   return _sql;
