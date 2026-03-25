@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BusyGroup Agent Dashboard
 
-## Getting Started
+AI-drevet salgsagent dashboard til BusyConsulting's svenske og danske marked.
 
-First, run the development server:
+## Setup
 
 ```bash
+# 1. Installer dependencies
+npm install
+
+# 2. Konfigurér environment variabler
+# Åbn .env.local og indsæt dine API nøgler
+
+# 3. Seed databasen med testdata
+npx tsx lib/seed.ts
+
+# 4. Start development serveren
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Dashboard: **http://localhost:3000**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Kør agenter
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Start agent runner (kører alle cron jobs)
+npx tsx agents/runner.ts
+```
 
-## Learn More
+Eller klik "Kør nu" i dashboardet.
 
-To learn more about Next.js, take a look at the following resources:
+## Arkitektur
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Dashboard: http://localhost:3000
+- Database: ./busygroup.db (SQLite via better-sqlite3)
+- Agenter: /agents/ — cron schedule via runner.ts
+- Slack: #busygroup-ledelse, #agent-salg-sverige, #agent-alerts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Agent planlægning
 
-## Deploy on Vercel
+| Agent | Tidspunkt | Beskrivelse |
+|-------|-----------|-------------|
+| CSO Agent | Mandag 07:00 | Pipeline analyse + ugentlig rapport |
+| SE Prospecting | Mandag 08:00 | Finder 20 nye svenske leads |
+| SE Outreach | Mandag 09:00 | LinkedIn DMs til nye leads (på svensk) |
+| SE Follow-up | Daglig 08:30 | 4-trins follow-up sekvenser |
+| SE Booking | Daglig 09:00 | Booker møder med interesserede leads |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 14 (App Router, TypeScript)
+- Tailwind CSS (dark theme)
+- @xyflow/react – org chart
+- Recharts – pipeline analytics
+- @dnd-kit/core – kanban drag-and-drop
+- better-sqlite3 – SQLite database
+- @anthropic-ai/sdk – Claude API
+- @slack/web-api – Slack integration
+- sonner – toast notifikationer

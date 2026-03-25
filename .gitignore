@@ -27,6 +27,12 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+
+# SQLite database (lokal — på Railway bruges persistent volumen)
+*.db
+*.db-shm
+*.db-wal
 
 # vercel
 .vercel
@@ -34,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code internal config
+.claude/

@@ -1,0 +1,14 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm run build"
+
+[deploy]
+startCommand = "npm run start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[[deploy.healthchecks]]
+type = "http"
+path = "/api/auth/me"
+intervalSeconds = 30
+timeoutSeconds = 10

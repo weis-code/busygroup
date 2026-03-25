@@ -1,94 +1,67 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  :root {
+    --background: 215 30% 8%;
+    --foreground: 210 40% 93%;
+    --card: 215 28% 12%;
+    --card-foreground: 210 40% 93%;
+    --popover: 215 28% 10%;
+    --popover-foreground: 210 40% 93%;
+    --primary: 211 72% 37%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 210 40% 93%;
+    --muted: 215 20% 22%;
+    --muted-foreground: 215 15% 45%;
+    --accent: 215 25% 20%;
+    --accent-foreground: 210 40% 93%;
+    --destructive: 4 70% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 15%;
+    --input: 215 20% 15%;
+    --ring: 211 72% 37%;
+    --radius: 0.5rem;
+  }
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    background-color: #0F1923;
+    color: #ECF0F1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
   }
 }
 
-@layer base {
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-  }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-  }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-  }
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0F1923; }
+::-webkit-scrollbar-thumb { background: #1A2A38; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #185FA5; }
+
+/* React Flow */
+.react-flow__background { background-color: #0F1923 !important; }
+.react-flow__controls { background: #111E2A !important; border: 1px solid rgba(255,255,255,0.07) !important; }
+.react-flow__controls-button { background: #1A2A38 !important; border-color: rgba(255,255,255,0.07) !important; color: #ECF0F1 !important; }
+.react-flow__controls-button:hover { background: #185FA5 !important; }
+
+/* Pulse animations */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(46,204,113,0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(46,204,113,0); }
+  100% { box-shadow: 0 0 0 0 rgba(46,204,113,0); }
+}
+.pulse-live { animation: pulse-ring 2s ease-in-out infinite; }
+
+/* Kanban */
+.kanban-drag-overlay { opacity: 0.85; transform: rotate(2deg); }
