@@ -16,6 +16,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { MarketBadge } from './StatusBadge';
@@ -119,11 +120,15 @@ function KanbanColumn({ column, leads, onSelect, activeId }: {
   onSelect: (l: Lead) => void;
   activeId: string | null;
 }) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
   return (
     <div style={{
-      background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)',
+      background: isOver ? 'rgba(24,95,165,0.06)' : '#111E2A',
+      border: `1px solid ${isOver ? 'rgba(24,95,165,0.5)' : 'rgba(255,255,255,0.07)'}`,
       borderRadius: '10px', minWidth: '180px', maxWidth: '200px', flexShrink: 0,
       display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 260px)',
+      transition: 'border-color 0.15s, background 0.15s',
     }}>
       <div style={{
         padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -141,7 +146,7 @@ function KanbanColumn({ column, leads, onSelect, activeId }: {
           {leads.length > 0 ? `${((leads.length * AVG_DEAL) / 1000).toFixed(0)}k` : '—'}
         </span>
       </div>
-      <div style={{ overflowY: 'auto', padding: '8px', flex: 1 }}>
+      <div ref={setNodeRef} style={{ overflowY: 'auto', padding: '8px', flex: 1, minHeight: '60px' }}>
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <KanbanCard
