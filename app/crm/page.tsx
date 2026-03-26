@@ -7,7 +7,8 @@ import LeadDrawer from '@/components/LeadDrawer';
 import LeadCreateModal from '@/components/LeadCreateModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import MetricTile from '@/components/MetricTile';
-import { Plus, Upload } from 'lucide-react';
+import { useUser } from '@/lib/UserContext';
+import { Plus, Upload, Users } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -22,17 +23,28 @@ interface Lead {
   priority: string;
   status: string;
   market: string;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
   product_names?: string;
   pipeline_value?: number;
 }
 
+interface User {
+  id: string;
+  name: string;
+  role: string;
+  active: boolean;
+}
+
 const SUB_TABS = ['Pipeline', 'Leads', 'Kontakter'];
 
 export default function CRMPage() {
+  const { user: currentUser } = useUser();
   const [activeTab, setActiveTab] = useState('Pipeline');
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null); // null = alle
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -46,7 +58,20 @@ export default function CRMPage() {
     finally { setLoading(false); }
   }, []);
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(Array.isArray(data) ? data.filter((u: User) => u.active) : []);
+      }
+    } catch { /* non-admins get 403, that's fine */ }
+  }, []);
+
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
+  useEffect(() => {
+    if (currentUser?.role === 'admin') fetchUsers();
+  }, [currentUser, fetchUsers]);
 
   const handleLeadUpdate = async (id: string, changes: Partial<Lead>) => {
     try {
@@ -65,10 +90,12 @@ export default function CRMPage() {
 
   const handleLeadCreate = async (data: Partial<Lead>) => {
     try {
+      // Auto-assign to selected pipeline user if admin has one selected
+      const assignedTo = selectedPipeline ?? data.assigned_to ?? undefined;
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, assigned_to: assignedTo }),
       });
       if (res.ok) {
         const newLead = await res.json();
@@ -78,17 +105,56 @@ export default function CRMPage() {
     } catch (e) { console.error(e); }
   };
 
-  const activeLeads = leads.filter(l => !['lost', 'deleted', 'won'].includes(l.status));
-  const wonThisMonth = leads.filter(l => l.status === 'won' && l.updated_at && new Date(l.updated_at) > new Date(Date.now() - 30 * 24 * 3600000)).length;
-  const bookedCount = leads.filter(l => l.status === 'booked').length;
+  // Filter leads based on selected pipeline (admin only — sellers already filtered by API)
+  const visibleLeads = selectedPipeline
+    ? leads.filter(l => l.assigned_to === selectedPipeline)
+    : leads;
+
+  const activeLeads = visibleLeads.filter(l => !['lost', 'deleted', 'won'].includes(l.status));
+  const wonThisMonth = visibleLeads.filter(l => l.status === 'won' && l.updated_at && new Date(l.updated_at) > new Date(Date.now() - 30 * 24 * 3600000)).length;
+  const bookedCount = visibleLeads.filter(l => l.status === 'booked').length;
   const pipelineValue = activeLeads.reduce((sum, l) => sum + (Number(l.pipeline_value) || 0), 0);
-  const wonValue = leads.filter(l => l.status === 'won').reduce((sum, l) => sum + (Number(l.pipeline_value) || 0), 0);
+  const wonValue = visibleLeads.filter(l => l.status === 'won').reduce((sum, l) => sum + (Number(l.pipeline_value) || 0), 0);
+
+  const selectedUser = selectedPipeline ? users.find(u => u.id === selectedPipeline) : null;
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: '1440px', margin: '0 auto' }}>
+
+      {/* Pipeline-vælger (kun admin) */}
+      {currentUser?.role === 'admin' && users.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <Users size={13} style={{ color: '#667788', flexShrink: 0 }} />
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <PipelineTab
+              label="Alle"
+              active={selectedPipeline === null}
+              onClick={() => setSelectedPipeline(null)}
+              count={leads.filter(l => !['lost', 'deleted', 'won'].includes(l.status)).length}
+            />
+            {users.map(u => (
+              <PipelineTab
+                key={u.id}
+                label={u.name.split(' ')[0]}
+                fullName={u.name}
+                active={selectedPipeline === u.id}
+                onClick={() => setSelectedPipeline(prev => prev === u.id ? null : u.id)}
+                count={leads.filter(l => l.assigned_to === u.id && !['lost', 'deleted', 'won'].includes(l.status)).length}
+                role={u.role}
+              />
+            ))}
+          </div>
+          {selectedUser && (
+            <span style={{ fontSize: '11px', color: '#667788', marginLeft: '4px' }}>
+              {selectedUser.name}s pipeline
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Metrics */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-        <MetricTile label="Leads i alt" value={leads.filter(l => l.status !== 'deleted').length} />
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <MetricTile label="Leads i alt" value={visibleLeads.filter(l => l.status !== 'deleted').length} />
         <MetricTile label="Aktive leads" value={activeLeads.length} />
         <MetricTile label="Møder booket" value={bookedCount} />
         <MetricTile label="Vundet (30d)" value={wonThisMonth} />
@@ -137,14 +203,14 @@ export default function CRMPage() {
         <>
           {activeTab === 'Pipeline' && (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            <KanbanBoard leads={leads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} />
+            <KanbanBoard leads={visibleLeads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} />
           )}
           {activeTab === 'Leads' && (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            <LeadsTable leads={leads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} onCreateLead={() => setShowCreateModal(true)} />
+            <LeadsTable leads={visibleLeads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} onCreateLead={() => setShowCreateModal(true)} />
           )}
           {activeTab === 'Kontakter' && (
-            <ContactsView leads={leads} onSelectLead={setSelectedLead} />
+            <ContactsView leads={visibleLeads} onSelectLead={setSelectedLead} />
           )}
         </>
       )}
@@ -162,6 +228,45 @@ export default function CRMPage() {
         />
       )}
     </div>
+  );
+}
+
+function PipelineTab({
+  label, fullName, active, onClick, count, role,
+}: {
+  label: string;
+  fullName?: string;
+  active: boolean;
+  onClick: () => void;
+  count: number;
+  role?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={fullName}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '5px',
+        padding: '4px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+        background: active ? '#185FA5' : 'rgba(255,255,255,0.05)',
+        color: active ? '#fff' : '#667788',
+        fontSize: '12px', fontWeight: active ? 600 : 400,
+        transition: 'all 0.15s',
+      }}
+    >
+      {label}
+      {role === 'admin' && !active && (
+        <span style={{ fontSize: '9px', color: '#E74C3C', fontWeight: 700 }}>A</span>
+      )}
+      <span style={{
+        fontSize: '10px', fontWeight: 600,
+        background: active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+        borderRadius: '10px', padding: '1px 5px',
+        color: active ? '#fff' : '#445566',
+      }}>
+        {count}
+      </span>
+    </button>
   );
 }
 

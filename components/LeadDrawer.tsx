@@ -22,6 +22,7 @@ interface Lead {
   priority: string;
   status: string;
   market: string;
+  assigned_to?: string | null;
   brief_ready?: number;
   brief_updated_at?: string;
   followup_draft_ready?: number;

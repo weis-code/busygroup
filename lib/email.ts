@@ -30,7 +30,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string }>
     subject: opts.subject,
     html: opts.html,
     text: opts.text,
-    reply_to: opts.replyTo,
+    replyTo: opts.replyTo,
   });
 
   if (error) throw new Error(error.message);
