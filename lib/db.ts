@@ -25,20 +25,23 @@ export function getDb(): ReturnType<typeof postgres> {
 }
 
 // Lazy sql proxy — defers connection until first actual DB call
-// This prevents the connection attempt at module-load time (e.g., during `next build`)
-export const sql = new Proxy({} as ReturnType<typeof postgres>, {
-  get(_target, prop) {
-    const instance = getDb();
-    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof value === 'function') {
-      return value.bind(instance);
-    }
-    return value;
-  },
-  apply(_target, _thisArg, args) {
-    return (getDb() as unknown as (...a: unknown[]) => unknown)(...args);
-  },
-}) as ReturnType<typeof postgres>;
+// Target MUST be a function so tagged template literals (sql`...`) invoke the apply trap
+export const sql = new Proxy(
+  (() => {}) as unknown as ReturnType<typeof postgres>,
+  {
+    get(_target, prop) {
+      const instance = getDb();
+      const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+      if (typeof value === 'function') {
+        return value.bind(instance);
+      }
+      return value;
+    },
+    apply(_target, _thisArg, args) {
+      return (getDb() as unknown as (...a: unknown[]) => unknown)(...args);
+    },
+  }
+) as ReturnType<typeof postgres>;
 
 // Schema initialization — kald denne ved server startup
 export async function initSchema(): Promise<void> {
