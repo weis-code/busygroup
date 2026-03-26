@@ -2,7 +2,7 @@
 const nextConfig = {
   experimental: {
     instrumentationHook: true,
-    serverComponentsExternalPackages: ['postgres'],
   },
+  serverExternalPackages: ['postgres', 'node-cron', 'bcryptjs', 'better-sqlite3'],
 };
 export default nextConfig;

@@ -11,13 +11,14 @@ export function getDb(): ReturnType<typeof postgres> {
     if (!connectionString && process.env.NODE_ENV === 'production') {
       throw new Error('DATABASE_URL environment variable is required');
     }
+    // Railway internal URLs (.railway.internal) don't use SSL
+    // External URLs or other production DBs do
+    const isRailwayInternal = connectionString?.includes('.railway.internal');
     _sql = postgres(connectionString || 'postgresql://postgres:postgres@localhost:5432/busygroup', {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
-      ssl: connectionString?.includes('railway') || process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : false,
+      ssl: isRailwayInternal ? false : process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
     });
   }
   return _sql;
