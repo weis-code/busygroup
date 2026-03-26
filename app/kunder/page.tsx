@@ -325,8 +325,14 @@ export default function KunderPage() {
                   </td>
                   <td style={{ padding: '12px' }}>
                     {c.product_names ? (
-                      <div style={{ fontSize: '11px', color: '#AAB8C2', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {c.product_names}
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {c.product_names.split(', ').map(n => (
+                          <span key={n} style={{
+                            fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
+                            background: 'rgba(15,110,86,0.15)', color: '#0F6E56',
+                            border: '1px solid rgba(15,110,86,0.25)', whiteSpace: 'nowrap',
+                          }}>{n}</span>
+                        ))}
                       </div>
                     ) : (
                       <span style={{ fontSize: '11px', color: '#667788' }}>—</span>

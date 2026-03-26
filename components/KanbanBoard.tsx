@@ -29,6 +29,7 @@ interface Lead {
   status: string;
   market: string;
   updated_at: string;
+  product_names?: string;
 }
 
 interface KanbanBoardProps {
@@ -90,6 +91,17 @@ function KanbanCard({ lead, onSelect, isDragging }: {
         <div style={{ fontSize: '11px', color: '#667788', lineHeight: 1.3 }}>
           {lead.contact_name}{lead.contact_title ? ` · ${lead.contact_title}` : ''}
         </div>
+        {lead.product_names && (
+          <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', marginTop: '6px' }}>
+            {lead.product_names.split(', ').map(n => (
+              <span key={n} style={{
+                fontSize: '9px', fontWeight: 500, padding: '1px 5px', borderRadius: '3px',
+                background: 'rgba(24,95,165,0.15)', color: '#185FA5',
+                border: '1px solid rgba(24,95,165,0.2)',
+              }}>{n}</span>
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
           <span style={{ fontSize: '10px', color: '#667788' }}>
             {daysAgo(lead.updated_at)}d i status

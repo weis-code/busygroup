@@ -16,14 +16,19 @@ export async function GET(req: NextRequest) {
     const userId = req.headers.get('x-user-id');
 
     const leads = await sql`
-      SELECT * FROM leads
-      WHERE status != 'deleted'
-      ${role === 'seller' && userId ? sql`AND assigned_to = ${userId}` : sql``}
-      ${status ? sql`AND status = ${status}` : sql``}
-      ${market ? sql`AND market = ${market}` : sql``}
-      ${priority ? sql`AND priority = ${priority}` : sql``}
-      ${search ? sql`AND (company ILIKE ${'%' + search + '%'} OR contact_name ILIKE ${'%' + search + '%'} OR contact_title ILIKE ${'%' + search + '%'})` : sql``}
-      ORDER BY created_at DESC
+      SELECT l.*,
+        STRING_AGG(p.name, ', ' ORDER BY p.name) AS product_names
+      FROM leads l
+      LEFT JOIN lead_products lp ON lp.lead_id = l.id
+      LEFT JOIN products p ON p.id = lp.product_id
+      WHERE l.status != 'deleted'
+      ${role === 'seller' && userId ? sql`AND l.assigned_to = ${userId}` : sql``}
+      ${status ? sql`AND l.status = ${status}` : sql``}
+      ${market ? sql`AND l.market = ${market}` : sql``}
+      ${priority ? sql`AND l.priority = ${priority}` : sql``}
+      ${search ? sql`AND (l.company ILIKE ${'%' + search + '%'} OR l.contact_name ILIKE ${'%' + search + '%'} OR l.contact_title ILIKE ${'%' + search + '%'})` : sql``}
+      GROUP BY l.id
+      ORDER BY l.created_at DESC
     `;
     return NextResponse.json(leads);
   } catch (err) {

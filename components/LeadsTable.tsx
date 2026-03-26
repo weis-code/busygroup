@@ -14,6 +14,22 @@ interface Lead {
   status: string;
   market: string;
   created_at: string;
+  product_names?: string;
+}
+
+function ProductChips({ names }: { names?: string }) {
+  if (!names) return <span style={{ fontSize: '11px', color: '#667788' }}>—</span>;
+  return (
+    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+      {names.split(', ').map(n => (
+        <span key={n} style={{
+          fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '4px',
+          background: 'rgba(24,95,165,0.15)', color: '#185FA5',
+          border: '1px solid rgba(24,95,165,0.25)', whiteSpace: 'nowrap',
+        }}>{n}</span>
+      ))}
+    </div>
+  );
 }
 
 interface LeadsTableProps {
@@ -147,6 +163,7 @@ export default function LeadsTable({ leads, onUpdateLead, onSelectLead }: LeadsT
                   { key: 'company', label: 'Firma' },
                   { key: 'contact_name', label: 'Kontakt' },
                   { key: 'market', label: 'Marked' },
+                  { key: 'product_names', label: 'Produkter' },
                   { key: 'status', label: 'Status' },
                   { key: 'priority', label: 'Prioritet' },
                   { key: 'created_at', label: 'Oprettet' },
@@ -177,7 +194,7 @@ export default function LeadsTable({ leads, onUpdateLead, onSelectLead }: LeadsT
             <tbody>
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: '13px' }}>
+                  <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: '13px' }}>
                     Ingen leads fundet
                   </td>
                 </tr>
@@ -202,6 +219,9 @@ export default function LeadsTable({ leads, onUpdateLead, onSelectLead }: LeadsT
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <MarketBadge market={lead.market} />
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <ProductChips names={lead.product_names} />
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <LeadStatusBadge status={lead.status} />
