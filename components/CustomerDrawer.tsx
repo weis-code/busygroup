@@ -185,7 +185,10 @@ export default function CustomerDrawer({ customer, onClose, onUpdate }: {
   };
 
   const renewDays = daysUntil(customer.contract_end);
-  const totalMrr = customerProducts.filter(p => p.type === 'mrr').reduce((s, p) => s + p.price, 0);
+  const mrrProducts = customerProducts.filter(p => p.type === 'mrr');
+  const onetimeProducts = customerProducts.filter(p => p.type === 'onetime');
+  const totalMrr = mrrProducts.reduce((s, p) => s + p.price, 0);
+  const totalOnetime = onetimeProducts.reduce((s, p) => s + p.price, 0);
   const upsellProducts = allProducts.filter(p => !customerProducts.some(cp => cp.id === p.id));
 
   return (
@@ -227,18 +230,33 @@ export default function CustomerDrawer({ customer, onClose, onUpdate }: {
 
           {/* KPI strip */}
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            {[
-              { label: 'MRR', value: `${(customer.mrr || totalMrr).toLocaleString('da-DK')} DKK`, icon: <TrendingUp size={11} />, color: '#2ECC71' },
-              { label: 'ARR', value: `${((customer.mrr || totalMrr) * 12).toLocaleString('da-DK')} DKK`, icon: <TrendingUp size={11} />, color: '#185FA5' },
-              { label: 'Health', value: `${customer.health_score ?? 0}/100`, icon: <CheckCircle size={11} />, color: customer.health_score >= 70 ? '#2ECC71' : customer.health_score >= 40 ? '#F39C12' : '#E74C3C' },
-            ].map(kpi => (
-              <div key={kpi.label} style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
-                <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
-                  {kpi.icon} {kpi.label}
-                </div>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
+            <div style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
+              <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+                <TrendingUp size={11} /> MRR
               </div>
-            ))}
+              <div style={{ fontSize: '12px', fontWeight: 700, color: '#2ECC71' }}>
+                {totalMrr > 0 ? `${totalMrr.toLocaleString('da-DK')} DKK` : '—'}
+              </div>
+              {totalMrr > 0 && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{(totalMrr * 12).toLocaleString('da-DK')} DKK/år</div>}
+            </div>
+            {totalOnetime > 0 && (
+              <div style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
+                <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+                  <TrendingUp size={11} /> Engangs
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#F39C12' }}>
+                  {totalOnetime.toLocaleString('da-DK')} DKK
+                </div>
+              </div>
+            )}
+            <div style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
+              <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+                <CheckCircle size={11} /> Health
+              </div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: customer.health_score >= 70 ? '#2ECC71' : customer.health_score >= 40 ? '#F39C12' : '#E74C3C' }}>
+                {customer.health_score ?? 0}/100
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
@@ -327,8 +345,6 @@ export default function CustomerDrawer({ customer, onClose, onUpdate }: {
                     <input type="date" value={editData.contract_start || ''} onChange={e => setEditData(p => ({ ...p, contract_start: e.target.value }))} style={inputStyle} />
                     <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Slutdato</div>
                     <input type="date" value={editData.contract_end || ''} onChange={e => setEditData(p => ({ ...p, contract_end: e.target.value }))} style={inputStyle} />
-                    <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>MRR (DKK)</div>
-                    <input type="number" value={editData.mrr ?? ''} onChange={e => setEditData(p => ({ ...p, mrr: Number(e.target.value) }))} style={inputStyle} />
                     <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Churn-risiko</div>
                     <select value={editData.churn_risk || 'low'} onChange={e => setEditData(p => ({ ...p, churn_risk: e.target.value as 'low' | 'medium' | 'high' }))} style={selectStyle}>
                       {CHURN_RISKS.map(r => <option key={r} value={r}>{r === 'low' ? 'Lav' : r === 'medium' ? 'Medium' : 'Høj'}</option>)}
@@ -442,11 +458,22 @@ export default function CustomerDrawer({ customer, onClose, onUpdate }: {
                   </div>
                 )}
                 {customerProducts.length > 0 && (
-                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '11px', color: '#667788' }}>Total MRR fra produkter</span>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#2ECC71' }}>
-                      {totalMrr.toLocaleString('da-DK')} DKK/md
-                    </span>
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {totalMrr > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: '#667788' }}>MRR (månedlig betaling)</span>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#2ECC71' }}>{totalMrr.toLocaleString('da-DK')} DKK/md</span>
+                          <span style={{ fontSize: '10px', color: '#667788', display: 'block' }}>{(totalMrr * 12).toLocaleString('da-DK')} DKK/år</span>
+                        </div>
+                      </div>
+                    )}
+                    {totalOnetime > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: '#667788' }}>Engangsbetalinger</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#F39C12' }}>{totalOnetime.toLocaleString('da-DK')} DKK</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

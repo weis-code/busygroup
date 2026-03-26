@@ -75,7 +75,7 @@ function StatCard({ label, value, sub, color = '#ECF0F1', icon }: { label: strin
 
 const EMPTY_FORM = {
   company: '', contact_name: '', contact_title: '', contact_email: '', contact_phone: '',
-  market: 'denmark', mrr: '', contract_start: '', contract_end: '',
+  market: 'denmark', contract_start: '', contract_end: '',
   churn_risk: 'low', health_score: '80', segment: 'smb', notes: '',
 };
 
@@ -93,6 +93,8 @@ export default function KunderPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
+  const [allProducts, setAllProducts] = useState<{id: string; name: string; price: number; type: string; currency: string}[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,6 +110,10 @@ export default function KunderPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch('/api/products').then(r => r.json()).then(d => setAllProducts(Array.isArray(d) ? d.filter((p: {active: number}) => p.active) : [])).catch(() => {});
+  }, []);
 
   const handleUpdate = async (id: string, changes: Partial<Customer>) => {
     await fetch(`/api/customers/${id}`, {
@@ -128,11 +134,21 @@ export default function KunderPage() {
       const res = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, mrr: Number(form.mrr) || 0, health_score: Number(form.health_score) || 80 }),
+        body: JSON.stringify({ ...form, mrr: 0, health_score: Number(form.health_score) || 80 }),
       });
       if (!res.ok) throw new Error('Failed');
+      const created = await res.json();
+      // Attach selected products (API auto-calculates MRR)
+      await Promise.all(selectedProductIds.map(pid =>
+        fetch(`/api/customers/${created.id}/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: pid }),
+        })
+      ));
       toast.success('Kunde oprettet');
       setForm(EMPTY_FORM);
+      setSelectedProductIds([]);
       setShowCreate(false);
       await load();
     } catch {
@@ -413,11 +429,50 @@ export default function KunderPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {allProducts.length > 0 && (
               <div>
-                <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>MRR (DKK)</div>
-                <input type="number" placeholder="0" value={form.mrr} onChange={e => setForm(p => ({ ...p, mrr: e.target.value }))} style={inputStyle} />
+                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Produkter</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '8px' }}>
+                  {allProducts.map(p => {
+                    const selected = selectedProductIds.includes(p.id);
+                    return (
+                      <button key={p.id} onClick={() => setSelectedProductIds(prev => selected ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left',
+                        background: selected ? 'rgba(24,95,165,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${selected ? 'rgba(24,95,165,0.5)' : 'rgba(255,255,255,0.07)'}`,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: selected ? '#185FA5' : 'transparent', border: `1px solid ${selected ? '#185FA5' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {selected && <span style={{ color: '#fff', fontSize: '9px' }}>✓</span>}
+                          </div>
+                          <span style={{ fontSize: '12px', color: selected ? '#ECF0F1' : '#AAB8C2' }}>{p.name}</span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: selected ? '#185FA5' : '#667788', fontWeight: 600 }}>
+                          {p.price.toLocaleString('da-DK')} {p.currency}{p.type === 'mrr' ? '/md' : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedProductIds.length > 0 && (() => {
+                  const mrrTotal = allProducts.filter(p => selectedProductIds.includes(p.id) && p.type === 'mrr').reduce((s, p) => s + p.price, 0);
+                  const onetimeTotal = allProducts.filter(p => selectedProductIds.includes(p.id) && p.type === 'onetime').reduce((s, p) => s + p.price, 0);
+                  return (
+                    <div style={{ background: 'rgba(46,204,113,0.08)', border: '1px solid rgba(46,204,113,0.2)', borderRadius: '6px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11px', color: '#667788' }}>
+                        {mrrTotal > 0 && `MRR: ${mrrTotal.toLocaleString('da-DK')} DKK/md`}
+                        {mrrTotal > 0 && onetimeTotal > 0 && ' · '}
+                        {onetimeTotal > 0 && `Engangs: ${onetimeTotal.toLocaleString('da-DK')} DKK`}
+                      </span>
+                      <span style={{ fontSize: '11px', fontWeight: 600, color: '#2ECC71' }}>{mrrTotal.toLocaleString('da-DK')} DKK/md</span>
+                    </div>
+                  );
+                })()}
               </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
                 <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>Marked</div>
                 <select value={form.market} onChange={e => setForm(p => ({ ...p, market: e.target.value }))} style={selectStyle}>
