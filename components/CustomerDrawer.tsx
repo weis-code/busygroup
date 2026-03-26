@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   X, Mail, Phone, Edit3, Calendar, FileText, ShoppingBag,
-  TrendingUp, AlertTriangle, CheckCircle, Clock, ExternalLink,
+  TrendingUp, AlertTriangle, CheckCircle, Clock, ExternalLink, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -109,14 +109,16 @@ const selectStyle: React.CSSProperties = {
   WebkitAppearance: 'none',
 };
 
-export default function CustomerDrawer({ customer, onClose, onUpdate }: {
+export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }: {
   customer: Customer;
   onClose: () => void;
   onUpdate: (id: string, changes: Partial<Customer>) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }) {
   const [tab, setTab] = useState<'Overblik' | 'Produkter' | 'Noter'>('Overblik');
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Customer>>({});
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [customerProducts, setCustomerProducts] = useState<Product[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -259,7 +261,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate }: {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               onClick={() => { setEditing(!editing); if (!editing) setEditData({ ...customer }); }}
               style={{
@@ -270,6 +272,45 @@ export default function CustomerDrawer({ customer, onClose, onUpdate }: {
             >
               <Edit3 size={12} /> {editing ? 'Annuller' : 'Rediger'}
             </button>
+            {onDelete && !confirmDelete && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.2)',
+                  borderRadius: '6px', padding: '6px 12px', color: '#E74C3C', fontSize: '12px', cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={12} /> Slet
+              </button>
+            )}
+            {onDelete && confirmDelete && (
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#E74C3C' }}>Er du sikker?</span>
+                <button
+                  onClick={async () => {
+                    await onDelete(customer.id);
+                    toast.success(`${customer.company} slettet`);
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    background: '#E74C3C', border: 'none',
+                    borderRadius: '6px', padding: '6px 12px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <Trash2 size={12} /> Ja, slet
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px', padding: '6px 12px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer',
+                  }}
+                >
+                  Annuller
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, ExternalLink, Mail, Phone, Edit3, MessageSquare, Calendar,
   FileText, ArrowRight, ShoppingBag, RefreshCw, Check, SkipForward,
-  Pause, StopCircle, PhoneCall, BookOpen, Send, Bot,
+  Pause, StopCircle, PhoneCall, BookOpen, Send, Bot, Trash2,
 } from 'lucide-react';
 import { LeadStatusBadge, MarketBadge } from './StatusBadge';
 import { toast } from 'sonner';
@@ -164,6 +164,7 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   const [loggingCall, setLoggingCall] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [leadProducts, setLeadProducts] = useState<Product[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Brief state
   const [brief, setBrief] = useState<Brief | null>(null);
@@ -366,6 +367,28 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
             <button onClick={() => { setEditing(!editing); if (!editing) setEditData({ ...lead }); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 10px', color: '#ECF0F1', fontSize: '11px', cursor: 'pointer' }}>
               <Edit3 size={11} /> {editing ? 'Annuller' : 'Rediger'}
             </button>
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.2)', borderRadius: '6px', padding: '5px 10px', color: '#E74C3C', fontSize: '11px', cursor: 'pointer' }}>
+                <Trash2 size={11} /> Slet
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#E74C3C' }}>Er du sikker?</span>
+                <button
+                  onClick={async () => {
+                    await onUpdate(lead.id, { status: 'deleted' });
+                    toast.success(`${lead.company} slettet`);
+                    onClose();
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#E74C3C', border: 'none', borderRadius: '6px', padding: '5px 10px', color: '#fff', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  <Trash2 size={11} /> Ja, slet
+                </button>
+                <button onClick={() => setConfirmDelete(false)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 10px', color: '#ECF0F1', fontSize: '11px', cursor: 'pointer' }}>
+                  Annuller
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Agent-status strip (DK only) */}

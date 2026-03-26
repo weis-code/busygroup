@@ -127,6 +127,12 @@ export default function KunderPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+    setSelected(null);
+    await load();
+  };
+
   const handleCreate = async () => {
     if (!form.company.trim()) { toast.error('Firmanavn er påkrævet'); return; }
     setCreating(true);
@@ -521,6 +527,7 @@ export default function KunderPage() {
           customer={selected}
           onClose={() => setSelected(null)}
           onUpdate={handleUpdate}
+          onDelete={handleDelete}
         />
       )}
     </div>
