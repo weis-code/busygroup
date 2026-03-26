@@ -24,6 +24,8 @@ interface Lead {
   market: string;
   created_at: string;
   updated_at: string;
+  product_names?: string;
+  pipeline_value?: number;
 }
 
 const SUB_TABS = ['Pipeline', 'Leads', 'Kontakter'];
@@ -76,20 +78,22 @@ export default function CRMPage() {
     } catch (e) { console.error(e); }
   };
 
-  const activeLeads = leads.filter(l => !['lost', 'deleted', 'won'].includes(l.status)).length;
+  const activeLeads = leads.filter(l => !['lost', 'deleted', 'won'].includes(l.status));
   const wonThisMonth = leads.filter(l => l.status === 'won' && l.updated_at && new Date(l.updated_at) > new Date(Date.now() - 30 * 24 * 3600000)).length;
   const bookedCount = leads.filter(l => l.status === 'booked').length;
-  const pipelineValue = activeLeads * 12000;
+  const pipelineValue = activeLeads.reduce((sum, l) => sum + (Number(l.pipeline_value) || 0), 0);
+  const wonValue = leads.filter(l => l.status === 'won').reduce((sum, l) => sum + (Number(l.pipeline_value) || 0), 0);
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: '1440px', margin: '0 auto' }}>
       {/* Metrics */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
         <MetricTile label="Leads i alt" value={leads.filter(l => l.status !== 'deleted').length} />
-        <MetricTile label="Aktive leads" value={activeLeads} />
+        <MetricTile label="Aktive leads" value={activeLeads.length} />
         <MetricTile label="Møder booket" value={bookedCount} />
         <MetricTile label="Vundet (30d)" value={wonThisMonth} />
-        <MetricTile label="Pipeline value" value={`${(pipelineValue / 1000).toFixed(0)}k`} suffix="kr" />
+        <MetricTile label="Pipeline value" value={pipelineValue > 0 ? `${(pipelineValue / 1000).toFixed(0)}k` : '—'} suffix={pipelineValue > 0 ? 'kr/år' : ''} />
+        {wonValue > 0 && <MetricTile label="Lukket ARR" value={`${(wonValue / 1000).toFixed(0)}k`} suffix="kr/år" />}
       </div>
 
       {/* Sub-tabs + action */}

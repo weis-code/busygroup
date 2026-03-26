@@ -31,6 +31,7 @@ interface Lead {
   market: string;
   updated_at: string;
   product_names?: string;
+  pipeline_value?: number;
 }
 
 interface KanbanBoardProps {
@@ -48,8 +49,6 @@ const COLUMNS: Array<{ id: string; label: string }> = [
   { id: 'won', label: 'Vundet' },
   { id: 'lost', label: 'Tabt' },
 ];
-
-const AVG_DEAL = 12000;
 
 function daysAgo(dateStr: string): number {
   if (!dateStr) return 0;
@@ -107,7 +106,15 @@ function KanbanCard({ lead, onSelect, isDragging }: {
           <span style={{ fontSize: '10px', color: '#667788' }}>
             {daysAgo(lead.updated_at)}d i status
           </span>
-          <span style={{ fontSize: '10px', color: '#185FA5' }}>12k kr</span>
+          {Number(lead.pipeline_value) > 0 ? (
+            <span style={{ fontSize: '10px', color: '#2ECC71', fontWeight: 600 }}>
+              {Number(lead.pipeline_value) >= 1000
+                ? `${(Number(lead.pipeline_value) / 1000).toFixed(0)}k kr`
+                : `${Number(lead.pipeline_value)} kr`}
+            </span>
+          ) : (
+            <span style={{ fontSize: '10px', color: '#667788' }}>—</span>
+          )}
         </div>
       </div>
     </div>
@@ -143,7 +150,10 @@ function KanbanColumn({ column, leads, onSelect, activeId }: {
           }}>{leads.length}</span>
         </div>
         <span style={{ fontSize: '10px', color: '#667788' }}>
-          {leads.length > 0 ? `${((leads.length * AVG_DEAL) / 1000).toFixed(0)}k` : '—'}
+          {(() => {
+            const total = leads.reduce((s, l) => s + (Number(l.pipeline_value) || 0), 0);
+            return total > 0 ? `${(total / 1000).toFixed(0)}k kr` : '—';
+          })()}
         </span>
       </div>
       <div ref={setNodeRef} style={{ overflowY: 'auto', padding: '8px', flex: 1, minHeight: '60px' }}>

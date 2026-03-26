@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
 
     const leads = await sql`
       SELECT l.*,
-        STRING_AGG(p.name, ', ' ORDER BY p.name) AS product_names
+        STRING_AGG(p.name, ', ' ORDER BY p.name) AS product_names,
+        COALESCE(SUM(CASE WHEN p.type = 'mrr' THEN p.price * 12 ELSE p.price END), 0) AS pipeline_value
       FROM leads l
       LEFT JOIN lead_products lp ON lp.lead_id = l.id
       LEFT JOIN products p ON p.id = lp.product_id
