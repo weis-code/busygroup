@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { sendEmail, textToHtml } from '@/lib/email';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -20,7 +21,29 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const now = new Date().toISOString();
 
     if (action === 'approve') {
+      // Fetch the sequence step + lead email details
+      const [seq] = await sql`SELECT * FROM outreach_sequences WHERE id = ${seq_id} AND lead_id = ${params.id}`;
+      if (!seq) return NextResponse.json({ error: 'Sequence not found' }, { status: 404 });
+
+      const [lead] = await sql`SELECT email, contact_name, company FROM leads WHERE id = ${params.id}`;
+
+      // Only attempt email send if channel is 'email' and we have a recipient
+      if (seq.channel === 'email' && lead?.email) {
+        try {
+          await sendEmail({
+            to: lead.email,
+            subject: seq.subject || `Hej ${lead.contact_name?.split(' ')[0] || lead.company}`,
+            html: textToHtml(seq.message),
+            text: seq.message,
+          });
+        } catch (emailErr) {
+          console.error('Email send failed:', emailErr);
+          // Don't block the approve — log the error and continue
+        }
+      }
+
       await sql`UPDATE outreach_sequences SET status = 'sent', sent_at = ${now} WHERE id = ${seq_id} AND lead_id = ${params.id}`;
+
     } else if (action === 'skip') {
       await sql`UPDATE outreach_sequences SET status = 'skipped' WHERE id = ${seq_id} AND lead_id = ${params.id}`;
     } else if (action === 'edit' && message) {

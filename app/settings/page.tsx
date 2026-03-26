@@ -36,7 +36,8 @@ const API_KEYS = [
   { key: 'SLACK_BOT_TOKEN', label: 'Slack Bot Token', hint: 'api.slack.com/apps → OAuth & Permissions' },
   { key: 'SLACK_SIGNING_SECRET', label: 'Slack Signing Secret', hint: 'api.slack.com/apps → Basic Information' },
   { key: 'PHANTOMBUSTER_API_KEY', label: 'Phantombuster API Key', hint: 'phantombuster.com → Settings → API' },
-  { key: 'SENDGRID_API_KEY', label: 'SendGrid API Key', hint: 'app.sendgrid.com → Settings → API Keys' },
+  { key: 'RESEND_API_KEY', label: 'Resend API Key', hint: 'resend.com → API Keys → Create API Key' },
+  { key: 'EMAIL_FROM', label: 'Afsender email', hint: 'F.eks. BusyGroup <salg@busyconsulting.dk> — domænet skal være verificeret i Resend' },
 ];
 
 const NOTIFICATIONS = [
