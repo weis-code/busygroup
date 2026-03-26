@@ -2,46 +2,16 @@ import postgres from 'postgres';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 
-// Singleton connection pool
-let _sql: ReturnType<typeof postgres> | null = null;
+// postgres() is lazy — no connection is made until a query runs.
+// Safe to initialise at module load time (including during `next build`).
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/busygroup';
 
-export function getDb(): ReturnType<typeof postgres> {
-  if (!_sql) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString && process.env.NODE_ENV === 'production') {
-      throw new Error('DATABASE_URL environment variable is required');
-    }
-    // Railway internal URLs (.railway.internal) don't use SSL
-    // External URLs or other production DBs do
-    const isRailwayInternal = connectionString?.includes('.railway.internal');
-    _sql = postgres(connectionString || 'postgresql://postgres:postgres@localhost:5432/busygroup', {
-      max: 10,
-      idle_timeout: 20,
-      connect_timeout: 10,
-      ssl: isRailwayInternal ? false : process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-    });
-  }
-  return _sql;
-}
-
-// Lazy sql proxy — defers connection until first actual DB call
-// Target MUST be a function so tagged template literals (sql`...`) invoke the apply trap
-export const sql = new Proxy(
-  (() => {}) as unknown as ReturnType<typeof postgres>,
-  {
-    get(_target, prop) {
-      const instance = getDb();
-      const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
-      if (typeof value === 'function') {
-        return value.bind(instance);
-      }
-      return value;
-    },
-    apply(_target, _thisArg, args) {
-      return (getDb() as unknown as (...a: unknown[]) => unknown)(...args);
-    },
-  }
-) as ReturnType<typeof postgres>;
+export const sql = postgres(connectionString, {
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
+  ssl: false, // Railway internal network (.railway.internal) does not use SSL
+});
 
 // Schema initialization — kald denne ved server startup
 export async function initSchema(): Promise<void> {
