@@ -35,30 +35,29 @@ export async function GET(req: NextRequest) {
 
   // Hent samtale-liste: seneste besked per kontakt
   const conversations = await sql`
-    SELECT DISTINCT ON (contact_email)
-      CASE
-        WHEN direction = 'inbound' THEN from_email
-        ELSE to_email
-      END as contact_email,
-      CASE
-        WHEN direction = 'inbound' THEN from_name
-        ELSE to_name
-      END as contact_name,
+    SELECT DISTINCT ON (CASE WHEN direction = 'inbound' THEN from_email ELSE to_email END)
+      CASE WHEN direction = 'inbound' THEN from_email ELSE to_email END AS contact_email,
+      CASE WHEN direction = 'inbound' THEN from_name  ELSE to_name   END AS contact_name,
       subject, body_text, direction, received_at, read,
       lead_id, customer_id,
-      l.company as lead_company, l.contact_name as lead_contact_name,
-      c.company as customer_company,
+      l.company            AS lead_company,
+      l.contact_name       AS lead_contact_name,
+      c.company            AS customer_company,
       (
         SELECT COUNT(*) FROM messages m2
-        WHERE (m2.from_email = CASE WHEN messages.direction = 'inbound' THEN messages.from_email ELSE messages.to_email END
-               OR m2.to_email = CASE WHEN messages.direction = 'inbound' THEN messages.from_email ELSE messages.to_email END)
-          AND m2.direction = 'inbound' AND m2.read = false
-      ) as unread_count
+        WHERE (
+          m2.from_email = CASE WHEN messages.direction = 'inbound' THEN messages.from_email ELSE messages.to_email END
+          OR
+          m2.to_email   = CASE WHEN messages.direction = 'inbound' THEN messages.from_email ELSE messages.to_email END
+        )
+        AND m2.direction = 'inbound'
+        AND m2.read = false
+      ) AS unread_count
     FROM messages
-    LEFT JOIN leads l ON messages.lead_id = l.id
+    LEFT JOIN leads     l ON messages.lead_id     = l.id
     LEFT JOIN customers c ON messages.customer_id = c.id
     ${unreadOnly ? sql`WHERE read = false AND direction = 'inbound'` : sql``}
-    ORDER BY contact_email, received_at DESC
+    ORDER BY CASE WHEN direction = 'inbound' THEN from_email ELSE to_email END, received_at DESC
   `;
 
   return NextResponse.json(conversations);
