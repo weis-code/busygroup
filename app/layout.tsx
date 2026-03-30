@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from 'sonner';
-import Sidebar, { SIDEBAR_WIDTH } from '@/components/Sidebar';
+import Sidebar from '@/components/Sidebar';
+import MainContent from '@/components/MainContent';
 import { UserProvider } from '@/lib/UserContext';
+import { SidebarProvider } from '@/lib/SidebarContext';
 
 export const metadata: Metadata = {
   title: 'BusyGroup',
@@ -22,21 +24,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body style={{ background: '#0F1923', color: '#ECF0F1', margin: 0, minHeight: '100vh' }}>
         <UserProvider>
-          <Sidebar />
-          <main style={{ marginLeft: `${SIDEBAR_WIDTH}px`, minHeight: '100vh' }}>
-            {children}
-          </main>
-          <Toaster
-            theme="dark"
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: '#1A2A38',
-                border: '1px solid rgba(255,255,255,0.07)',
-                color: '#ECF0F1',
-              },
-            }}
-          />
+          <SidebarProvider>
+            <Sidebar />
+            <MainContent>{children}</MainContent>
+            <Toaster
+              theme="dark"
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: '#1A2A38',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: '#ECF0F1',
+                },
+              }}
+            />
+          </SidebarProvider>
         </UserProvider>
       </body>
     </html>

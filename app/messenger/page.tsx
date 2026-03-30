@@ -116,7 +116,7 @@ export default function MessengerPage() {
   const totalUnread = conversations.reduce((sum, c) => sum + Number(c.unread_count || 0), 0);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#0F1923' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#0F1923', overflow: 'hidden' }}>
 
       {/* Venstre: samtaleliste */}
       <div style={{
