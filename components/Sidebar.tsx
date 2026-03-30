@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
-import { useSidebar, SIDEBAR_EXPANDED, SIDEBAR_COLLAPSED } from '@/lib/SidebarContext';
+import { useSidebar } from '@/lib/SidebarContext';
 import {
   LayoutDashboard, TrendingUp, MessageSquare,
   Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight,
