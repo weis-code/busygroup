@@ -1,0 +1,26 @@
+{
+  "name": "BusyGroup Dashboard",
+  "short_name": "BusyGroup",
+  "description": "AI Sales Agent Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080F16",
+  "theme_color": "#080F16",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "da"
+}

@@ -82,6 +82,11 @@ export async function runAgent(agentId: string): Promise<{ success: boolean; mes
 }
 
 function registerCrons() {
+  if (process.env.AGENTS_PAUSED === 'true') {
+    console.log('[Runner] ⏸ AGENTS_PAUSED=true — alle cron jobs er deaktiverede');
+    return;
+  }
+
   console.log('[Runner] Registrerer cron jobs...');
 
   for (const [agentId, agent] of Object.entries(AGENTS)) {
@@ -90,6 +95,10 @@ function registerCrons() {
       continue;
     }
     cron.schedule(agent.schedule, async () => {
+      if (process.env.AGENTS_PAUSED === 'true') {
+        console.log(`[Cron] ⏸ Springer ${agent.name} over — agenter er pauseret`);
+        return;
+      }
       console.log(`\n[Cron] Kør ${agent.name} (${agent.schedule})`);
       await runAgent(agentId);
     });

@@ -219,6 +219,52 @@ export async function initSchema(): Promise<void> {
     )
   `;
 
+  // IMAP accounts — en post per email-konto
+  await sql`
+    CREATE TABLE IF NOT EXISTS imap_accounts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      host TEXT NOT NULL,
+      port INTEGER NOT NULL DEFAULT 993,
+      tls BOOLEAN NOT NULL DEFAULT true,
+      username TEXT NOT NULL,
+      password TEXT NOT NULL,
+      active BOOLEAN NOT NULL DEFAULT true,
+      last_sync TEXT,
+      created_at TEXT NOT NULL
+    )
+  `;
+
+  // Unified message store — indgående (IMAP) + udgående (Resend)
+  await sql`
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      imap_account_id TEXT REFERENCES imap_accounts(id),
+      imap_uid INTEGER,
+      direction TEXT NOT NULL DEFAULT 'inbound',
+      from_email TEXT NOT NULL,
+      from_name TEXT,
+      to_email TEXT NOT NULL,
+      to_name TEXT,
+      subject TEXT,
+      body_text TEXT,
+      body_html TEXT,
+      message_id TEXT,
+      in_reply_to TEXT,
+      lead_id TEXT REFERENCES leads(id),
+      customer_id TEXT REFERENCES customers(id),
+      read BOOLEAN NOT NULL DEFAULT false,
+      received_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_from_email ON messages(from_email)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_to_email ON messages(to_email)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_lead_id ON messages(lead_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC)`;
+
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;
   if (Number(agentCount[0].cnt) === 0) {

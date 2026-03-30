@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Play, Download, Plus, Pencil, Trash2, Check, X, Users, ShieldCheck, UserCircle } from 'lucide-react';
+import { Eye, EyeOff, Play, Download, Plus, Pencil, Trash2, Check, X, Users, ShieldCheck, UserCircle, Mail, Server } from 'lucide-react';
 import { useUser } from '@/lib/UserContext';
 
 interface Agent {
@@ -620,6 +620,130 @@ function UsersSection() {
   );
 }
 
+interface ImapAccount {
+  id: string;
+  name: string;
+  email: string;
+  host: string;
+  port: number;
+  tls: boolean;
+  username: string;
+  active: boolean;
+  last_sync: string | null;
+}
+
+function ImapAccountsSection() {
+  const [accounts, setAccounts] = useState<ImapAccount[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', host: '', port: 993, tls: true, username: '', password: '' });
+
+  const inputStyle: React.CSSProperties = {
+    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+    fontSize: '12px', outline: 'none', width: '100%', boxSizing: 'border-box',
+  };
+
+  useEffect(() => {
+    fetch('/api/imap-accounts').then(r => r.ok ? r.json() : []).then(d => setAccounts(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    if (!form.name || !form.email || !form.host || !form.username || !form.password) {
+      toast.error('Udfyld alle felter'); return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/imap-accounts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        const acc = await res.json();
+        setAccounts(prev => [...prev, acc]);
+        setShowForm(false);
+        setForm({ name: '', email: '', host: '', port: 993, tls: true, username: '', password: '' });
+        toast.success(`${acc.name} tilføjet`);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Fejl');
+      }
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Slet "${name}"?`)) return;
+    await fetch(`/api/imap-accounts/${id}`, { method: 'DELETE' });
+    setAccounts(prev => prev.filter(a => a.id !== id));
+    toast.success('Konto slettet');
+  };
+
+  const handleToggle = async (acc: ImapAccount) => {
+    await fetch(`/api/imap-accounts/${acc.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !acc.active }),
+    });
+    setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, active: !a.active } : a));
+  };
+
+  return (
+    <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {accounts.length === 0 && !showForm && (
+        <div style={{ fontSize: '13px', color: '#445566', textAlign: 'center', padding: '16px 0' }}>
+          Ingen IMAP-konti endnu. Tilføj din første konto for at aktivere Messenger.
+        </div>
+      )}
+
+      {accounts.map(acc => (
+        <div key={acc.id} style={{ background: '#1A2A38', borderRadius: '8px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(24,95,165,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Server size={14} style={{ color: '#185FA5' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{acc.name}</div>
+            <div style={{ fontSize: '11px', color: '#667788' }}>{acc.email} · {acc.host}:{acc.port}</div>
+            {acc.last_sync && <div style={{ fontSize: '10px', color: '#445566', marginTop: '1px' }}>Sidst synkroniseret: {new Date(acc.last_sync).toLocaleString('da-DK')}</div>}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div onClick={() => handleToggle(acc)} style={{ width: '36px', height: '20px', borderRadius: '10px', background: acc.active ? '#185FA5' : 'rgba(255,255,255,0.1)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ECF0F1', position: 'absolute', top: '3px', left: acc.active ? '19px' : '3px', transition: 'left 0.2s' }} />
+            </div>
+            <button onClick={() => handleDelete(acc.id, acc.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '4px' }}><Trash2 size={13} /></button>
+          </div>
+        </div>
+      ))}
+
+      {showForm ? (
+        <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1', marginBottom: '4px' }}>Tilføj IMAP-konto</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <input placeholder="Navn (f.eks. Salg Sverige)" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
+            <input placeholder="Email adresse" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+            <input placeholder="IMAP server (f.eks. mail.busyconsulting.dk)" value={form.host} onChange={e => setForm(p => ({ ...p, host: e.target.value }))} style={inputStyle} />
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input placeholder="Port" type="number" value={form.port} onChange={e => setForm(p => ({ ...p, port: Number(e.target.value) }))} style={{ ...inputStyle, width: '80px' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#667788', cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.tls} onChange={e => setForm(p => ({ ...p, tls: e.target.checked }))} /> TLS/SSL
+              </label>
+            </div>
+            <input placeholder="Brugernavn (ofte email)" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} style={inputStyle} />
+            <input placeholder="Password (brug app-password)" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} style={inputStyle} />
+          </div>
+          <div style={{ fontSize: '11px', color: '#445566' }}>Tip: Brug et app-specifikt password, ikke dit rigtige email-password.</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSave} disabled={saving} style={{ background: '#185FA5', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
+              {saving ? 'Gemmer...' : 'Tilføj konto'}
+            </button>
+            <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px 14px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer' }}>Annuller</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(24,95,165,0.1)', border: '1px dashed rgba(24,95,165,0.3)', borderRadius: '8px', padding: '10px 14px', color: '#185FA5', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
+          <Plus size={13} /> Tilføj IMAP-konto
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useUser();
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -696,6 +820,18 @@ export default function SettingsPage() {
             <span>Brugere</span>
           </div>
           <UsersSection />
+        </div>
+      )}
+
+      {/* IMAP Accounts — admin only */}
+      {user?.role === 'admin' && (
+        <div style={sectionStyle}>
+          <div style={{ ...sectionHeaderStyle, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Mail size={14} />
+            <span>Email konti (IMAP)</span>
+            <span style={{ fontSize: '11px', color: '#667788', fontWeight: 400, marginLeft: 'auto' }}>Bruges til Messenger + automatisk svardetektion</span>
+          </div>
+          <ImapAccountsSection />
         </div>
       )}
 
