@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
@@ -24,14 +24,12 @@ const W_CLOSED = 56;
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useUser();
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Husk brugerens valg på tværs af sider
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem('sb') === '1');
-    } catch { /* ignore */ }
-  }, []);
+  // Læs fra localStorage synkront ved første render (lazy init)
+  // Undgår flash og fungerer korrekt på alle sider
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try { return localStorage.getItem('sb') === '1'; } catch { return false; }
+  });
 
   const toggle = () => {
     setCollapsed(prev => {
