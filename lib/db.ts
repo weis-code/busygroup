@@ -265,6 +265,41 @@ export async function initSchema(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_messages_lead_id ON messages(lead_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_messages_received_at ON messages(received_at DESC)`;
 
+  // ── Intern chat (Messenger) ────────────────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id          TEXT PRIMARY KEY,
+      type        TEXT NOT NULL DEFAULT 'direct',  -- 'direct' | 'group'
+      name        TEXT,                             -- kun for grupper
+      created_by  TEXT REFERENCES users(id),
+      created_at  TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS chat_members (
+      id              TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      last_read_at    TEXT,
+      joined_at       TEXT NOT NULL,
+      UNIQUE(conversation_id, user_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id              TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+      sender_id       TEXT NOT NULL REFERENCES users(id),
+      content         TEXT NOT NULL,
+      created_at      TEXT NOT NULL
+    )
+  `;
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id, created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id)`;
+
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;
   if (Number(agentCount[0].cnt) === 0) {

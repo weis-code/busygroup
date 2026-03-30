@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  LayoutDashboard, TrendingUp, MessageSquare,
+  LayoutDashboard, TrendingUp, MessageSquare, Mail,
   Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Oversigt',      href: '/',          icon: LayoutDashboard },
   { label: 'Messenger',     href: '/messenger',  icon: MessageSquare   },
+  { label: 'Mail',          href: '/mail',       icon: Mail            },
   { label: 'CRM',           href: '/crm',        icon: TrendingUp      },
   { label: 'Kunder',        href: '/kunder',     icon: Building2       },
   { label: 'Agenter',       href: '/pipeline',   icon: Bot             },
