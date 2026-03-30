@@ -7,19 +7,28 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Ingen adgang' }, { status: 403 });
+  if (!session) return NextResponse.json({ error: 'Ingen adgang' }, { status: 403 });
 
-  const accounts = await sql`
-    SELECT id, name, email, host, port, tls, username, active, last_sync, created_at
-    FROM imap_accounts
-    ORDER BY created_at ASC
-  `;
+  // Admins see all accounts; regular users only see their own
+  const accounts = session.role === 'admin'
+    ? await sql`
+        SELECT id, name, email, host, port, tls, username, active, last_sync, created_at, user_id
+        FROM imap_accounts
+        ORDER BY created_at ASC
+      `
+    : await sql`
+        SELECT id, name, email, host, port, tls, username, active, last_sync, created_at, user_id
+        FROM imap_accounts
+        WHERE user_id = ${session.id}
+        ORDER BY created_at ASC
+      `;
+
   return NextResponse.json(accounts);
 }
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Ingen adgang' }, { status: 403 });
+  if (!session) return NextResponse.json({ error: 'Ingen adgang' }, { status: 403 });
 
   const {
     name, email, host, port = 993, tls = true, username, password,
@@ -35,10 +44,10 @@ export async function POST(req: NextRequest) {
   await sql`
     INSERT INTO imap_accounts (
       id, name, email, host, port, tls, username, password, active, created_at,
-      smtp_host, smtp_port, smtp_secure, smtp_user, smtp_password
+      smtp_host, smtp_port, smtp_secure, smtp_user, smtp_password, user_id
     ) VALUES (
       ${id}, ${name}, ${email}, ${host}, ${port}, ${tls}, ${username}, ${password}, true, ${now},
-      ${smtp_host}, ${smtp_port}, ${smtp_secure}, ${smtp_user}, ${smtp_password}
+      ${smtp_host}, ${smtp_port}, ${smtp_secure}, ${smtp_user}, ${smtp_password}, ${session.id}
     )
   `;
   return NextResponse.json({ id, name, email, active: true, created_at: now }, { status: 201 });

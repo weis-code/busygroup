@@ -237,7 +237,8 @@ export async function initSchema(): Promise<void> {
       smtp_port INTEGER DEFAULT 587,
       smtp_secure BOOLEAN DEFAULT false,
       smtp_user TEXT,
-      smtp_password TEXT
+      smtp_password TEXT,
+      user_id TEXT
     )
   `;
 
@@ -247,6 +248,7 @@ export async function initSchema(): Promise<void> {
   await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_secure BOOLEAN DEFAULT false`.catch(() => {});
   await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_user TEXT`.catch(() => {});
   await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_password TEXT`.catch(() => {});
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS user_id TEXT`.catch(() => {});
 
   // Unified message store — indgående (IMAP) + udgående (Resend)
   await sql`

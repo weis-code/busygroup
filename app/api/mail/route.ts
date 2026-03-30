@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { sendViaSMTP } from '@/lib/smtp';
+import { getSession } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -32,8 +33,16 @@ export async function GET(req: NextRequest) {
   }
 
   // Hent email-liste
+  // Kun vis emails for brugerens egne konti
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
+
   const dirFilter = folder === 'sent' ? sql`AND m.direction = 'outbound'` : sql`AND m.direction = 'inbound'`;
   const accFilter = accountId ? sql`AND m.imap_account_id = ${accountId}` : sql``;
+  // Admin ser alle konti, andre brugere kun egne
+  const userFilter = session.role === 'admin'
+    ? sql``
+    : sql`AND (ia.user_id = ${session.id} OR ia.user_id IS NULL)`;
 
   const emails = await sql`
     SELECT
@@ -49,10 +58,11 @@ export async function GET(req: NextRequest) {
     FROM messages m
     LEFT JOIN leads          l  ON m.lead_id          = l.id
     LEFT JOIN customers      c  ON m.customer_id      = c.id
-    LEFT JOIN imap_accounts  ia ON m.imap_account_id  = ia.id
+    INNER JOIN imap_accounts ia ON m.imap_account_id  = ia.id
     WHERE 1=1
     ${dirFilter}
     ${accFilter}
+    ${userFilter}
     ORDER BY m.received_at DESC
     LIMIT ${limit}
   `;
