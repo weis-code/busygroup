@@ -12,12 +12,14 @@ export async function GET() {
   // Admins see all accounts; regular users only see their own
   const accounts = session.role === 'admin'
     ? await sql`
-        SELECT id, name, email, host, port, tls, username, active, last_sync, created_at, user_id
+        SELECT id, name, email, host, port, tls, username, active, last_sync, created_at, user_id,
+               smtp_host, smtp_port, smtp_secure, smtp_user
         FROM imap_accounts
         ORDER BY created_at ASC
       `
     : await sql`
-        SELECT id, name, email, host, port, tls, username, active, last_sync, created_at, user_id
+        SELECT id, name, email, host, port, tls, username, active, last_sync, created_at, user_id,
+               smtp_host, smtp_port, smtp_secure, smtp_user
         FROM imap_accounts
         WHERE user_id = ${session.id}
         ORDER BY created_at ASC

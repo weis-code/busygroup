@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Play, Download, Plus, Pencil, Trash2, Check, X, Users, ShieldCheck, UserCircle, Mail, Server } from 'lucide-react';
+import { Eye, EyeOff, Play, Download, Plus, Pencil, Trash2, Check, X, Users, ShieldCheck, UserCircle, Mail, Server, Send } from 'lucide-react';
 import { useUser } from '@/lib/UserContext';
 
 interface Agent {
@@ -630,17 +630,24 @@ interface ImapAccount {
   username: string;
   active: boolean;
   last_sync: string | null;
+  smtp_host: string | null;
+  smtp_port: number | null;
+  smtp_secure: boolean | null;
+  smtp_user: string | null;
 }
+
+const emptyImapForm = {
+  name: '', email: '',
+  host: '', port: 993, tls: true, username: '', password: '',
+  smtp_host: '', smtp_port: 587, smtp_secure: false, smtp_user: '', smtp_password: '',
+};
 
 function ImapAccountsSection() {
   const [accounts, setAccounts] = useState<ImapAccount[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    name: '', email: '',
-    host: '', port: 993, tls: true, username: '', password: '',
-    smtp_host: '', smtp_port: 587, smtp_secure: false, smtp_user: '', smtp_password: '',
-  });
+  const [form, setForm] = useState(emptyImapForm);
 
   const inputStyle: React.CSSProperties = {
     background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
@@ -652,24 +659,73 @@ function ImapAccountsSection() {
     fetch('/api/imap-accounts').then(r => r.ok ? r.json() : []).then(d => setAccounts(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
+  const openEdit = (acc: ImapAccount) => {
+    setEditingId(acc.id);
+    setForm({
+      name: acc.name,
+      email: acc.email,
+      host: acc.host,
+      port: acc.port,
+      tls: acc.tls,
+      username: acc.username,
+      password: '', // don't pre-fill password
+      smtp_host: acc.smtp_host || '',
+      smtp_port: acc.smtp_port || 587,
+      smtp_secure: acc.smtp_secure || false,
+      smtp_user: acc.smtp_user || '',
+      smtp_password: '', // don't pre-fill
+    });
+    setShowForm(true);
+  };
+
   const handleSave = async () => {
-    if (!form.name || !form.email || !form.host || !form.username || !form.password) {
+    if (!editingId && (!form.name || !form.email || !form.host || !form.username || !form.password)) {
       toast.error('Udfyld alle felter'); return;
     }
+    if (editingId && !form.name) { toast.error('Navn er påkrævet'); return; }
+
     setSaving(true);
     try {
-      const res = await fetch('/api/imap-accounts', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        const acc = await res.json();
-        setAccounts(prev => [...prev, acc]);
-        setShowForm(false);
-        setForm({ name: '', email: '', host: '', port: 993, tls: true, username: '', password: '', smtp_host: '', smtp_port: 587, smtp_secure: false, smtp_user: '', smtp_password: '' });
-        toast.success(`${acc.name} tilføjet`);
+      if (editingId) {
+        // Build only changed/non-empty fields
+        const body: Record<string, unknown> = {
+          name: form.name, email: form.email,
+          host: form.host, port: form.port, tls: form.tls, username: form.username,
+          smtp_host: form.smtp_host || null, smtp_port: form.smtp_port,
+          smtp_secure: form.smtp_secure,
+          smtp_user: form.smtp_user || null,
+        };
+        if (form.password.trim()) body.password = form.password;
+        if (form.smtp_password.trim()) body.smtp_password = form.smtp_password;
+
+        const res = await fetch(`/api/imap-accounts/${editingId}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const updated = await res.json() as ImapAccount;
+          setAccounts(prev => prev.map(a => a.id === editingId ? { ...a, ...updated } : a));
+          setShowForm(false);
+          setEditingId(null);
+          setForm(emptyImapForm);
+          toast.success('Konto opdateret');
+        } else {
+          const err = await res.json() as { error?: string };
+          toast.error(err.error || 'Fejl');
+        }
       } else {
-        const err = await res.json();
-        toast.error(err.error || 'Fejl');
+        const res = await fetch('/api/imap-accounts', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+        });
+        if (res.ok) {
+          const acc = await res.json() as ImapAccount;
+          setAccounts(prev => [...prev, acc]);
+          setShowForm(false);
+          setForm(emptyImapForm);
+          toast.success(`${acc.name} tilføjet`);
+        } else {
+          const err = await res.json() as { error?: string };
+          toast.error(err.error || 'Fejl');
+        }
       }
     } finally { setSaving(false); }
   };
@@ -688,11 +744,13 @@ function ImapAccountsSection() {
     setAccounts(prev => prev.map(a => a.id === acc.id ? { ...a, active: !a.active } : a));
   };
 
+  const cancelForm = () => { setShowForm(false); setEditingId(null); setForm(emptyImapForm); };
+
   return (
     <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {accounts.length === 0 && !showForm && (
         <div style={{ fontSize: '13px', color: '#445566', textAlign: 'center', padding: '16px 0' }}>
-          Ingen IMAP-konti endnu. Tilføj din første konto for at aktivere Messenger.
+          Ingen IMAP-konti endnu. Tilføj din første konto nedenfor.
         </div>
       )}
 
@@ -702,73 +760,93 @@ function ImapAccountsSection() {
             <Server size={14} style={{ color: '#E84025' }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{acc.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{acc.name}</span>
+              {acc.smtp_host && (
+                <span style={{ fontSize: '10px', color: '#2ECC71', background: 'rgba(46,204,113,0.12)', padding: '1px 6px', borderRadius: '4px' }}>SMTP</span>
+              )}
+            </div>
             <div style={{ fontSize: '11px', color: '#667788' }}>{acc.email} · {acc.host}:{acc.port}</div>
             {acc.last_sync && <div style={{ fontSize: '10px', color: '#445566', marginTop: '1px' }}>Sidst synkroniseret: {new Date(acc.last_sync).toLocaleString('da-DK')}</div>}
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             <div onClick={() => handleToggle(acc)} style={{ width: '36px', height: '20px', borderRadius: '10px', background: acc.active ? '#E84025' : 'rgba(255,255,255,0.1)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
               <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ECF0F1', position: 'absolute', top: '3px', left: acc.active ? '19px' : '3px', transition: 'left 0.2s' }} />
             </div>
-            <button onClick={() => handleDelete(acc.id, acc.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '4px' }}><Trash2 size={13} /></button>
+            <button onClick={() => openEdit(acc)} title="Rediger" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#8899AA' }}><Pencil size={12} /></button>
+            <button onClick={() => handleDelete(acc.id, acc.name)} title="Slet" style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#445566' }}><Trash2 size={12} /></button>
           </div>
         </div>
       ))}
 
       {showForm ? (
         <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>Tilføj email-konto</div>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>
+            {editingId ? 'Rediger email-konto' : 'Tilføj email-konto'}
+          </div>
 
           {/* Basis */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <input placeholder="Navn (f.eks. Salg)" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
-            <input placeholder="Email adresse" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+            <div>
+              <label style={{ fontSize: '10px', color: '#667788', display: 'block', marginBottom: '4px' }}>Kontonavn *</label>
+              <input placeholder="F.eks. Salg" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inputStyle} autoFocus />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', color: '#667788', display: 'block', marginBottom: '4px' }}>Email adresse *</label>
+              <input placeholder="navn@firma.dk" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+            </div>
           </div>
 
           {/* IMAP */}
           <div>
-            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>IMAP (modtag)</div>
+            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Mail size={10} /> IMAP (modtag)
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: '8px', alignItems: 'center' }}>
-              <input placeholder="IMAP server (f.eks. imap.gmail.com)" value={form.host} onChange={e => setForm(p => ({ ...p, host: e.target.value }))} style={inputStyle} />
-              <input placeholder="Port" type="number" value={form.port} onChange={e => setForm(p => ({ ...p, port: Number(e.target.value) }))} style={inputStyle} />
+              <input placeholder="imap.gmail.com" value={form.host} onChange={e => setForm(p => ({ ...p, host: e.target.value }))} style={inputStyle} />
+              <input placeholder="993" type="number" value={form.port} onChange={e => setForm(p => ({ ...p, port: Number(e.target.value) }))} style={inputStyle} />
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#667788', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 <input type="checkbox" checked={form.tls} onChange={e => setForm(p => ({ ...p, tls: e.target.checked }))} /> SSL/TLS
               </label>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
               <input placeholder="Brugernavn (ofte email)" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} style={inputStyle} />
-              <input placeholder="IMAP password / app-password" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} style={inputStyle} />
+              <input placeholder={editingId ? 'IMAP password (lad tomt = uændret)' : 'IMAP password / app-password *'} type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} style={inputStyle} />
             </div>
           </div>
 
           {/* SMTP */}
           <div>
-            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>SMTP (send) — bruges i stedet for Resend</div>
+            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Send size={10} /> SMTP (send)
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: '8px', alignItems: 'center' }}>
-              <input placeholder="SMTP server (f.eks. smtp.gmail.com)" value={form.smtp_host} onChange={e => setForm(p => ({ ...p, smtp_host: e.target.value }))} style={inputStyle} />
-              <input placeholder="Port" type="number" value={form.smtp_port} onChange={e => setForm(p => ({ ...p, smtp_port: Number(e.target.value) }))} style={inputStyle} />
+              <input placeholder="smtp.gmail.com" value={form.smtp_host} onChange={e => setForm(p => ({ ...p, smtp_host: e.target.value }))} style={inputStyle} />
+              <input placeholder="587" type="number" value={form.smtp_port} onChange={e => setForm(p => ({ ...p, smtp_port: Number(e.target.value) }))} style={inputStyle} />
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#667788', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 <input type="checkbox" checked={form.smtp_secure} onChange={e => setForm(p => ({ ...p, smtp_secure: e.target.checked }))} /> Port 465
               </label>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
-              <input placeholder="SMTP brugernavn (lad stå tomt = samme som IMAP)" value={form.smtp_user} onChange={e => setForm(p => ({ ...p, smtp_user: e.target.value }))} style={inputStyle} />
-              <input placeholder="SMTP password (lad stå tomt = samme som IMAP)" type="password" value={form.smtp_password} onChange={e => setForm(p => ({ ...p, smtp_password: e.target.value }))} style={inputStyle} />
+              <input placeholder="SMTP brugernavn (tomt = samme som IMAP)" value={form.smtp_user} onChange={e => setForm(p => ({ ...p, smtp_user: e.target.value }))} style={inputStyle} />
+              <input placeholder={editingId ? 'SMTP password (tomt = uændret)' : 'SMTP password (tomt = samme som IMAP)'} type="password" value={form.smtp_password} onChange={e => setForm(p => ({ ...p, smtp_password: e.target.value }))} style={inputStyle} />
             </div>
           </div>
 
           <div style={{ fontSize: '11px', color: '#445566' }}>
-            Gmail/Outlook: Brug et app-specifikt password. SMTP-felter kan oftest stå tomme — systemet bruger da IMAP-passwordet.
+            Gmail: Brug et app-specifikt password (Google Konto → Sikkerhed → App-adgangskoder). SMTP-host kan oftest stå tomt, systemet gætter det automatisk.
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleSave} disabled={saving} style={{ background: '#E84025', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
-              {saving ? 'Gemmer...' : 'Tilføj konto'}
+            <button onClick={handleSave} disabled={saving} style={{ background: '#E84025', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Check size={13} /> {saving ? 'Gemmer...' : editingId ? 'Gem ændringer' : 'Tilføj konto'}
             </button>
-            <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px 14px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer' }}>Annuller</button>
+            <button onClick={cancelForm} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px 14px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <X size={13} /> Annuller
+            </button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.1)', border: '1px dashed rgba(232,64,37,0.3)', borderRadius: '8px', padding: '10px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
+        <button onClick={() => { setEditingId(null); setForm(emptyImapForm); setShowForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.1)', border: '1px dashed rgba(232,64,37,0.3)', borderRadius: '8px', padding: '10px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
           <Plus size={13} /> Tilføj IMAP-konto
         </button>
       )}
