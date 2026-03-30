@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, Send, Pencil, Inbox, SendHorizonal, ChevronDown, X, ArrowLeft, User } from 'lucide-react';
+import { RefreshCw, Send, Pencil, Inbox, SendHorizonal, X, ArrowLeft, User } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Email {
@@ -373,7 +373,7 @@ export default function MailPage() {
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#334455', gap: 8 }}>
             <Inbox size={40} style={{ opacity: 0.2 }} />
             <div style={{ fontSize: 14 }}>Vælg en email</div>
-            <div style={{ fontSize: 11 }}>eller klik "Ny mail" for at sende</div>
+            <div style={{ fontSize: 11 }}>eller klik Ny mail for at sende</div>
           </div>
         )}
       </div>

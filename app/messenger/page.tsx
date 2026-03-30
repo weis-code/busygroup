@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Send, Plus, Users, MessageSquare, Hash, ChevronDown, X, Check,
+  Send, Plus, Users, MessageSquare, Hash, X, Check,
 } from 'lucide-react';
 
 interface Conversation {
