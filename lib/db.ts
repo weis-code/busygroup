@@ -232,9 +232,21 @@ export async function initSchema(): Promise<void> {
       password TEXT NOT NULL,
       active BOOLEAN NOT NULL DEFAULT true,
       last_sync TEXT,
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      smtp_host TEXT,
+      smtp_port INTEGER DEFAULT 587,
+      smtp_secure BOOLEAN DEFAULT false,
+      smtp_user TEXT,
+      smtp_password TEXT
     )
   `;
+
+  // Tilføj SMTP-kolonner til eksisterende tabel (migration)
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_host TEXT`.catch(() => {});
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_port INTEGER DEFAULT 587`.catch(() => {});
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_secure BOOLEAN DEFAULT false`.catch(() => {});
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_user TEXT`.catch(() => {});
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS smtp_password TEXT`.catch(() => {});
 
   // Unified message store — indgående (IMAP) + udgående (Resend)
   await sql`

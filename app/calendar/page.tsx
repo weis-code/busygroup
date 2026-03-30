@@ -87,7 +87,7 @@ const EVENTS: CalEvent[] = BASE_EVENTS.map((e, i) => ({ ...e, id: String(i) }));
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 08 – 18
 const SLOT_HEIGHT = 64; // px per hour
 const TIME_COL_W  = 52;
-const DAY_COLS    = 6; // Mon–Sat
+// Mon–Sat: 6 columns rendered via DAYS_OF_WEEK array
 
 const MY_CALENDARS = [
   { label: 'Mads Busy',     color: '#F87171' },
@@ -201,7 +201,6 @@ export default function CalendarPage() {
     setMiniDate(weekStart);
   }, [weekStart]);
 
-  const weekEnd       = addDays(weekStart, 5); // Sat
   const weekNumber    = getWeekNumber(weekStart);
   const monthLabel    = DA_MONTHS[weekStart.getMonth()];
   const yearLabel     = weekStart.getFullYear();

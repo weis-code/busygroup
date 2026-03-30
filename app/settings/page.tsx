@@ -636,7 +636,11 @@ function ImapAccountsSection() {
   const [accounts, setAccounts] = useState<ImapAccount[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', host: '', port: 993, tls: true, username: '', password: '' });
+  const [form, setForm] = useState({
+    name: '', email: '',
+    host: '', port: 993, tls: true, username: '', password: '',
+    smtp_host: '', smtp_port: 587, smtp_secure: false, smtp_user: '', smtp_password: '',
+  });
 
   const inputStyle: React.CSSProperties = {
     background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
@@ -661,7 +665,7 @@ function ImapAccountsSection() {
         const acc = await res.json();
         setAccounts(prev => [...prev, acc]);
         setShowForm(false);
-        setForm({ name: '', email: '', host: '', port: 993, tls: true, username: '', password: '' });
+        setForm({ name: '', email: '', host: '', port: 993, tls: true, username: '', password: '', smtp_host: '', smtp_port: 587, smtp_secure: false, smtp_user: '', smtp_password: '' });
         toast.success(`${acc.name} tilføjet`);
       } else {
         const err = await res.json();
@@ -712,22 +716,50 @@ function ImapAccountsSection() {
       ))}
 
       {showForm ? (
-        <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1', marginBottom: '4px' }}>Tilføj IMAP-konto</div>
+        <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>Tilføj email-konto</div>
+
+          {/* Basis */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <input placeholder="Navn (f.eks. Salg Sverige)" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
+            <input placeholder="Navn (f.eks. Salg)" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inputStyle} />
             <input placeholder="Email adresse" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
-            <input placeholder="IMAP server (f.eks. mail.busyconsulting.dk)" value={form.host} onChange={e => setForm(p => ({ ...p, host: e.target.value }))} style={inputStyle} />
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <input placeholder="Port" type="number" value={form.port} onChange={e => setForm(p => ({ ...p, port: Number(e.target.value) }))} style={{ ...inputStyle, width: '80px' }} />
-              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#667788', cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.tls} onChange={e => setForm(p => ({ ...p, tls: e.target.checked }))} /> TLS/SSL
+          </div>
+
+          {/* IMAP */}
+          <div>
+            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>IMAP (modtag)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: '8px', alignItems: 'center' }}>
+              <input placeholder="IMAP server (f.eks. imap.gmail.com)" value={form.host} onChange={e => setForm(p => ({ ...p, host: e.target.value }))} style={inputStyle} />
+              <input placeholder="Port" type="number" value={form.port} onChange={e => setForm(p => ({ ...p, port: Number(e.target.value) }))} style={inputStyle} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#667788', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <input type="checkbox" checked={form.tls} onChange={e => setForm(p => ({ ...p, tls: e.target.checked }))} /> SSL/TLS
               </label>
             </div>
-            <input placeholder="Brugernavn (ofte email)" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} style={inputStyle} />
-            <input placeholder="Password (brug app-password)" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} style={inputStyle} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+              <input placeholder="Brugernavn (ofte email)" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} style={inputStyle} />
+              <input placeholder="IMAP password / app-password" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} style={inputStyle} />
+            </div>
           </div>
-          <div style={{ fontSize: '11px', color: '#445566' }}>Tip: Brug et app-specifikt password, ikke dit rigtige email-password.</div>
+
+          {/* SMTP */}
+          <div>
+            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>SMTP (send) — bruges i stedet for Resend</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px auto', gap: '8px', alignItems: 'center' }}>
+              <input placeholder="SMTP server (f.eks. smtp.gmail.com)" value={form.smtp_host} onChange={e => setForm(p => ({ ...p, smtp_host: e.target.value }))} style={inputStyle} />
+              <input placeholder="Port" type="number" value={form.smtp_port} onChange={e => setForm(p => ({ ...p, smtp_port: Number(e.target.value) }))} style={inputStyle} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#667788', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <input type="checkbox" checked={form.smtp_secure} onChange={e => setForm(p => ({ ...p, smtp_secure: e.target.checked }))} /> Port 465
+              </label>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+              <input placeholder="SMTP brugernavn (lad stå tomt = samme som IMAP)" value={form.smtp_user} onChange={e => setForm(p => ({ ...p, smtp_user: e.target.value }))} style={inputStyle} />
+              <input placeholder="SMTP password (lad stå tomt = samme som IMAP)" type="password" value={form.smtp_password} onChange={e => setForm(p => ({ ...p, smtp_password: e.target.value }))} style={inputStyle} />
+            </div>
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#445566' }}>
+            Gmail/Outlook: Brug et app-specifikt password. SMTP-felter kan oftest stå tomme — systemet bruger da IMAP-passwordet.
+          </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={handleSave} disabled={saving} style={{ background: '#185FA5', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
               {saving ? 'Gemmer...' : 'Tilføj konto'}
@@ -828,8 +860,8 @@ export default function SettingsPage() {
         <div style={sectionStyle}>
           <div style={{ ...sectionHeaderStyle, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Mail size={14} />
-            <span>Email konti (IMAP)</span>
-            <span style={{ fontSize: '11px', color: '#667788', fontWeight: 400, marginLeft: 'auto' }}>Bruges til Messenger + automatisk svardetektion</span>
+            <span>Email konti (IMAP + SMTP)</span>
+            <span style={{ fontSize: '11px', color: '#667788', fontWeight: 400, marginLeft: 'auto' }}>Modtag via IMAP · Send via SMTP — ingen Resend nødvendigt</span>
           </div>
           <ImapAccountsSection />
         </div>

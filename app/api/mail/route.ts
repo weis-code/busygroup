@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { sendEmail, textToHtml } from '@/lib/email';
+import { sendViaSMTP } from '@/lib/smtp';
 import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -81,13 +81,27 @@ export async function POST(req: NextRequest) {
 
   const msgSubject = subject || '(Intet emne)';
 
-  await sendEmail({ to, subject: msgSubject, html: textToHtml(body), text: body, from: fromEmail, replyTo: fromEmail });
+  try {
+    await sendViaSMTP({
+      fromAccountId: fromAccountId || accountId,
+      to,
+      subject: msgSubject,
+      text: body,
+    });
+  } catch (smtpErr) {
+    console.error('[mail/send] SMTP fejl:', smtpErr);
+    return NextResponse.json(
+      { error: `SMTP fejl: ${String(smtpErr)}` },
+      { status: 500 }
+    );
+  }
 
   // Match til lead/kunde
   const [lead]     = await sql`SELECT id FROM leads     WHERE email         = ${to} LIMIT 1`;
   const [customer] = await sql`SELECT id FROM customers WHERE contact_email = ${to} LIMIT 1`;
 
   const now = new Date().toISOString();
+  const senderEmail = fromEmail.includes('<') ? fromEmail.replace(/.*<(.+)>.*/, '$1') : fromEmail;
   await sql`
     INSERT INTO messages (
       id, imap_account_id, direction, from_email, from_name,
@@ -95,7 +109,7 @@ export async function POST(req: NextRequest) {
       lead_id, customer_id, read, received_at, created_at
     ) VALUES (
       ${randomUUID()}, ${accountId},
-      'outbound', ${fromEmail.replace(/.*<(.+)>/, '$1')}, ${fromName},
+      'outbound', ${senderEmail}, ${fromName},
       ${to}, ${msgSubject}, ${body},
       ${(lead as unknown as Record<string,string>)?.id || null},
       ${(customer as unknown as Record<string,string>)?.id || null},
@@ -103,7 +117,6 @@ export async function POST(req: NextRequest) {
     )
   `;
 
-  // Opdater original email som besvaret
   if (inReplyToId) {
     await sql`UPDATE messages SET read = true WHERE id = ${inReplyToId}`;
   }

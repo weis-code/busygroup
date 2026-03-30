@@ -6,7 +6,7 @@ import {
   LineChart, Line, CartesianGrid,
 } from 'recharts';
 import { MarketBadge, LeadStatusBadge } from '@/components/StatusBadge';
-import { Bot, Play, Clock, Zap, TrendingUp, AlertCircle } from 'lucide-react';
+import { Play, Clock, Zap, TrendingUp, AlertCircle } from 'lucide-react';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 
