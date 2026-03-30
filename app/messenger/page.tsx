@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Send, Plus, Users, MessageSquare, Hash, X, Check, Search,
+  Send, Plus, MessageSquare, Hash, X, Check, Search,
   Settings, Zap,
 } from 'lucide-react';
 
@@ -37,16 +37,6 @@ interface User {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatTime(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return d.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-  if (days === 1) return 'I går';
-  return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
-}
 
 function formatMsgTime(iso: string) {
   return new Date(iso).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
@@ -204,8 +194,6 @@ export default function MessengerPage() {
   };
 
   const selectedConv = conversations.find(c => c.id === selectedId);
-  const totalUnread = conversations.reduce((sum, c) => sum + Number(c.unread_count || 0), 0);
-
   // Split conversations into groups (type=group) and directs
   const groups = conversations.filter(c => c.type === 'group');
   const directs = conversations.filter(c => c.type === 'direct');
