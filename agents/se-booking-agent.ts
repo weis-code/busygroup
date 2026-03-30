@@ -1,29 +1,24 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { sql } from '../lib/db';
 import { postMeetingBooked, postError } from '../lib/slack';
+import { sendEmail, textToHtml } from '../lib/email';
 import { randomUUID } from 'crypto';
 
-export const schedule = '0 9 * * *';
+export const schedule = '0 9 * * *'; // Dagligt kl. 9
 
 export const systemPrompt = `Du er booking-agent for BusyConsultings svenske marked.
-Mod leads: skriv på svensk.
-Mod salgsteamet: skriv på dansk.
+Du skriver ALTID på professionel, naturlig svenska mod leads.
 
-Når et lead er interesseret:
-1. Foreslå 3 mødetider (næste 5 hverdage, 09-16)
-2. Skriv en kort bookingbesked
-3. Forbered mødeagenda
+Når et lead er interesseret, send en booking email med:
+1. Varm taksigelse for interessen
+2. Forslag om 20-minutters demo-møde
+3. Et Calendly-link til at booke tid
+4. Kort agenda
 
 Returner præcis dette JSON:
 {
-  "booking_message": "besked på svensk",
-  "meeting_times": ["Man 24. mar 10:00", "Tir 25. mar 14:00", "Ons 26. mar 11:00"],
-  "agenda": [
-    "Intro BusyConsulting (5 min)",
-    "Jeres situation med opkald (10 min)",
-    "Demo AI Receptionist (10 min)",
-    "Næste skridt (5 min)"
-  ]
+  "subject": "Emnefeldt på svenska — bekräftelse + company name",
+  "message": "Email-tekst på svenska — inkluder [CALENDLY_URL] som placeholder til Calendly-linket"
 }`;
 
 export interface AgentResult {
@@ -40,63 +35,105 @@ export async function run(): Promise<AgentResult> {
     console.log('[SE Booking] Starter booking-tjek...');
 
     const leads = await sql`
-      SELECT * FROM leads WHERE status = 'interested' AND market = 'sweden'
+      SELECT * FROM leads
+      WHERE status = 'interested'
+        AND market = 'sweden'
+        AND email IS NOT NULL
     `;
 
     actions.push(`${leads.length} interesserede leads fundet`);
 
-    const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
+    if (leads.length === 0) {
+      return { success: true, actions, data: { booked: 0 } };
+    }
+
+    const anthropic = process.env.ANTHROPIC_API_KEY
+      ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      : null;
+
+    const fromEmail = process.env.OUTREACH_FROM_EMAIL || 'BusyConsulting Sverige <sverige@busyconsulting.dk>';
+    const calendlyUrl = process.env.CALENDLY_URL || 'https://calendly.com/busyconsulting/demo';
     const now = new Date();
     let booked = 0;
 
     for (const lead of leads as Array<Record<string, string>>) {
       try {
-        let bookingData = {
-          booking_message: `Hej ${lead.contact_name?.split(' ')[0]}! Tack för ditt intresse. Kan vi boka ett kort möte denna vecka?`,
-          meeting_times: ['Mån 10:00', 'Tis 14:00', 'Ons 11:00'],
-          agenda: ['Intro BusyConsulting (5 min)', 'Er situation (10 min)', 'Demo AI Receptionist (10 min)', 'Nästa steg (5 min)'],
-        };
+        const firstName = lead.contact_name?.split(' ')[0] || 'där';
+
+        let subject = `Bekräftelse – demo med ${lead.company} och BusyConsulting`;
+        let message = `Hej ${firstName}!\n\nTack för ditt intresse! Det känns kul att ni vill se mer.\n\nJag skulle gärna boka in ett kort 20-minuterssamtal där vi visar hur AI-receptionist kan fungera för ${lead.company}.\n\nBoka en tid som passar er här:\n${calendlyUrl}\n\nAgenda:\n- Intro BusyConsulting (3 min)\n- Er situation med inkommande samtal (7 min)\n- Live demo AI Receptionist (7 min)\n- Nästa steg (3 min)\n\nSer fram emot att ses!\n\nMed vänliga hälsningar,\nBusyConsulting Sverige`;
 
         if (anthropic) {
           const resp = await anthropic.messages.create({
-            model: 'claude-opus-4-6',
+            model: 'claude-opus-4-5',
             max_tokens: 500,
             system: systemPrompt,
             messages: [{
               role: 'user',
-              content: `Lead: ${lead.company}, ${lead.contact_name} (${lead.contact_title}). ${lead.why_they_fit}`
+              content: `Lead: ${lead.company} (${lead.company_size}), ${lead.contact_name} (${lead.contact_title}). ${lead.why_they_fit}`,
             }],
           });
           const text = (resp.content[0] as { text: string }).text;
           const jsonMatch = text.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            bookingData = { ...bookingData, ...JSON.parse(jsonMatch[0]) };
+            const parsed = JSON.parse(jsonMatch[0]);
+            subject = parsed.subject || subject;
+            // Erstat placeholder med faktisk Calendly-URL
+            message = (parsed.message || message).replace('[CALENDLY_URL]', calendlyUrl);
           }
         }
 
-        const scheduledAt = new Date(now.getTime() + 2 * 24 * 3600000).toISOString();
+        // Send booking email
+        await sendEmail({
+          to: lead.email,
+          subject,
+          html: textToHtml(message),
+          text: message,
+          from: fromEmail,
+          replyTo: fromEmail,
+        });
 
+        // Gem møde i database
+        const scheduledAt = new Date(now.getTime() + 3 * 24 * 3600000).toISOString();
         await sql`
-          INSERT INTO meetings (id, lead_id, title, scheduled_at, duration_minutes, status, created_at)
-          VALUES (${randomUUID()}, ${lead.id}, ${'Demo møde – ' + lead.company}, ${scheduledAt}, 30, 'scheduled', ${now.toISOString()})
+          INSERT INTO meetings (id, lead_id, title, scheduled_at, duration_minutes, status, notes, created_at)
+          VALUES (
+            ${randomUUID()}, ${lead.id},
+            ${'Demo møde – ' + lead.company},
+            ${scheduledAt}, 20, 'scheduled',
+            ${`Calendly link sendt til ${lead.email}. Afventer bekræftelse.`},
+            ${now.toISOString()}
+          )
         `;
 
+        // Opdater lead-status til 'booked'
         await sql`UPDATE leads SET status = 'booked', updated_at = ${now.toISOString()} WHERE id = ${lead.id}`;
 
-        await postMeetingBooked({ company: lead.company, contact_name: lead.contact_name }, { scheduled_at: scheduledAt });
-        booked++;
+        // Gem i outreach sequence
+        await sql`
+          INSERT INTO outreach_sequences (id, lead_id, step, channel, subject, message, status, sent_at, created_at)
+          VALUES (${randomUUID()}, ${lead.id}, 5, 'email', ${subject}, ${message}, 'sent', ${now.toISOString()}, ${now.toISOString()})
+        `;
 
-        console.log(`[SE Booking] Møde booket for ${lead.company}`);
+        await postMeetingBooked(
+          { company: lead.company, contact_name: lead.contact_name },
+          { scheduled_at: scheduledAt }
+        );
+
+        booked++;
+        console.log(`[SE Booking] ✅ Booking email sendt til ${lead.company} (${lead.email})`);
       } catch (e) {
-        console.error(`[SE Booking] Fejl for ${lead.company}:`, e);
+        console.error(`[SE Booking] ❌ Fejl for ${lead.company}:`, e);
       }
     }
 
-    actions.push(`${booked} møder booket`);
+    actions.push(`${booked} booking emails sendt`);
 
     await sql`
       INSERT INTO agent_logs (id, agent_id, action, details, result, created_at)
-      VALUES (${randomUUID()}, 'se-booking', 'Booking batch afsluttet', ${`${booked} møder booket af ${leads.length} interesserede leads`}, 'success', ${now.toISOString()})
+      VALUES (${randomUUID()}, 'se-booking', 'Booking batch afsluttet',
+        ${`${booked} booking emails sendt af ${leads.length} interesserede leads`},
+        'success', ${now.toISOString()})
     `;
 
     return { success: true, actions, data: { booked, total: leads.length } };

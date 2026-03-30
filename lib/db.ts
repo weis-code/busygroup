@@ -228,6 +228,7 @@ export async function initSchema(): Promise<void> {
       { id: 'se-outreach', name: 'SE Outreach', market: 'sweden' },
       { id: 'se-followup', name: 'SE Follow-up', market: 'sweden' },
       { id: 'se-booking', name: 'SE Booking', market: 'sweden' },
+      { id: 'se-imap', name: 'SE IMAP (Svardetektion)', market: 'sweden' },
       { id: 'dk-callprep', name: 'DK Call Prep', market: 'denmark' },
       { id: 'dk-calllog', name: 'DK Call Log', market: 'denmark' },
       { id: 'dk-followup', name: 'DK Follow-up', market: 'denmark' },

@@ -8,6 +8,7 @@ import * as seProspecting from './se-prospecting-agent';
 import * as seOutreach from './se-outreach-agent';
 import * as seFollowup from './se-followup-agent';
 import * as seBooking from './se-booking-agent';
+import * as seImap from './se-imap-agent';
 import * as dkCallprep from './dk-callprep-agent';
 import * as dkCalllog from './dk-calllog-agent';
 import * as dkFollowup from './dk-followup-agent';
@@ -21,6 +22,7 @@ const AGENTS = {
   'se-outreach': { ...seOutreach, name: 'SE Outreach' },
   'se-followup': { ...seFollowup, name: 'SE Follow-up' },
   'se-booking': { ...seBooking, name: 'SE Booking' },
+  'se-imap': { ...seImap, name: 'SE IMAP (Svardetektion)' },
   'dk-callprep': { ...dkCallprep, name: 'DK Call Prep', schedule: dkCallprep.schedule },
   'dk-calllog': { ...dkCalllog, name: 'DK Call Log', schedule: dkCalllog.schedule },
   'dk-followup': { ...dkFollowup, name: 'DK Follow-up', schedule: dkFollowup.schedule },
