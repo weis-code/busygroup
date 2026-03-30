@@ -253,8 +253,8 @@ export default function MailPage() {
 
         <div style={{ flex: 1 }} />
 
-        {/* Sync knap */}
-        <div style={{ padding: '10px 12px 14px' }}>
+        {/* Sync + Test SMTP */}
+        <div style={{ padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button
             onClick={handleSync}
             disabled={syncing}
@@ -262,6 +262,23 @@ export default function MailPage() {
           >
             <RefreshCw size={12} style={{ animation: syncing ? 'spin 1s linear infinite' : 'none', color: syncing ? '#E84025' : undefined }} />
             {syncing ? 'Synkroniserer...' : 'Synkroniser'}
+          </button>
+          <button
+            onClick={async () => {
+              const res = await fetch('/api/mail/test-smtp', { method: 'POST' });
+              const data = await res.json();
+              if (data.results) {
+                data.results.forEach((r: { account: string; ok: boolean; smtp_host?: string; smtp_user?: string; error?: string }) => {
+                  if (r.ok) toast.success(`${r.account}: SMTP OK (${r.smtp_host})`);
+                  else toast.error(`${r.account}: ${r.error || 'Fejl'} — host: ${r.smtp_host || 'mangler'}, user: ${r.smtp_user || 'mangler'}`);
+                });
+              } else {
+                toast.error(data.error || 'Ukendt fejl');
+              }
+            }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 0', borderRadius: 7, border: '1px solid rgba(255,255,255,0.05)', background: 'transparent', color: '#2D3748', fontSize: 11, cursor: 'pointer' }}
+          >
+            Test SMTP
           </button>
         </div>
       </div>

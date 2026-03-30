@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
   }
 
   // Hent email-liste
-  // Kun vis emails for brugerens egne konti
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
 
@@ -72,20 +71,34 @@ export async function GET(req: NextRequest) {
 
 // Send ny email
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
+
   const { to, subject, body, fromAccountId, inReplyToId } = await req.json();
   if (!to || !body) return NextResponse.json({ error: 'to og body er påkrævet' }, { status: 400 });
 
-  // Find afsenderkonto
+  // Bestem hvilken konto der sendes fra.
+  // Hvis ingen konto er valgt — brug brugerens første aktive konto automatisk.
+  let resolvedAccountId: string | null = fromAccountId || null;
+
+  if (!resolvedAccountId) {
+    const fallbackAccounts = session.role === 'admin'
+      ? await sql`SELECT id FROM imap_accounts WHERE active = true ORDER BY created_at ASC LIMIT 1`
+      : await sql`SELECT id FROM imap_accounts WHERE active = true AND (user_id = ${session.id} OR user_id IS NULL) ORDER BY created_at ASC LIMIT 1`;
+    if (fallbackAccounts.length > 0) {
+      resolvedAccountId = (fallbackAccounts[0] as unknown as { id: string }).id;
+    }
+  }
+
+  // Hent kontoinfo til from-feltet
   let fromEmail = process.env.OUTREACH_FROM_EMAIL || process.env.EMAIL_FROM || 'BusyGroup <noreply@busyconsulting.dk>';
   let fromName  = 'BusyGroup';
-  let accountId: string | null = null;
 
-  if (fromAccountId) {
-    const [acc] = await sql`SELECT * FROM imap_accounts WHERE id = ${fromAccountId}`;
+  if (resolvedAccountId) {
+    const [acc] = await sql`SELECT name, email FROM imap_accounts WHERE id = ${resolvedAccountId}`;
     if (acc) {
-      fromEmail = `${(acc as unknown as Record<string,string>).name} <${(acc as unknown as Record<string,string>).email}>`;
-      fromName  = (acc as unknown as Record<string,string>).name;
-      accountId = fromAccountId;
+      fromEmail = (acc as unknown as Record<string, string>).email;
+      fromName  = (acc as unknown as Record<string, string>).name;
     }
   }
 
@@ -93,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await sendViaSMTP({
-      fromAccountId: fromAccountId || accountId,
+      fromAccountId: resolvedAccountId,
       to,
       subject: msgSubject,
       text: body,
@@ -118,7 +131,7 @@ export async function POST(req: NextRequest) {
       to_email, subject, body_text,
       lead_id, customer_id, read, received_at, created_at
     ) VALUES (
-      ${randomUUID()}, ${accountId},
+      ${randomUUID()}, ${resolvedAccountId},
       'outbound', ${senderEmail}, ${fromName},
       ${to}, ${msgSubject}, ${body},
       ${(lead as unknown as Record<string,string>)?.id || null},
