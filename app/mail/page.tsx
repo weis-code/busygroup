@@ -128,7 +128,7 @@ export default function MailPage() {
         <div style={{ padding: '12px 10px 8px' }}>
           <button
             onClick={() => { setShowCompose(true); setSelectedEmail(null); }}
-            style={{ width: '100%', background: '#185FA5', border: 'none', borderRadius: 8, padding: '9px 0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            style={{ width: '100%', background: '#E84025', border: 'none', borderRadius: 8, padding: '9px 0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           >
             <Pencil size={13} /> Ny mail
           </button>
@@ -145,7 +145,7 @@ export default function MailPage() {
               onClick={() => { setFolder(f.id as 'inbox' | 'sent'); setSelectedEmail(null); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', textAlign: 'left',
-                background: folder === f.id ? 'rgba(24,95,165,0.18)' : 'transparent',
+                background: folder === f.id ? 'rgba(232,64,37,0.18)' : 'transparent',
                 color: folder === f.id ? '#ECF0F1' : '#556677',
                 fontSize: 13, fontWeight: folder === f.id ? 600 : 400,
               }}
@@ -153,7 +153,7 @@ export default function MailPage() {
               <f.icon size={14} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{f.label}</span>
               {f.badge > 0 && (
-                <span style={{ background: '#185FA5', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{f.badge}</span>
+                <span style={{ background: '#E84025', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{f.badge}</span>
               )}
             </button>
           ))}
@@ -165,7 +165,7 @@ export default function MailPage() {
             <div style={{ fontSize: 10, color: '#445566', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '4px 10px 6px' }}>Konti</div>
             <button
               onClick={() => { setActiveAccount(null); setSelectedEmail(null); }}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: !activeAccount ? 'rgba(24,95,165,0.12)' : 'transparent', color: !activeAccount ? '#ECF0F1' : '#556677', fontSize: 12 }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: !activeAccount ? 'rgba(232,64,37,0.12)' : 'transparent', color: !activeAccount ? '#ECF0F1' : '#556677', fontSize: 12 }}
             >
               Alle konti
             </button>
@@ -173,7 +173,7 @@ export default function MailPage() {
               <button
                 key={acc.id}
                 onClick={() => { setActiveAccount(acc.id); setSelectedEmail(null); }}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: activeAccount === acc.id ? 'rgba(24,95,165,0.12)' : 'transparent', color: activeAccount === acc.id ? '#ECF0F1' : '#556677', fontSize: 12 }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', background: activeAccount === acc.id ? 'rgba(232,64,37,0.12)' : 'transparent', color: activeAccount === acc.id ? '#ECF0F1' : '#556677', fontSize: 12 }}
               >
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: acc.active ? '#2ECC71' : '#445566', flexShrink: 0 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{acc.name}</span>
@@ -202,7 +202,7 @@ export default function MailPage() {
         <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontWeight: 600, fontSize: 14, color: '#ECF0F1' }}>
             {folder === 'inbox' ? 'Indbakke' : 'Sendt'}
-            {unread > 0 && folder === 'inbox' && <span style={{ marginLeft: 8, fontSize: 11, color: '#185FA5', fontWeight: 700 }}>{unread} ulæste</span>}
+            {unread > 0 && folder === 'inbox' && <span style={{ marginLeft: 8, fontSize: 11, color: '#E84025', fontWeight: 700 }}>{unread} ulæste</span>}
           </span>
         </div>
 
@@ -212,7 +212,7 @@ export default function MailPage() {
               <Inbox size={32} style={{ marginBottom: 8, opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
               <div style={{ fontSize: 13 }}>Ingen email-konti</div>
               <div style={{ fontSize: 11, marginTop: 4 }}>
-                Gå til <a href="/settings" style={{ color: '#185FA5' }}>Indstillinger</a> og tilføj IMAP-konti
+                Gå til <a href="/settings" style={{ color: '#E84025' }}>Indstillinger</a> og tilføj IMAP-konti
               </div>
             </div>
           ) : emails.length === 0 ? (
@@ -229,13 +229,13 @@ export default function MailPage() {
                   onClick={() => openEmail(email)}
                   style={{
                     width: '100%', textAlign: 'left', padding: '11px 14px', border: 'none', cursor: 'pointer',
-                    background: isSelected ? 'rgba(24,95,165,0.15)' : 'transparent',
-                    borderLeft: isSelected ? '2px solid #185FA5' : '2px solid transparent',
+                    background: isSelected ? 'rgba(232,64,37,0.15)' : 'transparent',
+                    borderLeft: isSelected ? '2px solid #E84025' : '2px solid transparent',
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
                     display: 'flex', gap: 10, alignItems: 'flex-start',
                   }}
                 >
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(24,95,165,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#185FA5', flexShrink: 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(232,64,37,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#E84025', flexShrink: 0 }}>
                     {(String(displayName || '?')[0]).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -253,7 +253,7 @@ export default function MailPage() {
                     </div>
                   </div>
                   {!email.read && email.direction === 'inbound' && (
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#185FA5', flexShrink: 0, marginTop: 4 }} />
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#E84025', flexShrink: 0, marginTop: 4 }} />
                   )}
                 </button>
               );
@@ -291,7 +291,7 @@ export default function MailPage() {
                 <input value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} placeholder="Emne" style={{ flex: 1, background: '#111E2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#ECF0F1', fontSize: 13, padding: '8px 12px', outline: 'none' }} />
               </div>
               <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} placeholder="Skriv din besked her..." rows={12} style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, color: '#ECF0F1', fontSize: 13, padding: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }} />
-              <button onClick={() => handleSend(false)} disabled={!compose.to || !compose.body || sending} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: compose.to && compose.body && !sending ? '#185FA5' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, padding: '10px 20px', color: compose.to && compose.body && !sending ? '#fff' : '#445566', fontSize: 13, fontWeight: 600, cursor: compose.to && compose.body && !sending ? 'pointer' : 'not-allowed' }}>
+              <button onClick={() => handleSend(false)} disabled={!compose.to || !compose.body || sending} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 6, background: compose.to && compose.body && !sending ? '#E84025' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, padding: '10px 20px', color: compose.to && compose.body && !sending ? '#fff' : '#445566', fontSize: 13, fontWeight: 600, cursor: compose.to && compose.body && !sending ? 'pointer' : 'not-allowed' }}>
                 <Send size={13} /> {sending ? 'Sender...' : 'Send'}
               </button>
             </div>
@@ -320,14 +320,14 @@ export default function MailPage() {
                   </div>
                   {(selectedEmail.lead_company || selectedEmail.customer_company) && (
                     <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <User size={11} style={{ color: '#185FA5' }} />
-                      <span style={{ color: '#185FA5' }}>{selectedEmail.lead_company || selectedEmail.customer_company}</span>
+                      <User size={11} style={{ color: '#E84025' }} />
+                      <span style={{ color: '#E84025' }}>{selectedEmail.lead_company || selectedEmail.customer_company}</span>
                     </div>
                   )}
                 </div>
                 <button
                   onClick={() => { setReplying(true); setTimeout(() => replyRef.current?.focus(), 50); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(24,95,165,0.15)', border: '1px solid rgba(24,95,165,0.3)', borderRadius: 7, padding: '7px 14px', color: '#185FA5', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(232,64,37,0.15)', border: '1px solid rgba(232,64,37,0.3)', borderRadius: 7, padding: '7px 14px', color: '#E84025', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
                 >
                   <ArrowLeft size={12} /> Svar
                 </button>
@@ -357,7 +357,7 @@ export default function MailPage() {
                   style={{ width: '100%', background: '#111E2A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#ECF0F1', fontSize: 13, padding: 12, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box' }}
                 />
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button onClick={() => handleSend(true)} disabled={!replyText.trim() || sending} style={{ display: 'flex', alignItems: 'center', gap: 6, background: replyText.trim() && !sending ? '#185FA5' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 7, padding: '8px 16px', color: replyText.trim() && !sending ? '#fff' : '#445566', fontSize: 13, fontWeight: 600, cursor: replyText.trim() && !sending ? 'pointer' : 'not-allowed' }}>
+                  <button onClick={() => handleSend(true)} disabled={!replyText.trim() || sending} style={{ display: 'flex', alignItems: 'center', gap: 6, background: replyText.trim() && !sending ? '#E84025' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 7, padding: '8px 16px', color: replyText.trim() && !sending ? '#fff' : '#445566', fontSize: 13, fontWeight: 600, cursor: replyText.trim() && !sending ? 'pointer' : 'not-allowed' }}>
                     <Send size={13} /> {sending ? 'Sender...' : 'Send svar'}
                   </button>
                   <button onClick={() => setReplying(false)} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '8px 14px', color: '#445566', fontSize: 13, cursor: 'pointer' }}>Annuller</button>

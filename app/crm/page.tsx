@@ -188,7 +188,7 @@ export default function CRMPage() {
           </button>
           <button onClick={() => setShowCreateModal(true)} style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            background: '#185FA5', border: 'none', borderRadius: '6px',
+            background: '#E84025', border: 'none', borderRadius: '6px',
             padding: '8px 16px', color: '#ECF0F1', cursor: 'pointer',
             fontSize: '13px', fontWeight: 500,
           }}>
@@ -248,7 +248,7 @@ function PipelineTab({
       style={{
         display: 'flex', alignItems: 'center', gap: '5px',
         padding: '4px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-        background: active ? '#185FA5' : 'rgba(255,255,255,0.05)',
+        background: active ? '#E84025' : 'rgba(255,255,255,0.05)',
         color: active ? '#fff' : '#667788',
         fontSize: '12px', fontWeight: active ? 600 : 400,
         transition: 'all 0.15s',

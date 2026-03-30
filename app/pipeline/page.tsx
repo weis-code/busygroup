@@ -203,21 +203,21 @@ function AgentCard({ agent, onRun }: { agent: Agent; onRun: (id: string) => Prom
           gap: '6px',
           padding: '7px 0',
           borderRadius: '7px',
-          border: '1px solid rgba(24,95,165,0.4)',
+          border: '1px solid rgba(232,64,37,0.4)',
           background: running
-            ? 'rgba(24,95,165,0.08)'
+            ? 'rgba(232,64,37,0.08)'
             : flash === 'ok'
             ? 'rgba(46,204,113,0.12)'
             : flash === 'err'
             ? 'rgba(231,76,60,0.12)'
-            : 'rgba(24,95,165,0.12)',
+            : 'rgba(232,64,37,0.12)',
           color: running
             ? '#445566'
             : flash === 'ok'
             ? '#2ECC71'
             : flash === 'err'
             ? '#E74C3C'
-            : '#185FA5',
+            : '#E84025',
           fontSize: '12px',
           fontWeight: 600,
           cursor: running ? 'not-allowed' : 'pointer',
@@ -265,7 +265,7 @@ export default function AgenterPage() {
   const activeCount = agents.filter(a => a.status === 'active').length;
 
   const funnelData = pipeline ? [
-    { name: 'Leads', value: pipeline.total_leads, fill: '#185FA5' },
+    { name: 'Leads', value: pipeline.total_leads, fill: '#E84025' },
     { name: 'Kontaktet', value: pipeline.contacted + pipeline.replied + pipeline.interested + pipeline.booked + pipeline.won, fill: '#1A6DB5' },
     { name: 'Svar', value: pipeline.replied + pipeline.interested + pipeline.booked + pipeline.won, fill: '#1E7BC5' },
     { name: 'Interesseret', value: pipeline.interested + pipeline.booked + pipeline.won, fill: '#2ECC71' },
@@ -275,7 +275,7 @@ export default function AgenterPage() {
 
   const barData = pipeline ? [
     { name: 'Ny', value: pipeline.new, color: '#667788' },
-    { name: 'Kontaktet', value: pipeline.contacted, color: '#185FA5' },
+    { name: 'Kontaktet', value: pipeline.contacted, color: '#E84025' },
     { name: 'Svaret', value: pipeline.replied, color: '#F39C12' },
     { name: 'Interesseret', value: pipeline.interested, color: '#0F6E56' },
     { name: 'Booket', value: pipeline.booked, color: '#2ECC71' },
@@ -322,7 +322,7 @@ export default function AgenterPage() {
 
       {/* ── Section divider ──────────────────────────────────────────────── */}
       <div style={{ padding: '28px 28px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <TrendingUp size={14} color="#185FA5" />
+        <TrendingUp size={14} color="#E84025" />
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#AAB8C2', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
           Pipeline Analytics
         </span>
@@ -407,9 +407,9 @@ export default function AgenterPage() {
               <Line
                 type="monotone"
                 dataKey="moeder"
-                stroke="#185FA5"
+                stroke="#E84025"
                 strokeWidth={2}
-                dot={{ fill: '#185FA5', strokeWidth: 0, r: 4 }}
+                dot={{ fill: '#E84025', strokeWidth: 0, r: 4 }}
                 activeDot={{ r: 6, fill: '#2ECC71' }}
                 name="Møder"
               />

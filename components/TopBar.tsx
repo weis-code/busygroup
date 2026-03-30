@@ -36,8 +36,8 @@ export default function TopBar() {
     <div
       style={{
         height: 48,
-        background: '#080F16',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: '#0C0F14',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

@@ -89,7 +89,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               style={{
-                width: '100%', padding: '11px', background: loading ? 'rgba(24,95,165,0.5)' : '#185FA5',
+                width: '100%', padding: '11px', background: loading ? 'rgba(232,64,37,0.5)' : '#E84025',
                 border: 'none', borderRadius: '7px', color: '#ECF0F1',
                 fontSize: '14px', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'background 0.15s',

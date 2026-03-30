@@ -100,7 +100,7 @@ function SecretInput({ label, hint, envKey }: { label: string; hint: string; env
             {show ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
         </div>
-        <button onClick={handleSave} style={{ background: saved ? 'rgba(46,204,113,0.2)' : 'rgba(24,95,165,0.2)', border: `1px solid ${saved ? 'rgba(46,204,113,0.4)' : 'rgba(24,95,165,0.4)'}`, borderRadius: '6px', padding: '7px 14px', color: saved ? '#2ECC71' : '#185FA5', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <button onClick={handleSave} style={{ background: saved ? 'rgba(46,204,113,0.2)' : 'rgba(232,64,37,0.2)', border: `1px solid ${saved ? 'rgba(46,204,113,0.4)' : 'rgba(232,64,37,0.4)'}`, borderRadius: '6px', padding: '7px 14px', color: saved ? '#2ECC71' : '#E84025', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           {saved ? '✓ Gemt' : 'Gem'}
         </button>
       </div>
@@ -242,7 +242,7 @@ function ProductsSection() {
 
       {/* Inline create/edit form */}
       {showForm && (
-        <div style={{ margin: '0', borderTop: products.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined, padding: '16px 20px', background: 'rgba(24,95,165,0.05)' }}>
+        <div style={{ margin: '0', borderTop: products.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined, padding: '16px 20px', background: 'rgba(232,64,37,0.05)' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#ECF0F1', marginBottom: '12px' }}>
             {editingId ? 'Rediger produkt' : 'Nyt produkt'}
           </div>
@@ -266,7 +266,7 @@ function ProductsSection() {
                     onClick={() => setForm(f => ({ ...f, type: t }))}
                     style={{
                       flex: 1, padding: '7px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px',
-                      background: form.type === t ? '#185FA5' : '#1A2A38',
+                      background: form.type === t ? '#E84025' : '#1A2A38',
                       color: form.type === t ? '#ECF0F1' : '#667788',
                       fontWeight: form.type === t ? 600 : 400,
                     }}
@@ -315,7 +315,7 @@ function ProductsSection() {
               disabled={saving || !form.name.trim()}
               style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
-                background: saving || !form.name.trim() ? 'rgba(24,95,165,0.4)' : '#185FA5',
+                background: saving || !form.name.trim() ? 'rgba(232,64,37,0.4)' : '#E84025',
                 border: 'none', borderRadius: '6px', padding: '7px 14px',
                 color: '#ECF0F1', fontSize: '12px', fontWeight: 500,
                 cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer',
@@ -338,7 +338,7 @@ function ProductsSection() {
         <div style={{ padding: '12px 20px', borderTop: products.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined }}>
           <button
             onClick={openCreate}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(24,95,165,0.12)', border: '1px solid rgba(24,95,165,0.25)', borderRadius: '6px', padding: '7px 14px', color: '#185FA5', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.12)', border: '1px solid rgba(232,64,37,0.25)', borderRadius: '6px', padding: '7px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
           >
             <Plus size={13} /> Tilføj produkt
           </button>
@@ -366,8 +366,8 @@ function ProductRow({ product, isLast, onEdit, onDelete, onToggle }: {
           <span style={{ fontSize: '13px', fontWeight: 500, color: '#ECF0F1' }}>{product.name}</span>
           <span style={{
             fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '4px',
-            background: product.type === 'mrr' ? 'rgba(24,95,165,0.2)' : 'rgba(15,110,86,0.2)',
-            color: product.type === 'mrr' ? '#185FA5' : '#0F6E56',
+            background: product.type === 'mrr' ? 'rgba(232,64,37,0.2)' : 'rgba(15,110,86,0.2)',
+            color: product.type === 'mrr' ? '#E84025' : '#0F6E56',
             textTransform: 'uppercase',
           }}>
             {product.type === 'mrr' ? 'MRR' : 'Engangs'}
@@ -514,9 +514,9 @@ function UsersSection() {
           {/* Avatar */}
           <div style={{
             width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
-            background: u.role === 'admin' ? 'rgba(231,76,60,0.15)' : 'rgba(24,95,165,0.15)',
+            background: u.role === 'admin' ? 'rgba(231,76,60,0.15)' : 'rgba(232,64,37,0.15)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: u.role === 'admin' ? '#E74C3C' : '#185FA5',
+            color: u.role === 'admin' ? '#E74C3C' : '#E84025',
           }}>
             {u.role === 'admin' ? <ShieldCheck size={16} /> : <UserCircle size={16} />}
           </div>
@@ -528,8 +528,8 @@ function UsersSection() {
               )}
               <span style={{
                 fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '4px',
-                background: u.role === 'admin' ? 'rgba(231,76,60,0.15)' : 'rgba(24,95,165,0.15)',
-                color: u.role === 'admin' ? '#E74C3C' : '#185FA5',
+                background: u.role === 'admin' ? 'rgba(231,76,60,0.15)' : 'rgba(232,64,37,0.15)',
+                color: u.role === 'admin' ? '#E74C3C' : '#E84025',
                 textTransform: 'uppercase',
               }}>
                 {u.role === 'admin' ? 'Admin' : 'Sælger'}
@@ -560,7 +560,7 @@ function UsersSection() {
 
       {/* Create/Edit form */}
       {showForm && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '16px 20px', background: 'rgba(24,95,165,0.05)' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '16px 20px', background: 'rgba(232,64,37,0.05)' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#ECF0F1', marginBottom: '12px' }}>
             {editingId ? 'Rediger bruger' : 'Ny bruger'}
           </div>
@@ -573,7 +573,7 @@ function UsersSection() {
               <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Rolle *</label>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {(['seller', 'admin'] as const).map(r => (
-                  <button key={r} onClick={() => setForm(f => ({ ...f, role: r }))} style={{ flex: 1, padding: '7px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', background: form.role === r ? (r === 'admin' ? 'rgba(231,76,60,0.2)' : '#185FA5') : '#1A2A38', color: form.role === r ? (r === 'admin' ? '#E74C3C' : '#ECF0F1') : '#667788', fontWeight: form.role === r ? 600 : 400 }}>
+                  <button key={r} onClick={() => setForm(f => ({ ...f, role: r }))} style={{ flex: 1, padding: '7px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', background: form.role === r ? (r === 'admin' ? 'rgba(231,76,60,0.2)' : '#E84025') : '#1A2A38', color: form.role === r ? (r === 'admin' ? '#E74C3C' : '#ECF0F1') : '#667788', fontWeight: form.role === r ? 600 : 400 }}>
                     {r === 'admin' ? 'Admin' : 'Sælger'}
                   </button>
                 ))}
@@ -598,7 +598,7 @@ function UsersSection() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleCreateOrEdit} disabled={saving || !form.name.trim()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: saving || !form.name.trim() ? 'rgba(24,95,165,0.4)' : '#185FA5', border: 'none', borderRadius: '6px', padding: '7px 14px', color: '#ECF0F1', fontSize: '12px', fontWeight: 500, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer' }}>
+            <button onClick={handleCreateOrEdit} disabled={saving || !form.name.trim()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: saving || !form.name.trim() ? 'rgba(232,64,37,0.4)' : '#E84025', border: 'none', borderRadius: '6px', padding: '7px 14px', color: '#ECF0F1', fontSize: '12px', fontWeight: 500, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer' }}>
               <Check size={13} /> {saving ? 'Gemmer...' : editingId ? 'Gem ændringer' : 'Opret bruger'}
             </button>
             <button onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyUserForm); }} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '7px 12px', color: '#667788', fontSize: '12px', cursor: 'pointer' }}>
@@ -611,7 +611,7 @@ function UsersSection() {
       {/* Add button */}
       {!showForm && (
         <div style={{ padding: '12px 20px', borderTop: users.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined }}>
-          <button onClick={() => { setEditingId(null); setForm(emptyUserForm); setShowForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(24,95,165,0.12)', border: '1px solid rgba(24,95,165,0.25)', borderRadius: '6px', padding: '7px 14px', color: '#185FA5', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
+          <button onClick={() => { setEditingId(null); setForm(emptyUserForm); setShowForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.12)', border: '1px solid rgba(232,64,37,0.25)', borderRadius: '6px', padding: '7px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
             <Plus size={13} /> Tilføj bruger
           </button>
         </div>
@@ -698,8 +698,8 @@ function ImapAccountsSection() {
 
       {accounts.map(acc => (
         <div key={acc.id} style={{ background: '#1A2A38', borderRadius: '8px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(24,95,165,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Server size={14} style={{ color: '#185FA5' }} />
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(232,64,37,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Server size={14} style={{ color: '#E84025' }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{acc.name}</div>
@@ -707,7 +707,7 @@ function ImapAccountsSection() {
             {acc.last_sync && <div style={{ fontSize: '10px', color: '#445566', marginTop: '1px' }}>Sidst synkroniseret: {new Date(acc.last_sync).toLocaleString('da-DK')}</div>}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div onClick={() => handleToggle(acc)} style={{ width: '36px', height: '20px', borderRadius: '10px', background: acc.active ? '#185FA5' : 'rgba(255,255,255,0.1)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+            <div onClick={() => handleToggle(acc)} style={{ width: '36px', height: '20px', borderRadius: '10px', background: acc.active ? '#E84025' : 'rgba(255,255,255,0.1)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
               <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: '#ECF0F1', position: 'absolute', top: '3px', left: acc.active ? '19px' : '3px', transition: 'left 0.2s' }} />
             </div>
             <button onClick={() => handleDelete(acc.id, acc.name)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '4px' }}><Trash2 size={13} /></button>
@@ -761,14 +761,14 @@ function ImapAccountsSection() {
             Gmail/Outlook: Brug et app-specifikt password. SMTP-felter kan oftest stå tomme — systemet bruger da IMAP-passwordet.
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleSave} disabled={saving} style={{ background: '#185FA5', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
+            <button onClick={handleSave} disabled={saving} style={{ background: '#E84025', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
               {saving ? 'Gemmer...' : 'Tilføj konto'}
             </button>
             <button onClick={() => setShowForm(false)} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px 14px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer' }}>Annuller</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(24,95,165,0.1)', border: '1px dashed rgba(24,95,165,0.3)', borderRadius: '8px', padding: '10px 14px', color: '#185FA5', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
+        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.1)', border: '1px dashed rgba(232,64,37,0.3)', borderRadius: '8px', padding: '10px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
           <Plus size={13} /> Tilføj IMAP-konto
         </button>
       )}
@@ -898,7 +898,7 @@ export default function SettingsPage() {
                   {AGENT_SCHEDULES[agent.id] || '—'} · Sidst kørt: {timeAgo(agent.last_run)} · {agent.runs_today} gange i dag
                 </div>
               </div>
-              <button onClick={() => handleRunAgent(agent.id)} disabled={!!runningAgent} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: runningAgent === agent.id ? 'rgba(24,95,165,0.4)' : 'rgba(24,95,165,0.15)', border: '1px solid rgba(24,95,165,0.3)', borderRadius: '6px', padding: '6px 12px', color: '#185FA5', fontSize: '12px', cursor: runningAgent ? 'not-allowed' : 'pointer' }}>
+              <button onClick={() => handleRunAgent(agent.id)} disabled={!!runningAgent} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: runningAgent === agent.id ? 'rgba(232,64,37,0.4)' : 'rgba(232,64,37,0.15)', border: '1px solid rgba(232,64,37,0.3)', borderRadius: '6px', padding: '6px 12px', color: '#E84025', fontSize: '12px', cursor: runningAgent ? 'not-allowed' : 'pointer' }}>
                 <Play size={11} />
                 {runningAgent === agent.id ? 'Kører...' : 'Kør nu'}
               </button>
@@ -917,7 +917,7 @@ export default function SettingsPage() {
                 <div style={{ fontSize: '13px', fontWeight: 500, color: '#ECF0F1' }}>{notif.label}</div>
                 <div style={{ fontSize: '11px', color: '#667788', marginTop: '2px' }}>{notif.description}</div>
               </div>
-              <div onClick={() => setNotifications(prev => ({ ...prev, [notif.id]: !prev[notif.id] }))} style={{ width: '40px', height: '22px', borderRadius: '11px', background: notifications[notif.id] ? '#185FA5' : 'rgba(255,255,255,0.1)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <div onClick={() => setNotifications(prev => ({ ...prev, [notif.id]: !prev[notif.id] }))} style={{ width: '40px', height: '22px', borderRadius: '11px', background: notifications[notif.id] ? '#E84025' : 'rgba(255,255,255,0.1)', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                 <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#ECF0F1', position: 'absolute', top: '3px', left: notifications[notif.id] ? '21px' : '3px', transition: 'left 0.2s' }} />
               </div>
             </div>
@@ -930,7 +930,7 @@ export default function SettingsPage() {
         <div style={sectionHeaderStyle}>Eksport</div>
         <div style={{ padding: '20px' }}>
           <p style={{ fontSize: '13px', color: '#667788', margin: '0 0 12px' }}>Eksportér alle leads som CSV. Kompatibelt med Salesbase import-format.</p>
-          <button onClick={exportDB} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(24,95,165,0.15)', border: '1px solid rgba(24,95,165,0.3)', borderRadius: '6px', padding: '9px 16px', color: '#185FA5', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
+          <button onClick={exportDB} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(232,64,37,0.15)', border: '1px solid rgba(232,64,37,0.3)', borderRadius: '6px', padding: '9px 16px', color: '#E84025', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
             <Download size={14} /> Download leads CSV
           </button>
         </div>

@@ -225,7 +225,7 @@ export default function KunderPage() {
           <button onClick={load} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px 12px', color: '#667788', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
             <RefreshCw size={13} /> Opdater
           </button>
-          <button onClick={() => setShowCreate(true)} style={{ background: '#185FA5', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#ECF0F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 500 }}>
+          <button onClick={() => setShowCreate(true)} style={{ background: '#E84025', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#ECF0F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 500 }}>
             <Plus size={14} /> Ny kunde
           </button>
         </div>
@@ -445,16 +445,16 @@ export default function KunderPage() {
                       <button key={p.id} onClick={() => setSelectedProductIds(prev => selected ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left',
-                        background: selected ? 'rgba(24,95,165,0.15)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${selected ? 'rgba(24,95,165,0.5)' : 'rgba(255,255,255,0.07)'}`,
+                        background: selected ? 'rgba(232,64,37,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${selected ? 'rgba(232,64,37,0.5)' : 'rgba(255,255,255,0.07)'}`,
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: selected ? '#185FA5' : 'transparent', border: `1px solid ${selected ? '#185FA5' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: selected ? '#E84025' : 'transparent', border: `1px solid ${selected ? '#E84025' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {selected && <span style={{ color: '#fff', fontSize: '9px' }}>✓</span>}
                           </div>
                           <span style={{ fontSize: '12px', color: selected ? '#ECF0F1' : '#AAB8C2' }}>{p.name}</span>
                         </div>
-                        <span style={{ fontSize: '11px', color: selected ? '#185FA5' : '#667788', fontWeight: 600 }}>
+                        <span style={{ fontSize: '11px', color: selected ? '#E84025' : '#667788', fontWeight: 600 }}>
                           {p.price.toLocaleString('da-DK')} {p.currency}{p.type === 'mrr' ? '/md' : ''}
                         </span>
                       </button>
@@ -513,7 +513,7 @@ export default function KunderPage() {
               <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer' }}>
                 Annuller
               </button>
-              <button onClick={handleCreate} disabled={creating} style={{ flex: 2, background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
+              <button onClick={handleCreate} disabled={creating} style={{ flex: 2, background: '#E84025', border: 'none', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
                 {creating ? 'Opretter...' : 'Opret kunde'}
               </button>
             </div>

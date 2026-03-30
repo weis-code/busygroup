@@ -98,14 +98,14 @@ function initials(name: string) {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  info: '#185FA5',
+  info: '#E84025',
   success: '#2ECC71',
   warning: '#F39C12',
   error: '#E74C3C',
 };
 
 const AGENT_COLORS = [
-  '#185FA5', '#2ECC71', '#9B59B6', '#E74C3C',
+  '#E84025', '#2ECC71', '#9B59B6', '#E74C3C',
   '#F39C12', '#1ABC9C', '#E91E63', '#FF5722',
 ];
 
@@ -113,7 +113,7 @@ const AGENT_COLORS = [
 
 const COLUMNS = [
   { key: 'new',        label: 'NY',           color: '#445566' },
-  { key: 'contacted',  label: 'KONTAKTET',    color: '#185FA5' },
+  { key: 'contacted',  label: 'KONTAKTET',    color: '#E84025' },
   { key: 'replied',    label: 'SVAREDE',      color: '#1ABC9C' },
   { key: 'interested', label: 'INTERESSERET', color: '#F39C12' },
   { key: 'booked',     label: 'BOOKET',       color: '#9B59B6' },
@@ -142,7 +142,7 @@ function Spark({ color }: { color: string }) {
 // ─── Tasks (urgent + follow-ups from status_counts) ────────────────────────────
 
 const TASK_COLORS: Record<string, string> = {
-  CRM: '#185FA5',
+  CRM: '#E84025',
   Agent: '#9B59B6',
   Mail: '#1ABC9C',
 };
@@ -205,7 +205,7 @@ export default function DashboardPage() {
           </Link>
           <Link href="/pipeline" style={{
             padding: '8px 16px', borderRadius: '7px',
-            background: '#185FA5', color: '#fff',
+            background: '#E84025', color: '#fff',
             fontSize: '12px', fontWeight: 600, textDecoration: 'none',
             display: 'flex', alignItems: 'center', gap: '5px',
           }}>
@@ -245,11 +245,11 @@ export default function DashboardPage() {
               <div style={{ fontSize: '28px', fontWeight: 700, color: '#ECF0F1', lineHeight: 1 }}>
                 {kpi?.active_deals ?? '—'}
               </div>
-              <div style={{ fontSize: '11px', color: '#185FA5', marginTop: '5px' }}>
+              <div style={{ fontSize: '11px', color: '#E84025', marginTop: '5px' }}>
                 ↑ {data?.status_counts?.new || 0} nye leads
               </div>
             </div>
-            <Spark color="#185FA5" />
+            <Spark color="#E84025" />
           </div>
         </div>
 
@@ -297,14 +297,14 @@ export default function DashboardPage() {
         <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Target size={14} style={{ color: '#185FA5' }} />
+              <Target size={14} style={{ color: '#E84025' }} />
               <span style={{ fontWeight: 600, fontSize: '13px', color: '#ECF0F1' }}>Sales Pipeline</span>
               <span style={{ fontSize: '11px', color: '#445566', background: 'rgba(255,255,255,0.04)', borderRadius: '5px', padding: '2px 8px' }}>
                 {pipelineTotal} leads
               </span>
             </div>
             <Link href="/crm" style={{
-              fontSize: '11px', color: '#185FA5', textDecoration: 'none',
+              fontSize: '11px', color: '#E84025', textDecoration: 'none',
               display: 'flex', alignItems: 'center', gap: '3px',
             }}>
               Åbn CRM <ArrowRight size={11} />
@@ -521,7 +521,7 @@ export default function DashboardPage() {
         <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <h3 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#ECF0F1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <TrendingUp size={13} style={{ color: '#185FA5' }} /> Lead Funnel
+              <TrendingUp size={13} style={{ color: '#E84025' }} /> Lead Funnel
             </h3>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
@@ -578,8 +578,8 @@ export default function DashboardPage() {
                     </div>
                     <span style={{
                       fontSize: '9px', fontWeight: 700, textTransform: 'uppercase',
-                      color: u.role === 'admin' ? '#E74C3C' : '#185FA5',
-                      background: u.role === 'admin' ? 'rgba(231,76,60,0.1)' : 'rgba(24,95,165,0.1)',
+                      color: u.role === 'admin' ? '#E74C3C' : '#E84025',
+                      background: u.role === 'admin' ? 'rgba(231,76,60,0.1)' : 'rgba(232,64,37,0.1)',
                       borderRadius: '4px', padding: '2px 6px',
                     }}>
                       {u.role === 'admin' ? 'Admin' : 'Sælger'}

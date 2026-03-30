@@ -204,11 +204,11 @@ export default function MessengerPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MessageSquare size={15} style={{ color: '#185FA5' }} />
+            <MessageSquare size={15} style={{ color: '#E84025' }} />
             <span style={{ fontWeight: 600, fontSize: '14px', color: '#ECF0F1' }}>Messenger</span>
             {totalUnread > 0 && (
               <span style={{
-                background: '#185FA5', color: '#fff', fontSize: '10px',
+                background: '#E84025', color: '#fff', fontSize: '10px',
                 fontWeight: 700, borderRadius: '10px', padding: '1px 6px',
               }}>{totalUnread}</span>
             )}
@@ -218,8 +218,8 @@ export default function MessengerPage() {
             title="Ny samtale"
             style={{
               width: 28, height: 28, borderRadius: 6, border: 'none',
-              background: 'rgba(24,95,165,0.15)', cursor: 'pointer',
-              color: '#185FA5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(232,64,37,0.15)', cursor: 'pointer',
+              color: '#E84025', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             <Plus size={14} />
@@ -253,8 +253,8 @@ export default function MessengerPage() {
                   style={{
                     width: '100%', textAlign: 'left', padding: '10px 14px',
                     border: 'none', cursor: 'pointer',
-                    background: isSelected ? 'rgba(24,95,165,0.14)' : 'transparent',
-                    borderLeft: isSelected ? '2px solid #185FA5' : '2px solid transparent',
+                    background: isSelected ? 'rgba(232,64,37,0.14)' : 'transparent',
+                    borderLeft: isSelected ? '2px solid #E84025' : '2px solid transparent',
                     display: 'flex', gap: '10px', alignItems: 'center',
                     transition: 'background 0.1s',
                   }}
@@ -262,10 +262,10 @@ export default function MessengerPage() {
                   {/* Avatar */}
                   <div style={{
                     width: '36px', height: '36px', borderRadius: conv.type === 'group' ? '8px' : '50%',
-                    flexShrink: 0, background: conv.type === 'group' ? 'rgba(46,204,113,0.15)' : 'rgba(24,95,165,0.2)',
+                    flexShrink: 0, background: conv.type === 'group' ? 'rgba(46,204,113,0.15)' : 'rgba(232,64,37,0.2)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '13px', fontWeight: 700,
-                    color: conv.type === 'group' ? '#2ECC71' : '#185FA5',
+                    color: conv.type === 'group' ? '#2ECC71' : '#E84025',
                   }}>
                     {conv.type === 'group' ? <Hash size={14} /> : convInitial(conv)}
                   </div>
@@ -301,7 +301,7 @@ export default function MessengerPage() {
                   {hasUnread && (
                     <div style={{
                       minWidth: '18px', height: '18px', borderRadius: '9px',
-                      background: '#185FA5', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: '#E84025', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0, padding: '0 4px',
                     }}>
                       {conv.unread_count}
@@ -329,10 +329,10 @@ export default function MessengerPage() {
               width: '34px', height: '34px',
               borderRadius: selectedConv.type === 'group' ? '8px' : '50%',
               flexShrink: 0,
-              background: selectedConv.type === 'group' ? 'rgba(46,204,113,0.15)' : 'rgba(24,95,165,0.2)',
+              background: selectedConv.type === 'group' ? 'rgba(46,204,113,0.15)' : 'rgba(232,64,37,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '13px', fontWeight: 700,
-              color: selectedConv.type === 'group' ? '#2ECC71' : '#185FA5',
+              color: selectedConv.type === 'group' ? '#2ECC71' : '#E84025',
             }}>
               {selectedConv.type === 'group' ? <Hash size={14} /> : convInitial(selectedConv)}
             </div>
@@ -380,7 +380,7 @@ export default function MessengerPage() {
                     )}
                     <div style={{
                       maxWidth: '65%',
-                      background: isMe ? '#185FA5' : '#111E2A',
+                      background: isMe ? '#E84025' : '#111E2A',
                       border: isMe ? 'none' : '1px solid rgba(255,255,255,0.07)',
                       borderRadius: isMe
                         ? (isLastInGroup ? '14px 14px 3px 14px' : '14px 14px 14px 14px')
@@ -442,7 +442,7 @@ export default function MessengerPage() {
                 disabled={!text.trim() || sending}
                 style={{
                   width: 34, height: 34, borderRadius: '8px', border: 'none', flexShrink: 0,
-                  background: text.trim() && !sending ? '#185FA5' : 'rgba(255,255,255,0.06)',
+                  background: text.trim() && !sending ? '#E84025' : 'rgba(255,255,255,0.06)',
                   color: text.trim() && !sending ? '#fff' : '#445566',
                   cursor: text.trim() && !sending ? 'pointer' : 'not-allowed',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -469,9 +469,9 @@ export default function MessengerPage() {
           <button
             onClick={handleOpenNew}
             style={{
-              marginTop: '8px', background: 'rgba(24,95,165,0.15)',
-              border: '1px solid rgba(24,95,165,0.3)', borderRadius: '8px',
-              color: '#185FA5', fontSize: '13px', padding: '8px 16px',
+              marginTop: '8px', background: 'rgba(232,64,37,0.15)',
+              border: '1px solid rgba(232,64,37,0.3)', borderRadius: '8px',
+              color: '#E84025', fontSize: '13px', padding: '8px 16px',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
             }}
           >
@@ -509,8 +509,8 @@ export default function MessengerPage() {
                 onClick={() => setIsGroup(false)}
                 style={{
                   flex: 1, padding: '8px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                  background: !isGroup ? 'rgba(24,95,165,0.2)' : 'rgba(255,255,255,0.05)',
-                  color: !isGroup ? '#185FA5' : '#556677', fontSize: '12px', fontWeight: 600,
+                  background: !isGroup ? 'rgba(232,64,37,0.2)' : 'rgba(255,255,255,0.05)',
+                  color: !isGroup ? '#E84025' : '#556677', fontSize: '12px', fontWeight: 600,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                 }}
               >
@@ -567,7 +567,7 @@ export default function MessengerPage() {
                         )}
                         style={{
                           width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer',
-                          background: picked ? 'rgba(24,95,165,0.15)' : 'transparent',
+                          background: picked ? 'rgba(232,64,37,0.15)' : 'transparent',
                           padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px',
                           transition: 'background 0.1s',
                           borderBottom: '1px solid rgba(255,255,255,0.04)',
@@ -575,9 +575,9 @@ export default function MessengerPage() {
                       >
                         <div style={{
                           width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
-                          background: 'rgba(24,95,165,0.2)',
+                          background: 'rgba(232,64,37,0.2)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '12px', fontWeight: 700, color: '#185FA5',
+                          fontSize: '12px', fontWeight: 700, color: '#E84025',
                         }}>
                           {u.name.charAt(0).toUpperCase()}
                         </div>
@@ -588,7 +588,7 @@ export default function MessengerPage() {
                         <div style={{
                           width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
                           border: picked ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                          background: picked ? '#185FA5' : 'transparent',
+                          background: picked ? '#E84025' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                           {picked && <Check size={11} color="#fff" />}
@@ -606,14 +606,14 @@ export default function MessengerPage() {
                   const u = allUsers.find(x => x.id === uid);
                   return u ? (
                     <span key={uid} style={{
-                      background: 'rgba(24,95,165,0.2)', color: '#185FA5',
+                      background: 'rgba(232,64,37,0.2)', color: '#E84025',
                       borderRadius: '20px', padding: '3px 10px', fontSize: '11px',
                       display: 'flex', alignItems: 'center', gap: '5px',
                     }}>
                       {u.name}
                       <button
                         onClick={() => setSelectedUsers(prev => prev.filter(id => id !== uid))}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#185FA5', padding: 0, display: 'flex' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E84025', padding: 0, display: 'flex' }}
                       >
                         <X size={10} />
                       </button>
@@ -638,7 +638,7 @@ export default function MessengerPage() {
                 disabled={selectedUsers.length === 0 || creating}
                 style={{
                   flex: 2, padding: '9px', borderRadius: '7px', border: 'none',
-                  background: selectedUsers.length > 0 && !creating ? '#185FA5' : 'rgba(255,255,255,0.06)',
+                  background: selectedUsers.length > 0 && !creating ? '#E84025' : 'rgba(255,255,255,0.06)',
                   color: selectedUsers.length > 0 && !creating ? '#fff' : '#445566',
                   cursor: selectedUsers.length > 0 && !creating ? 'pointer' : 'not-allowed',
                   fontSize: '13px', fontWeight: 600,
