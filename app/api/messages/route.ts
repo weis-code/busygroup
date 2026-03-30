@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
 
 // Send en ny besked
 export async function POST(req: NextRequest) {
-  const { to, subject, body, replyTo: replyToMsgId, fromEmail, fromName } = await req.json();
+  const { to, subject, body, fromEmail, fromName } = await req.json();
   if (!to || !body) return NextResponse.json({ error: 'to og body er påkrævet' }, { status: 400 });
 
   const outEmail = fromEmail || process.env.OUTREACH_FROM_EMAIL || process.env.EMAIL_FROM || 'BusyGroup <noreply@busyconsulting.dk>';

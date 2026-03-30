@@ -10,7 +10,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json();
   const fields = ['name', 'host', 'port', 'tls', 'username', 'password', 'active'];
-  const now = new Date().toISOString();
 
   for (const field of fields) {
     if (field in body) {

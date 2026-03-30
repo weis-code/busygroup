@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  LayoutDashboard, Users, TrendingUp, MessageSquare,
+  LayoutDashboard, TrendingUp, MessageSquare,
   Settings, LogOut, Bot, Building2,
 } from 'lucide-react';
 
