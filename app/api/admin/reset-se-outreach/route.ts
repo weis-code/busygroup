@@ -31,7 +31,7 @@ export async function POST() {
     return NextResponse.json({ message: 'Ingen leads at nulstille', reset: 0 });
   }
 
-  const ids = (affectedLeads as Array<{ id: string }>).map(l => l.id);
+  const ids = (affectedLeads as unknown as Array<{ id: string }>).map(l => l.id);
 
   // Slet de falske outreach_sequences
   await sql`
@@ -49,7 +49,7 @@ export async function POST() {
   return NextResponse.json({
     message: `${affectedLeads.length} svenske leads nulstillet til 'new' — outreach agent sender rigtige emails ved næste kørsel`,
     reset: affectedLeads.length,
-    leads: (affectedLeads as Array<{ company: string; email: string; status: string }>).map(l => ({
+    leads: (affectedLeads as unknown as Array<{ company: string; email: string; status: string }>).map(l => ({
       company: l.company,
       email: l.email,
       previousStatus: l.status,

@@ -216,7 +216,7 @@ export async function run(): Promise<AgentResult> {
     WHERE market = 'sweden' AND email IS NOT NULL AND status IN ('contacted', 'replied')
   `;
   const leadByEmail = new Map(
-    (contactedLeads as Array<{ id: string; company: string; email: string; status: string }>)
+    (contactedLeads as unknown as Array<{ id: string; company: string; email: string; status: string }>)
       .map(l => [l.email.toLowerCase().trim(), l])
   );
 
@@ -224,7 +224,7 @@ export async function run(): Promise<AgentResult> {
   let totalMatched = 0;
   const errors: string[] = [];
 
-  for (const account of accounts as Array<{ id: string; email: string; host: string; port: number; tls: boolean; username: string; password: string; name: string }>) {
+  for (const account of accounts as unknown as Array<{ id: string; email: string; host: string; port: number; tls: boolean; username: string; password: string; name: string }>) {
     try {
       console.log(`[SE IMAP] Synkroniserer ${account.name} (${account.email})...`);
       const { processed, matched } = await syncAccount(account, leadByEmail, anthropic, actions);

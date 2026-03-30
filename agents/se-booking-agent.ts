@@ -56,7 +56,7 @@ export async function run(): Promise<AgentResult> {
     const now = new Date();
     let booked = 0;
 
-    for (const lead of leads as Array<Record<string, string>>) {
+    for (const lead of leads as unknown as Array<Record<string, string>>) {
       try {
         const firstName = lead.contact_name?.split(' ')[0] || 'där';
 

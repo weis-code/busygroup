@@ -68,7 +68,7 @@ export async function run(): Promise<AgentResult> {
     let processed = 0;
     let stopped = 0;
 
-    for (const seq of sequences as Array<Record<string, string | number>>) {
+    for (const seq of sequences as unknown as Array<Record<string, string | number>>) {
       const nextStep = Number(seq.step) + 1;
 
       // Trin 4 er break-up — efter det stopper vi sekvensen

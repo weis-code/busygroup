@@ -61,7 +61,7 @@ export async function run(): Promise<AgentResult> {
     let sent = 0;
     const errors: string[] = [];
 
-    for (const lead of leads as Array<Record<string, string>>) {
+    for (const lead of leads as unknown as Array<Record<string, string>>) {
       try {
         const firstName = lead.contact_name?.split(' ')[0] || 'där';
 
