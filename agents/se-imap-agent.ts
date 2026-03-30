@@ -11,7 +11,7 @@ import { sql } from '../lib/db';
 import { postMessage, postError } from '../lib/slack';
 import { randomUUID } from 'crypto';
 
-export const schedule = '0 * * * *'; // Hver time
+export const schedule = '*/10 * * * *'; // Hvert 10. minut
 
 const SENTIMENT_PROMPT = `Du er en salgsassistent. Analyser dette email-svar fra et potentielt lead.
 
@@ -60,7 +60,8 @@ async function syncAccount(
       const since = new Date();
       since.setDate(since.getDate() - 30); // De seneste 30 dage
 
-      const messages = client.fetch({ since, seen: false }, { envelope: true, bodyParts: ['TEXT'] });
+      // Hent alle beskeder (ikke kun unseen) — deduplicering sker på imap_uid
+      const messages = client.fetch({ since }, { envelope: true, source: true });
 
       for await (const msg of messages) {
         processed++;
@@ -73,12 +74,11 @@ async function syncAccount(
         const subject = msg.envelope?.subject || null;
         const receivedAt = msg.envelope?.date?.toISOString() || now;
 
-        // Parse body
+        // Parse body fra source
         let bodyText = '';
         try {
-          const rawBody = msg.bodyParts?.get('TEXT');
-          if (rawBody) {
-            const parsed = await simpleParser(Buffer.from(rawBody as unknown as string));
+          if (msg.source) {
+            const parsed = await simpleParser(msg.source as Buffer);
             bodyText = parsed.text || '';
           }
         } catch { bodyText = ''; }

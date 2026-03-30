@@ -86,11 +86,17 @@ export default function MailPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await fetch('/api/agents/se-imap/run', { method: 'POST' });
-      await fetchEmails();
-      toast.success('Indbakke synkroniseret');
-    } catch { toast.error('Synkronisering fejlede'); }
-    finally { setSyncing(false); }
+      const res = await fetch('/api/mail/sync', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        await fetchEmails();
+        toast.success(data.synced > 0 ? `${data.synced} nye emails hentet` : 'Indbakke er opdateret');
+      } else {
+        toast.error(`Synkronisering fejlede: ${data.error}`);
+      }
+    } catch (err) {
+      toast.error(`Fejl: ${String(err)}`);
+    } finally { setSyncing(false); }
   };
 
   const handleSend = async (isReply: boolean) => {
@@ -111,7 +117,9 @@ export default function MailPage() {
         setCompose({ to: '', subject: '', body: '' });
         await fetchEmails();
       } else {
-        toast.error('Kunne ikke sende email — tjek Resend opsætning');
+        // Vis den faktiske fejl fra serveren
+        const errData = await res.json().catch(() => ({ error: 'Ukendt fejl' }));
+        toast.error(errData.error || 'Kunne ikke sende email');
       }
     } finally { setSending(false); }
   };
