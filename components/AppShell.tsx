@@ -5,18 +5,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  LayoutDashboard, TrendingUp, MessageSquare, Mail,
+  LayoutDashboard, TrendingUp, MessageSquare, Mail, Calendar,
   Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import TopBar from '@/components/TopBar';
 
 const NAV_ITEMS = [
-  { label: 'Oversigt',      href: '/',          icon: LayoutDashboard },
-  { label: 'Messenger',     href: '/messenger',  icon: MessageSquare   },
-  { label: 'Mail',          href: '/mail',       icon: Mail            },
-  { label: 'CRM',           href: '/crm',        icon: TrendingUp      },
-  { label: 'Kunder',        href: '/kunder',     icon: Building2       },
-  { label: 'Agenter',       href: '/pipeline',   icon: Bot             },
-  { label: 'Indstillinger', href: '/settings',   icon: Settings        },
+  { label: 'Oversigt',      href: '/',           icon: LayoutDashboard },
+  { label: 'Messenger',     href: '/messenger',   icon: MessageSquare   },
+  { label: 'Mail',          href: '/mail',        icon: Mail            },
+  { label: 'Kalender',      href: '/calendar',    icon: Calendar        },
+  { label: 'CRM',           href: '/crm',         icon: TrendingUp      },
+  { label: 'Kunder',        href: '/kunder',      icon: Building2       },
+  { label: 'Agenter',       href: '/pipeline',    icon: Bot             },
+  { label: 'Indstillinger', href: '/settings',    icon: Settings        },
 ];
 
 const W_OPEN = 220;
@@ -179,8 +181,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         flex: 1,
         minHeight: '100vh',
         transition: 'margin-left 0.2s ease',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
-        {children}
+        <TopBar />
+        <div style={{ flex: 1 }}>
+          {children}
+        </div>
       </main>
     </div>
   );
