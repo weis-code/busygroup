@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
   LayoutDashboard, TrendingUp, MessageSquare, Mail, Calendar,
-  Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight,
+  Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight, LayoutGrid,
 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Oversigt',      href: '/',           icon: LayoutDashboard },
   { label: 'Messenger',     href: '/messenger',   icon: MessageSquare   },
   { label: 'Mail',          href: '/mail',        icon: Mail            },
+  { label: 'Projekter',     href: '/projects',    icon: LayoutGrid      },
   { label: 'Kalender',      href: '/calendar',    icon: Calendar        },
   { label: 'CRM',           href: '/crm',         icon: TrendingUp      },
   { label: 'Kunder',        href: '/kunder',      icon: Building2       },

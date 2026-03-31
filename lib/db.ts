@@ -314,6 +314,71 @@ export async function initSchema(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id, created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id)`;
 
+  // ── Projektstyring (Kanban) ────────────────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_boards (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      description TEXT,
+      owner_id    TEXT REFERENCES users(id),
+      visibility  TEXT NOT NULL DEFAULT 'private',
+      color       TEXT NOT NULL DEFAULT '#E84025',
+      customer_id TEXT REFERENCES customers(id),
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_board_members (
+      id       TEXT PRIMARY KEY,
+      board_id TEXT NOT NULL REFERENCES project_boards(id) ON DELETE CASCADE,
+      user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role     TEXT NOT NULL DEFAULT 'member',
+      UNIQUE(board_id, user_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_columns (
+      id         TEXT PRIMARY KEY,
+      board_id   TEXT NOT NULL REFERENCES project_boards(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      position   INTEGER NOT NULL DEFAULT 0,
+      color      TEXT NOT NULL DEFAULT '#334455',
+      created_at TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_tasks (
+      id          TEXT PRIMARY KEY,
+      board_id    TEXT NOT NULL REFERENCES project_boards(id) ON DELETE CASCADE,
+      column_id   TEXT NOT NULL REFERENCES project_columns(id) ON DELETE CASCADE,
+      title       TEXT NOT NULL,
+      description TEXT,
+      assigned_to TEXT REFERENCES users(id),
+      due_date    TEXT,
+      priority    TEXT NOT NULL DEFAULT 'medium',
+      labels      TEXT NOT NULL DEFAULT '[]',
+      position    INTEGER NOT NULL DEFAULT 0,
+      customer_id TEXT REFERENCES customers(id),
+      created_by  TEXT REFERENCES users(id),
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_task_comments (
+      id         TEXT PRIMARY KEY,
+      task_id    TEXT NOT NULL REFERENCES project_tasks(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL REFERENCES users(id),
+      content    TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `;
+
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;
   if (Number(agentCount[0].cnt) === 0) {
