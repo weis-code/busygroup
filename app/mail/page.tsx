@@ -72,7 +72,8 @@ export default function MailPage() {
   const [emails,         setEmails]         = useState<Email[]>([]);
   const [selectedEmail,  setSelectedEmail]  = useState<Email | null>(null);
   const [folder,         setFolder]         = useState<Folder>('inbox');
-  const [activeAccount,  setActiveAccount]  = useState<string | null>(null);
+  const [activeAccount,  setActiveAccount]  = useState<string | null>(null); // filter: hvilken indbakke
+  const [composeFrom,    setComposeFrom]    = useState<string>('');           // afsenderkonto i compose
   const [syncing,        setSyncing]        = useState(false);
   const [showCompose,    setShowCompose]    = useState(false);
   const [replying,       setReplying]       = useState(false);
@@ -81,6 +82,13 @@ export default function MailPage() {
   const [sending,        setSending]        = useState(false);
   const [starred,        setStarred]        = useState<Set<string>>(new Set());
   const replyRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sæt composeFrom til første konto når konti loades (kun én gang)
+  useEffect(() => {
+    if (accounts.length > 0 && !composeFrom) {
+      setComposeFrom(accounts[0].id);
+    }
+  }, [accounts, composeFrom]);
 
   const fetchAccounts = useCallback(async () => {
     const res = await fetch('/api/imap-accounts');
@@ -140,8 +148,8 @@ export default function MailPage() {
     setSending(true);
     try {
       const body = isReply
-        ? { to: selectedEmail!.from_email, subject: `Re: ${selectedEmail!.subject || ''}`, body: replyText, fromAccountId: selectedEmail?.imap_account_id, inReplyToId: selectedEmail!.id }
-        : { to: compose.to, subject: compose.subject, body: compose.body, fromAccountId: activeAccount };
+        ? { to: selectedEmail!.from_email, subject: `Re: ${selectedEmail!.subject || ''}`, body: replyText, fromAccountId: selectedEmail?.imap_account_id || composeFrom || null, inReplyToId: selectedEmail!.id }
+        : { to: compose.to, subject: compose.subject, body: compose.body, fromAccountId: composeFrom || null };
 
       const res = await fetch('/api/mail', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -180,7 +188,13 @@ export default function MailPage() {
         {/* Ny mail knap */}
         <div style={{ padding: '14px 12px 10px' }}>
           <button
-            onClick={() => { setShowCompose(true); setSelectedEmail(null); }}
+            onClick={() => {
+              // Præ-vælg den konto man kigger i (eller første konto)
+              if (activeAccount) setComposeFrom(activeAccount);
+              else if (accounts.length > 0 && !composeFrom) setComposeFrom(accounts[0].id);
+              setShowCompose(true);
+              setSelectedEmail(null);
+            }}
             style={{ width: '100%', background: '#E84025', border: 'none', borderRadius: 8, padding: '9px 0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
           >
             <Pencil size={13} /> Ny mail
@@ -386,31 +400,36 @@ export default function MailPage() {
               <span style={{ fontSize: 16, fontWeight: 600, color: '#ECF0F1' }}>Ny mail</span>
               <button onClick={() => setShowCompose(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A5568', padding: 4 }}><X size={16} /></button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 640 }}>
-              {accounts.length > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, color: '#4A5568', width: 52 }}>Fra</span>
-                  <select value={activeAccount || ''} onChange={e => setActiveAccount(e.target.value || null)} style={{ flex: 1, background: '#111820', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, color: '#ECF0F1', fontSize: 12, padding: '8px 10px', outline: 'none' }}>
-                    <option value="">Standard konto</option>
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.email})</option>)}
-                  </select>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 8 }}>
-                <span style={{ fontSize: 12, color: '#4A5568', width: 52 }}>Til</span>
-                <input value={compose.to} onChange={e => setCompose(p => ({ ...p, to: e.target.value }))} placeholder="modtager@email.dk" style={{ flex: 1, background: 'transparent', border: 'none', color: '#ECF0F1', fontSize: 13, outline: 'none' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxWidth: 640, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden' }}>
+              {/* Fra — altid synlig, vælg afsenderkonto */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: 12, color: '#4A5568', width: 44, flexShrink: 0 }}>Fra</span>
+                <select
+                  value={composeFrom}
+                  onChange={e => setComposeFrom(e.target.value)}
+                  style={{ flex: 1, background: 'transparent', border: 'none', color: '#ECF0F1', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+                >
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id} style={{ background: '#111820' }}>{a.name} — {a.email}</option>
+                  ))}
+                  {accounts.length === 0 && <option value="">Ingen konti opsat</option>}
+                </select>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 8 }}>
-                <span style={{ fontSize: 12, color: '#4A5568', width: 52 }}>Emne</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: 12, color: '#4A5568', width: 44, flexShrink: 0 }}>Til</span>
+                <input value={compose.to} onChange={e => setCompose(p => ({ ...p, to: e.target.value }))} placeholder="modtager@email.dk" style={{ flex: 1, background: 'transparent', border: 'none', color: '#ECF0F1', fontSize: 13, outline: 'none' }} autoFocus />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: 12, color: '#4A5568', width: 44, flexShrink: 0 }}>Emne</span>
                 <input value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} placeholder="Emne" style={{ flex: 1, background: 'transparent', border: 'none', color: '#ECF0F1', fontSize: 13, outline: 'none' }} />
               </div>
-              <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} placeholder="Skriv din besked her..." rows={14} style={{ background: 'transparent', border: 'none', color: '#B0C4D8', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.7 }} />
-              <div style={{ display: 'flex', gap: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <button onClick={() => handleSend(false)} disabled={!compose.to || !compose.body || sending} style={{ display: 'flex', alignItems: 'center', gap: 6, background: compose.to && compose.body && !sending ? '#E84025' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, padding: '9px 20px', color: compose.to && compose.body && !sending ? '#fff' : '#3A4A5A', fontSize: 13, fontWeight: 600, cursor: compose.to && compose.body && !sending ? 'pointer' : 'not-allowed' }}>
-                  <Send size={13} /> {sending ? 'Sender...' : 'Send'}
-                </button>
-                <button onClick={() => setShowCompose(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '9px 16px', color: '#4A5568', fontSize: 13, cursor: 'pointer' }}>Annuller</button>
-              </div>
+              <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} placeholder="Skriv din besked her..." rows={14} style={{ background: 'transparent', border: 'none', color: '#B0C4D8', fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.7, padding: '12px 14px' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+              <button onClick={() => handleSend(false)} disabled={!compose.to || !compose.body || !composeFrom || sending} style={{ display: 'flex', alignItems: 'center', gap: 6, background: compose.to && compose.body && composeFrom && !sending ? '#E84025' : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 8, padding: '9px 20px', color: compose.to && compose.body && composeFrom && !sending ? '#fff' : '#3A4A5A', fontSize: 13, fontWeight: 600, cursor: compose.to && compose.body && composeFrom && !sending ? 'pointer' : 'not-allowed' }}>
+                <Send size={13} /> {sending ? 'Sender...' : 'Send'}
+              </button>
+              <button onClick={() => setShowCompose(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '9px 16px', color: '#4A5568', fontSize: 13, cursor: 'pointer' }}>Annuller</button>
             </div>
           </div>
         )}
