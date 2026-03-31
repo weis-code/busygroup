@@ -25,15 +25,11 @@ interface ImapAccount {
   host: string;
 }
 
-/**
- * Send email via SMTP using credentials from imap_accounts table.
- * Falls back to env vars (SMTP_HOST etc.) if no account is found.
- */
 export async function sendViaSMTP(opts: SmtpSendOptions): Promise<void> {
   const { fromAccountId, to, subject, text, html, inReplyTo, references } = opts;
 
-  let fromEmail = process.env.OUTREACH_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@busyconsulting.dk';
-  let fromName  = 'BusyGroup';
+  let fromEmail    = '';
+  let fromName     = 'BusyGroup';
   let smtpHost     = process.env.SMTP_HOST || '';
   let smtpPort     = Number(process.env.SMTP_PORT || 587);
   let smtpSecure   = process.env.SMTP_SECURE === 'true';
@@ -49,13 +45,12 @@ export async function sendViaSMTP(opts: SmtpSendOptions): Promise<void> {
 
     const acc = rows[0];
     if (acc) {
-      fromEmail  = acc.email;
-      fromName   = acc.name;
-
-      // Brug SMTP-felter hvis de er sat, ellers forsøg IMAP-host som fallback
-      smtpHost     = acc.smtp_host     || acc.host.replace('imap.', 'smtp.');
+      fromEmail    = acc.email;
+      fromName     = acc.name;
+      smtpHost     = acc.smtp_host     || acc.host.replace(/^imap\./, 'smtp.');
       smtpPort     = acc.smtp_port     ?? 587;
       smtpSecure   = acc.smtp_secure   ?? false;
+      // SMTP user = smtp_user if set, else fall back to IMAP username (often the email address)
       smtpUser     = acc.smtp_user     || acc.username;
       smtpPassword = acc.smtp_password || acc.password;
     }
@@ -63,20 +58,31 @@ export async function sendViaSMTP(opts: SmtpSendOptions): Promise<void> {
 
   if (!smtpHost || !smtpUser || !smtpPassword) {
     throw new Error(
-      'SMTP ikke konfigureret. Tilføj smtp_host, smtp_user og smtp_password på email-kontoen i Indstillinger.'
+      `SMTP ikke konfigureret — mangler: ${[
+        !smtpHost ? 'smtp_host' : '',
+        !smtpUser ? 'smtp_user' : '',
+        !smtpPassword ? 'smtp_password' : '',
+      ].filter(Boolean).join(', ')}. Ret det under Indstillinger → rediger kontoen.`
     );
   }
+
+  // FROM skal matche den autentificerede SMTP-bruger for de fleste udbydere
+  // Brug den eksakte email-adresse — ikke "Navn <email>" — hvis from er tom
+  const fromAddress = fromEmail || smtpUser;
+  const fromHeader  = fromName ? `"${fromName}" <${fromAddress}>` : fromAddress;
+
+  console.log(`[SMTP] Sender: ${fromHeader} → ${to} via ${smtpHost}:${smtpPort} (secure=${smtpSecure}, user=${smtpUser})`);
 
   const transporter = nodemailer.createTransport({
     host: smtpHost,
     port: smtpPort,
-    secure: smtpSecure,       // true = port 465, false = STARTTLS på 587
+    secure: smtpSecure,
     auth: { user: smtpUser, pass: smtpPassword },
     tls: { rejectUnauthorized: false },
   });
 
-  await transporter.sendMail({
-    from:       `"${fromName}" <${fromEmail}>`,
+  const info = await transporter.sendMail({
+    from:       fromHeader,
     to,
     subject,
     text,
@@ -84,4 +90,6 @@ export async function sendViaSMTP(opts: SmtpSendOptions): Promise<void> {
     inReplyTo,
     references,
   });
+
+  console.log(`[SMTP] Sendt OK — messageId: ${info.messageId}, response: ${info.response}`);
 }

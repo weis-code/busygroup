@@ -1,7 +1,6 @@
 /**
  * POST /api/mail/test-smtp
- * Tester SMTP-forbindelsen for den aktuelle brugers konto og returnerer
- * diagnostikinformation (uden at sende en rigtig email).
+ * Sender en rigtig test-email til kontoen selv og returnerer diagnostik.
  */
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
@@ -14,13 +13,12 @@ export async function POST() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
 
-  // Hent brugerens konti
   const accounts = session.role === 'admin'
     ? await sql`SELECT id, name, email, host, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_password, username, password FROM imap_accounts WHERE active = true ORDER BY created_at ASC`
     : await sql`SELECT id, name, email, host, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_password, username, password FROM imap_accounts WHERE active = true AND (user_id = ${session.id} OR user_id IS NULL) ORDER BY created_at ASC`;
 
   if (accounts.length === 0) {
-    return NextResponse.json({ ok: false, error: 'Ingen aktive IMAP-konti fundet', accounts: [] });
+    return NextResponse.json({ ok: false, error: 'Ingen aktive konti fundet' });
   }
 
   const results = [];
@@ -31,25 +29,26 @@ export async function POST() {
     smtp_user: string | null; smtp_password: string | null;
     username: string; password: string;
   }>) {
-    const smtpHost     = acc.smtp_host     || acc.host.replace('imap.', 'smtp.');
+    const smtpHost     = acc.smtp_host     || acc.host.replace(/^imap\./, 'smtp.');
     const smtpPort     = acc.smtp_port     ?? 587;
     const smtpSecure   = acc.smtp_secure   ?? false;
     const smtpUser     = acc.smtp_user     || acc.username;
-    const hasPassword  = !!(acc.smtp_password || acc.password);
+    const smtpPassword = acc.smtp_password || acc.password;
+    const fromAddress  = acc.email || smtpUser;
 
     const config = {
       account: acc.name,
-      email: acc.email,
+      from: fromAddress,
       smtp_host: smtpHost,
       smtp_port: smtpPort,
       smtp_secure: smtpSecure,
       smtp_user: smtpUser,
-      has_password: hasPassword,
-      source: acc.smtp_host ? 'database smtp felter' : 'gættet fra imap host',
+      has_password: !!smtpPassword,
+      host_source: acc.smtp_host ? 'smtp felter i DB' : `gættet fra imap host (${acc.host})`,
     };
 
-    if (!smtpHost || !smtpUser || !hasPassword) {
-      results.push({ ...config, ok: false, error: 'Mangler smtp_host, bruger eller password' });
+    if (!smtpHost || !smtpUser || !smtpPassword) {
+      results.push({ ...config, ok: false, error: 'Mangler smtp_host, user eller password — ret det i Indstillinger' });
       continue;
     }
 
@@ -58,14 +57,21 @@ export async function POST() {
         host: smtpHost,
         port: smtpPort,
         secure: smtpSecure,
-        auth: { user: smtpUser, pass: acc.smtp_password || acc.password },
+        auth: { user: smtpUser, pass: smtpPassword },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 8000,
-        greetingTimeout: 5000,
+        connectionTimeout: 10000,
+        greetingTimeout: 8000,
       });
 
-      await transporter.verify();
-      results.push({ ...config, ok: true });
+      // Send en rigtig test-email til kontoen selv
+      const info = await transporter.sendMail({
+        from:    `"${acc.name}" <${fromAddress}>`,
+        to:      fromAddress,
+        subject: `BusyGroup SMTP test — ${new Date().toLocaleTimeString('da-DK')}`,
+        text:    `Dette er en automatisk test fra BusyGroup Mail.\n\nHvis du modtager denne email virker din SMTP-opsætning korrekt.\n\nKonto: ${acc.name}\nSMTP: ${smtpHost}:${smtpPort}`,
+      });
+
+      results.push({ ...config, ok: true, messageId: info.messageId, response: info.response });
     } catch (e) {
       results.push({ ...config, ok: false, error: String(e) });
     }
