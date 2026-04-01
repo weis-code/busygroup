@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
@@ -34,6 +34,23 @@ const W_CLOSED = 56;
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useUser();
+  const [mailUnread, setMailUnread] = useState(0);
+
+  // Poll unread mail count every 60s
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/mail/count');
+        if (res.ok) {
+          const data = await res.json();
+          setMailUnread(data.total || 0);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchCount();
+    const timer = setInterval(fetchCount, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -143,6 +160,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }}>
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || (href !== '/' && pathname.startsWith(href));
+            const badge = href === '/mail' && mailUnread > 0 ? mailUnread : 0;
             return (
               <Link
                 key={href}
@@ -176,11 +194,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   }
                 }}
               >
-                <Icon
-                  size={collapsed ? 18 : 15}
-                  style={{ flexShrink: 0, color: active ? PRIMARY : 'inherit' }}
-                />
-                {!collapsed && label}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon
+                    size={collapsed ? 18 : 15}
+                    style={{ color: active ? PRIMARY : 'inherit' }}
+                  />
+                  {badge > 0 && (
+                    <span style={{
+                      position: 'absolute', top: collapsed ? -6 : -5, right: collapsed ? -8 : -8,
+                      background: PRIMARY, color: '#fff',
+                      fontSize: 9, fontWeight: 800,
+                      borderRadius: 8, padding: '1px 4px',
+                      lineHeight: 1.3, minWidth: 14, textAlign: 'center',
+                    }}>
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
+                </div>
+                {!collapsed && <span style={{ flex: 1 }}>{label}</span>}
+                {!collapsed && badge > 0 && (
+                  <span style={{ background: 'rgba(232,64,37,0.18)', color: PRIMARY, fontSize: 10, fontWeight: 700, borderRadius: 8, padding: '1px 6px' }}>
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
               </Link>
             );
           })}
