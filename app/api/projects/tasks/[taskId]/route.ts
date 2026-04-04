@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { taskId: st
   const body = await req.json();
   const now  = new Date().toISOString();
 
-  const fields = ['title', 'description', 'column_id', 'assigned_to', 'due_date', 'priority', 'labels', 'position', 'customer_id'];
+  const fields = ['title', 'description', 'column_id', 'assigned_to', 'due_date', 'priority', 'labels', 'position', 'customer_id', 'done'];
   for (const field of fields) {
     if (field in body) {
       const val = field === 'labels' && typeof body[field] !== 'string' ? JSON.stringify(body[field]) : body[field];

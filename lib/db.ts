@@ -391,6 +391,7 @@ export async function initSchema(): Promise<void> {
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_enabled BOOLEAN DEFAULT false`.catch(() => {});
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_email TEXT`.catch(() => {});
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_password_hash TEXT`.catch(() => {});
+  await sql`ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS done BOOLEAN DEFAULT false`.catch(() => {});
 
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;

@@ -16,7 +16,7 @@ interface Task {
   assigned_to: string | null; assigned_name: string | null;
   due_date: string | null; priority: string; labels: string;
   position: number; customer_id: string | null; customer_company: string | null;
-  created_by: string | null; created_at: string;
+  created_by: string | null; created_at: string; done: boolean;
 }
 interface Member { id: string; name: string; board_role: string; }
 interface Board {
@@ -139,6 +139,17 @@ export default function BoardPage() {
     setTasks(prev => prev.filter(t => t.id !== taskId));
     setActiveTask(null);
     toast.success('Opgave slettet');
+  };
+
+  const toggleDone = async (e: React.MouseEvent, task: Task) => {
+    e.stopPropagation();
+    const next = !task.done;
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, done: next } : t));
+    if (activeTask?.id === task.id) setActiveTask(prev => prev ? { ...prev, done: next } : null);
+    await fetch(`/api/projects/tasks/${task.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: next }),
+    });
   };
 
   const addTask = async (colId: string) => {
@@ -342,9 +353,9 @@ export default function BoardPage() {
                       draggable
                       onDragStart={() => onDragStart(task.id)}
                       onClick={() => openTask(task)}
-                      style={{ background: '#0C0F14', borderRadius: 9, padding: '10px 11px', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', transition: 'border-color 0.12s', userSelect: 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)')}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)')}
+                      style={{ background: '#0C0F14', borderRadius: 9, padding: '10px 11px', cursor: 'pointer', border: `1px solid ${task.done ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)'}`, transition: 'border-color 0.12s', userSelect: 'none', opacity: task.done ? 0.65 : 1 }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = task.done ? 'rgba(46,204,113,0.3)' : 'rgba(255,255,255,0.12)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = task.done ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)')}
                     >
                       {/* Labels */}
                       {labels.length > 0 && (
@@ -355,7 +366,23 @@ export default function BoardPage() {
                         </div>
                       )}
 
-                      <div style={{ fontSize: 13, fontWeight: 500, color: '#D0DDE8', lineHeight: 1.4, marginBottom: 8 }}>{task.title}</div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 8 }}>
+                        {/* Done checkbox */}
+                        <button
+                          onClick={e => toggleDone(e, task)}
+                          title={task.done ? 'Marker som ikke færdig' : 'Marker som færdig'}
+                          style={{
+                            flexShrink: 0, marginTop: 1,
+                            width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${task.done ? '#2ECC71' : 'rgba(255,255,255,0.2)'}`,
+                            background: task.done ? '#2ECC71' : 'transparent',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {task.done && <Check size={9} color="#fff" strokeWidth={3} />}
+                        </button>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: '#D0DDE8', lineHeight: 1.4, textDecoration: task.done ? 'line-through' : 'none', opacity: task.done ? 0.6 : 1 }}>{task.title}</span>
+                      </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         {/* Priority */}
@@ -476,6 +503,12 @@ export default function BoardPage() {
                 ) : (
                   <button onClick={() => setEditingTask(true)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '6px 10px', color: '#667788', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Rediger</button>
                 )}
+                <button
+                  onClick={e => toggleDone(e, activeTask)}
+                  style={{ background: activeTask.done ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${activeTask.done ? 'rgba(46,204,113,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 6, padding: '6px 10px', color: activeTask.done ? '#2ECC71' : '#667788', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <Check size={12} /> {activeTask.done ? 'Færdig' : 'Marker færdig'}
+                </button>
                 <button onClick={() => deleteTask(activeTask.id)} style={{ background: 'none', border: '1px solid rgba(232,64,37,0.2)', borderRadius: 6, padding: '6px 8px', color: '#E84025', cursor: 'pointer' }}><Trash2 size={12} /></button>
                 <button onClick={() => setActiveTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A5568', padding: 2 }}><X size={16} /></button>
               </div>
