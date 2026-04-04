@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/auth';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login'];
+// Portal routes handle their own auth internally
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/portal', '/api/portal'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

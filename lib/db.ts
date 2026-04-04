@@ -314,6 +314,14 @@ export async function initSchema(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id, created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id)`;
 
+  // Mail upgrades
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS starred BOOLEAN DEFAULT false`.catch(() => {});
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS draft BOOLEAN DEFAULT false`.catch(() => {});
+  await sql`ALTER TABLE messages ADD COLUMN IF NOT EXISTS thread_id TEXT`.catch(() => {});
+  await sql`ALTER TABLE imap_accounts ADD COLUMN IF NOT EXISTS last_uid INTEGER DEFAULT 0`.catch(() => {});
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_thread_id ON messages(thread_id)`.catch(() => {});
+  await sql`CREATE INDEX IF NOT EXISTS idx_messages_message_id ON messages(message_id)`.catch(() => {});
+
   // ── Projektstyring (Kanban) ────────────────────────────────────────────────
   await sql`
     CREATE TABLE IF NOT EXISTS project_boards (
@@ -378,6 +386,11 @@ export async function initSchema(): Promise<void> {
       created_at TEXT NOT NULL
     )
   `;
+
+  // ── Kunde portal adgang ───────────────────────────────────────────────────
+  await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_enabled BOOLEAN DEFAULT false`.catch(() => {});
+  await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_email TEXT`.catch(() => {});
+  await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_password_hash TEXT`.catch(() => {});
 
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;

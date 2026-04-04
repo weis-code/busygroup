@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  LayoutDashboard, TrendingUp, MessageSquare, Mail, Calendar,
+  LayoutDashboard, TrendingUp, MessageSquare,
   Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight, LayoutGrid,
 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
@@ -19,9 +19,7 @@ const BG_BORDER = 'rgba(255,255,255,0.07)';
 const NAV_ITEMS = [
   { label: 'Oversigt',      href: '/',           icon: LayoutDashboard },
   { label: 'Messenger',     href: '/messenger',   icon: MessageSquare   },
-  { label: 'Mail',          href: '/mail',        icon: Mail            },
   { label: 'Projekter',     href: '/projects',    icon: LayoutGrid      },
-  { label: 'Kalender',      href: '/calendar',    icon: Calendar        },
   { label: 'CRM',           href: '/crm',         icon: TrendingUp      },
   { label: 'Kunder',        href: '/kunder',      icon: Building2       },
   { label: 'Agenter',       href: '/pipeline',    icon: Bot             },
@@ -34,23 +32,6 @@ const W_CLOSED = 56;
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useUser();
-  const [mailUnread, setMailUnread] = useState(0);
-
-  // Poll unread mail count every 60s
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const res = await fetch('/api/mail/count');
-        if (res.ok) {
-          const data = await res.json();
-          setMailUnread(data.total || 0);
-        }
-      } catch { /* ignore */ }
-    };
-    fetchCount();
-    const timer = setInterval(fetchCount, 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -160,7 +141,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }}>
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || (href !== '/' && pathname.startsWith(href));
-            const badge = href === '/mail' && mailUnread > 0 ? mailUnread : 0;
+            const badge = 0;
             return (
               <Link
                 key={href}

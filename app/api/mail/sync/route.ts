@@ -1,7 +1,5 @@
 /**
- * POST /api/mail/sync
- * Synkroniserer IMAP for den aktuelle brugers konti direkte.
- * Kræver ikke agent-infrastrukturen.
+ * POST /api/mail/sync — inkrementel IMAP sync (UID-baseret, kun nye beskeder)
  */
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
@@ -16,32 +14,21 @@ export async function POST() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
 
-  // Hent brugerens egne aktive konti
-  const accounts = await sql`
-    SELECT id, name, email, host, port, tls, username, password
-    FROM imap_accounts
-    WHERE active = true
-      AND (
-        ${session.role === 'admin' ? sql`1=1` : sql`user_id = ${session.id} OR user_id IS NULL`}
-      )
-  ` as unknown as Array<{
-    id: string; name: string; email: string;
-    host: string; port: number; tls: boolean;
-    username: string; password: string;
-  }>;
+  const accounts = session.role === 'admin'
+    ? await sql`SELECT id, name, email, host, port, tls, username, password, last_uid FROM imap_accounts WHERE active = true ORDER BY created_at ASC`
+    : await sql`SELECT id, name, email, host, port, tls, username, password, last_uid FROM imap_accounts WHERE active = true AND (user_id = ${session.id} OR user_id IS NULL) ORDER BY created_at ASC`;
 
-  if (accounts.length === 0) {
-    return NextResponse.json({ ok: true, synced: 0, message: 'Ingen aktive konti' });
-  }
+  if (accounts.length === 0) return NextResponse.json({ ok: true, synced: 0, message: 'Ingen aktive konti' });
 
   let totalNew = 0;
   const errors: string[] = [];
 
-  for (const acc of accounts) {
+  for (const acc of accounts as unknown as Array<{
+    id: string; name: string; email: string; host: string;
+    port: number; tls: boolean; username: string; password: string; last_uid: number | null;
+  }>) {
     const client = new ImapFlow({
-      host: acc.host,
-      port: acc.port,
-      secure: acc.tls,
+      host: acc.host, port: acc.port, secure: acc.tls,
       auth: { user: acc.username, pass: acc.password },
       logger: false,
     });
@@ -50,13 +37,31 @@ export async function POST() {
       await client.connect();
       const lock = await client.getMailboxLock('INBOX');
       const now = new Date().toISOString();
+      const lastUid = Number(acc.last_uid || 0);
+      let maxUid = lastUid;
 
       try {
-        const since = new Date();
-        since.setDate(since.getDate() - 30); // Seneste 30 dage
+        // UID-baseret fetch: kun nye beskeder siden sidst
+        // Ved første sync: brug 7-dages SINCE for at undgå at hente hele indbakken
+        let fetchRange: string | object;
+        if (lastUid > 0) {
+          fetchRange = `${lastUid + 1}:*`;
+        } else {
+          const since = new Date();
+          since.setDate(since.getDate() - 14);
+          fetchRange = { since };
+        }
 
-        // Hent ALLE beskeder (ikke kun unseen), de-dupliker på uid
-        for await (const msg of client.fetch({ since }, { envelope: true, source: true })) {
+        for await (const msg of client.fetch(fetchRange as Parameters<typeof client.fetch>[0], { envelope: true, source: true }, { uid: lastUid > 0 })) {
+          const uid = msg.uid;
+          if (uid && uid > maxUid) maxUid = uid;
+
+          // Deduplication
+          if (uid) {
+            const [existing] = await sql`SELECT id FROM messages WHERE imap_account_id = ${acc.id} AND imap_uid = ${uid}`;
+            if (existing) continue;
+          }
+
           const fromAddress = msg.envelope?.from?.[0];
           if (!fromAddress?.address) continue;
 
@@ -65,25 +70,30 @@ export async function POST() {
           const subject     = msg.envelope?.subject || null;
           const receivedAt  = msg.envelope?.date?.toISOString() || now;
 
-          // Dedupliker på imap_uid + account
-          const [existing] = await sql`
-            SELECT id FROM messages
-            WHERE imap_account_id = ${acc.id} AND imap_uid = ${msg.uid}
-          `;
-          if (existing) continue;
-
-          // Parse body
           let bodyText = '';
           let bodyHtml = '';
+          let messageId: string | null = null;
+          let inReplyTo: string | null = null;
+
           try {
             if (msg.source) {
               const parsed = await simpleParser(msg.source as Buffer);
-              bodyText = parsed.text  || '';
-              bodyHtml = parsed.html  || '';
+              bodyText  = parsed.text  || '';
+              bodyHtml  = parsed.html  || '';
+              messageId = parsed.messageId || null;
+              inReplyTo = (parsed.inReplyTo as string | null) || null;
             }
           } catch { /* ignore parse errors */ }
 
-          // Match til lead/kunde
+          // Compute thread_id: look up parent message, else use own messageId
+          let threadId: string | null = messageId;
+          if (inReplyTo) {
+            const [parent] = await sql`SELECT thread_id FROM messages WHERE message_id = ${inReplyTo} LIMIT 1`;
+            if (parent && (parent as unknown as { thread_id: string }).thread_id) {
+              threadId = (parent as unknown as { thread_id: string }).thread_id;
+            }
+          }
+
           const [lead]     = await sql`SELECT id FROM leads     WHERE LOWER(email)         = ${senderEmail} LIMIT 1`;
           const [customer] = await sql`SELECT id FROM customers WHERE LOWER(contact_email) = ${senderEmail} LIMIT 1`;
 
@@ -91,15 +101,15 @@ export async function POST() {
             INSERT INTO messages (
               id, imap_account_id, imap_uid, direction,
               from_email, from_name, to_email, subject,
-              body_text, body_html, lead_id, customer_id,
-              read, received_at, created_at
+              body_text, body_html, message_id, in_reply_to, thread_id,
+              lead_id, customer_id, read, starred, draft, received_at, created_at
             ) VALUES (
-              ${randomUUID()}, ${acc.id}, ${msg.uid}, 'inbound',
+              ${randomUUID()}, ${acc.id}, ${uid || null}, 'inbound',
               ${senderEmail}, ${senderName}, ${acc.email}, ${subject},
-              ${bodyText}, ${bodyHtml},
+              ${bodyText}, ${bodyHtml}, ${messageId}, ${inReplyTo}, ${threadId},
               ${(lead as { id: string } | undefined)?.id || null},
               ${(customer as { id: string } | undefined)?.id || null},
-              false, ${receivedAt}, ${now}
+              false, false, false, ${receivedAt}, ${now}
             )
           `;
           totalNew++;
@@ -108,10 +118,14 @@ export async function POST() {
         lock.release();
       }
 
-      // Opdater last_sync
-      await sql`UPDATE imap_accounts SET last_sync = ${new Date().toISOString()} WHERE id = ${acc.id}`;
+      // Opdater last_uid og last_sync
+      if (maxUid > lastUid) {
+        await sql`UPDATE imap_accounts SET last_uid = ${maxUid}, last_sync = ${now} WHERE id = ${acc.id}`;
+      } else {
+        await sql`UPDATE imap_accounts SET last_sync = ${now} WHERE id = ${acc.id}`;
+      }
     } catch (err) {
-      console.error(`[mail/sync] Fejl på konto ${acc.email}:`, err);
+      console.error(`[mail/sync] Fejl på ${acc.email}:`, err);
       errors.push(`${acc.email}: ${String(err)}`);
     } finally {
       try { await client.logout(); } catch { /* ignore */ }
@@ -122,10 +136,5 @@ export async function POST() {
     return NextResponse.json({ error: errors.join('; ') }, { status: 500 });
   }
 
-  return NextResponse.json({
-    ok: true,
-    synced: totalNew,
-    accounts: accounts.length,
-    errors: errors.length > 0 ? errors : undefined,
-  });
+  return NextResponse.json({ ok: true, synced: totalNew, accounts: accounts.length, errors: errors.length > 0 ? errors : undefined });
 }

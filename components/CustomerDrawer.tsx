@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, Mail, Phone, Edit3, Calendar, FileText, ShoppingBag,
   TrendingUp, AlertTriangle, CheckCircle, Clock, ExternalLink, Trash2,
+  Globe, Eye, EyeOff, Copy, Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -115,7 +116,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
   onUpdate: (id: string, changes: Partial<Customer>) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }) {
-  const [tab, setTab] = useState<'Overblik' | 'Produkter' | 'Noter'>('Overblik');
+  const [tab, setTab] = useState<'Overblik' | 'Produkter' | 'Noter' | 'Portal'>('Overblik');
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Customer>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -123,6 +124,14 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
   const [customerProducts, setCustomerProducts] = useState<Product[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [noteText, setNoteText] = useState('');
+
+  // Portal state
+  const [portalEnabled,  setPortalEnabled]  = useState(false);
+  const [portalEmail,    setPortalEmail]    = useState('');
+  const [portalPassword, setPortalPassword] = useState('');
+  const [showPortalPw,   setShowPortalPw]   = useState(false);
+  const [portalSaving,   setPortalSaving]   = useState(false);
+  const [portalCopied,   setPortalCopied]   = useState(false);
 
   const loadProducts = useCallback(() => {
     fetch('/api/products')
@@ -142,10 +151,23 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
       .catch(() => {});
   }, [customer.id]);
 
+  const loadPortal = useCallback(() => {
+    fetch(`/api/portal/setup?customer_id=${customer.id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data && !data.error) {
+          setPortalEnabled(!!data.portal_enabled);
+          setPortalEmail(data.portal_email || '');
+        }
+      })
+      .catch(() => {});
+  }, [customer.id]);
+
   useEffect(() => {
     loadProducts();
     loadNotes();
-  }, [loadProducts, loadNotes]);
+    loadPortal();
+  }, [loadProducts, loadNotes, loadPortal]);
 
   const toggleProduct = async (product: Product) => {
     const isSelected = customerProducts.some(p => p.id === product.id);
@@ -316,14 +338,19 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
 
         {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-          {(['Overblik', 'Produkter', 'Noter'] as const).map(t => (
+          {(['Overblik', 'Produkter', 'Noter', 'Portal'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '10px', border: 'none', background: 'transparent',
               color: tab === t ? '#ECF0F1' : '#667788',
               borderBottom: `2px solid ${tab === t ? '#185FA5' : 'transparent'}`,
               fontSize: '13px', fontWeight: tab === t ? 600 : 400, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}>
+              {t === 'Portal' && <Globe size={11} />}
               {t}
+              {t === 'Portal' && portalEnabled && (
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ECC71', display: 'inline-block' }} />
+              )}
             </button>
           ))}
         </div>
@@ -541,6 +568,162 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ===== PORTAL ===== */}
+          {tab === 'Portal' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+              {/* Status banner */}
+              <div style={{
+                background: portalEnabled ? 'rgba(46,204,113,0.08)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${portalEnabled ? 'rgba(46,204,113,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: '8px', padding: '14px 16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Globe size={16} color={portalEnabled ? '#2ECC71' : '#667788'} />
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: portalEnabled ? '#2ECC71' : '#AAB8C2' }}>
+                      {portalEnabled ? 'Portaladgang aktiv' : 'Ingen portaladgang'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#445566', marginTop: 1 }}>
+                      {portalEnabled ? portalEmail : 'Kunden kan ikke logge ind endnu'}
+                    </div>
+                  </div>
+                </div>
+                {portalEnabled && (
+                  <button
+                    onClick={async () => {
+                      await fetch('/api/portal/setup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ customer_id: customer.id, enabled: false }),
+                      });
+                      setPortalEnabled(false);
+                      toast.success('Portaladgang deaktiveret');
+                    }}
+                    style={{ fontSize: '11px', color: '#E74C3C', background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.2)', borderRadius: '5px', padding: '4px 10px', cursor: 'pointer' }}
+                  >
+                    Deaktiver
+                  </button>
+                )}
+              </div>
+
+              {/* Portal link */}
+              {portalEnabled && (
+                <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                    Portal-link til kunden
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <code style={{ flex: 1, fontSize: '11px', color: '#AAB8C2', background: '#0F1923', padding: '7px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {typeof window !== 'undefined' ? `${window.location.origin}/portal` : '/portal'}
+                    </code>
+                    <button
+                      onClick={() => {
+                        const url = typeof window !== 'undefined' ? `${window.location.origin}/portal` : '/portal';
+                        navigator.clipboard.writeText(url).then(() => {
+                          setPortalCopied(true);
+                          setTimeout(() => setPortalCopied(false), 2000);
+                        });
+                      }}
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '6px 10px', cursor: 'pointer', color: portalCopied ? '#2ECC71' : '#667788', flexShrink: 0 }}
+                      title="Kopiér link"
+                    >
+                      {portalCopied ? <Check size={13} /> : <Copy size={13} />}
+                    </button>
+                    <a
+                      href="/portal"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ background: 'rgba(24,95,165,0.12)', border: '1px solid rgba(24,95,165,0.25)', borderRadius: '5px', padding: '6px 10px', cursor: 'pointer', color: '#185FA5', display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
+                      title="Åbn portal"
+                    >
+                      <ExternalLink size={13} />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Setup form */}
+              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+                  {portalEnabled ? 'Opdater login-oplysninger' : 'Aktiver portaladgang'}
+                </div>
+
+                <div style={{ fontSize: '11px', color: '#556677', marginBottom: '5px' }}>Email (bruges til login)</div>
+                <input
+                  type="email"
+                  value={portalEmail}
+                  onChange={e => setPortalEmail(e.target.value)}
+                  placeholder={customer.contact_email || 'email@firma.dk'}
+                  style={{ ...inputStyle, marginBottom: '10px' }}
+                />
+
+                <div style={{ fontSize: '11px', color: '#556677', marginBottom: '5px' }}>
+                  {portalEnabled ? 'Ny adgangskode (lad stå blank for at beholde)' : 'Adgangskode'}
+                </div>
+                <div style={{ position: 'relative', marginBottom: '12px' }}>
+                  <input
+                    type={showPortalPw ? 'text' : 'password'}
+                    value={portalPassword}
+                    onChange={e => setPortalPassword(e.target.value)}
+                    placeholder={portalEnabled ? '(uændret)' : 'Vælg en adgangskode'}
+                    style={{ ...inputStyle, marginBottom: 0, paddingRight: '36px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPortalPw(p => !p)}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3A4A5A', padding: 2 }}
+                  >
+                    {showPortalPw ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    if (!portalEmail.trim()) { toast.error('Email er påkrævet'); return; }
+                    if (!portalEnabled && !portalPassword.trim()) { toast.error('Adgangskode er påkrævet ved første aktivering'); return; }
+                    setPortalSaving(true);
+                    try {
+                      const res = await fetch('/api/portal/setup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          customer_id: customer.id,
+                          portal_email: portalEmail,
+                          password: portalPassword || undefined,
+                          enabled: true,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setPortalEnabled(true);
+                        setPortalPassword('');
+                        toast.success(portalEnabled ? 'Portal opdateret' : 'Portaladgang aktiveret');
+                      } else {
+                        toast.error(data.error || 'Fejl');
+                      }
+                    } finally {
+                      setPortalSaving(false);
+                    }
+                  }}
+                  disabled={portalSaving || !portalEmail.trim()}
+                  style={{
+                    width: '100%', background: !portalSaving && portalEmail.trim() ? '#185FA5' : 'rgba(255,255,255,0.06)',
+                    border: 'none', borderRadius: '6px', padding: '9px', color: !portalSaving && portalEmail.trim() ? '#fff' : '#3A4A5A',
+                    fontSize: '13px', fontWeight: 500, cursor: !portalSaving && portalEmail.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {portalSaving ? 'Gemmer...' : portalEnabled ? 'Opdater' : 'Aktiver portal'}
+                </button>
+              </div>
+
+              <div style={{ fontSize: '11px', color: '#2D3748', lineHeight: 1.6, padding: '0 2px' }}>
+                Kunden kan logge ind på portalen med sin email og adgangskode og se kontraktoplysninger, produkter og tilknyttede projekter.
+              </div>
             </div>
           )}
 
