@@ -393,6 +393,20 @@ export async function initSchema(): Promise<void> {
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_password_hash TEXT`.catch(() => {});
   await sql`ALTER TABLE project_tasks ADD COLUMN IF NOT EXISTS done BOOLEAN DEFAULT false`.catch(() => {});
 
+  // ── Kunde portal: messenger-tråd + projekt per kunde ─────────────────────
+  await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_conversation_id TEXT`.catch(() => {});
+  await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_board_id TEXT`.catch(() => {});
+  await sql`ALTER TABLE chat_conversations ADD COLUMN IF NOT EXISTS customer_id TEXT`.catch(() => {});
+
+  // ── Fil-vedhæftninger i chat (base64, max ~5MB) ───────────────────────────
+  await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_name TEXT`.catch(() => {});
+  await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_type TEXT`.catch(() => {});
+  await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_data TEXT`.catch(() => {});
+
+  // ── Portal sender_type: 'user' (intern) eller 'customer' (portal) ─────────
+  await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_type TEXT DEFAULT 'user'`.catch(() => {});
+  await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS portal_sender_name TEXT`.catch(() => {});
+
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;
   if (Number(agentCount[0].cnt) === 0) {

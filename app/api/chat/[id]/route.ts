@@ -33,15 +33,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
 
-  const { content } = await req.json();
-  if (!content?.trim()) return NextResponse.json({ error: 'Tom besked' }, { status: 400 });
+  const body = await req.json();
+  const { content, file_name, file_type, file_data } = body as {
+    content?: string;
+    file_name?: string;
+    file_type?: string;
+    file_data?: string;
+  };
+
+  if (!content?.trim() && !file_data) return NextResponse.json({ error: 'Tom besked' }, { status: 400 });
 
   const now = new Date().toISOString();
   const id  = randomUUID();
 
   await sql`
-    INSERT INTO chat_messages (id, conversation_id, sender_id, content, created_at)
-    VALUES (${id}, ${params.id}, ${session.id}, ${content.trim()}, ${now})
+    INSERT INTO chat_messages
+      (id, conversation_id, sender_id, sender_type, content, file_name, file_type, file_data, created_at)
+    VALUES
+      (${id}, ${params.id}, ${session.id}, 'user', ${content?.trim() || ''}, ${file_name || null}, ${file_type || null}, ${file_data || null}, ${now})
   `;
 
   await sql`

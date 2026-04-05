@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, Mail, Phone, Edit3, Calendar, FileText, ShoppingBag,
   TrendingUp, AlertTriangle, CheckCircle, Clock, ExternalLink, Trash2,
-  Globe, Eye, EyeOff, Copy, Check,
+  Globe, Eye, EyeOff, Copy, Check, Users, Plus, Minus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -116,7 +116,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
   onUpdate: (id: string, changes: Partial<Customer>) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }) {
-  const [tab, setTab] = useState<'Overblik' | 'Produkter' | 'Noter' | 'Portal'>('Overblik');
+  const [tab, setTab] = useState<'Overblik' | 'Produkter' | 'Noter' | 'Portal' | 'Medlemmer'>('Overblik');
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Customer>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -132,6 +132,11 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
   const [showPortalPw,   setShowPortalPw]   = useState(false);
   const [portalSaving,   setPortalSaving]   = useState(false);
   const [portalCopied,   setPortalCopied]   = useState(false);
+
+  // Members state
+  const [members,    setMembers]    = useState<{id: string; name: string; email: string; role: string}[]>([]);
+  const [allUsers,   setAllUsers]   = useState<{id: string; name: string; role: string}[]>([]);
+  const [memberSaving, setMemberSaving] = useState<string | null>(null);
 
   const loadProducts = useCallback(() => {
     fetch('/api/products')
@@ -163,11 +168,23 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
       .catch(() => {});
   }, [customer.id]);
 
+  const loadMembers = useCallback(() => {
+    fetch(`/api/customers/${customer.id}/members`)
+      .then(r => r.json())
+      .then(data => setMembers(Array.isArray(data) ? data : []))
+      .catch(() => {});
+    fetch('/api/users')
+      .then(r => r.json())
+      .then(data => setAllUsers(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [customer.id]);
+
   useEffect(() => {
     loadProducts();
     loadNotes();
     loadPortal();
-  }, [loadProducts, loadNotes, loadPortal]);
+    loadMembers();
+  }, [loadProducts, loadNotes, loadPortal, loadMembers]);
 
   const toggleProduct = async (product: Product) => {
     const isSelected = customerProducts.some(p => p.id === product.id);
@@ -338,18 +355,22 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
 
         {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-          {(['Overblik', 'Produkter', 'Noter', 'Portal'] as const).map(t => (
+          {(['Overblik', 'Produkter', 'Noter', 'Medlemmer', 'Portal'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '10px', border: 'none', background: 'transparent',
               color: tab === t ? '#ECF0F1' : '#667788',
               borderBottom: `2px solid ${tab === t ? '#185FA5' : 'transparent'}`,
-              fontSize: '13px', fontWeight: tab === t ? 600 : 400, cursor: 'pointer',
+              fontSize: '12px', fontWeight: tab === t ? 600 : 400, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
             }}>
               {t === 'Portal' && <Globe size={11} />}
+              {t === 'Medlemmer' && <Users size={11} />}
               {t}
               {t === 'Portal' && portalEnabled && (
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ECC71', display: 'inline-block' }} />
+              )}
+              {t === 'Medlemmer' && members.length > 0 && (
+                <span style={{ fontSize: 9, background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '1px 5px', color: '#AAB8C2' }}>{members.length}</span>
               )}
             </button>
           ))}
@@ -566,6 +587,92 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===== MEDLEMMER ===== */}
+          {tab === 'Medlemmer' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ fontSize: '12px', color: '#556677', lineHeight: 1.5 }}>
+                Medarbejdere herunder har adgang til kundens messenger-tråd og projekt-board.
+              </div>
+
+              {/* Current members */}
+              <div>
+                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  Nuværende ({members.length})
+                </div>
+                {members.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: '#445566', fontStyle: 'italic' }}>Ingen tilknyttede medarbejdere endnu</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {members.map(m => (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: '#1A2A38', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#E84025', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                          {m.name[0].toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', color: '#ECF0F1', fontWeight: 500 }}>{m.name}</div>
+                          <div style={{ fontSize: '10px', color: '#445566' }}>{m.email}</div>
+                        </div>
+                        <span style={{ fontSize: '10px', color: m.role === 'admin' ? '#E84025' : '#445566', textTransform: 'uppercase', fontWeight: 600 }}>
+                          {m.role === 'admin' ? 'Admin' : 'Sælger'}
+                        </span>
+                        <button
+                          disabled={memberSaving === m.id}
+                          onClick={async () => {
+                            setMemberSaving(m.id);
+                            await fetch(`/api/customers/${customer.id}/members?user_id=${m.id}`, { method: 'DELETE' });
+                            loadMembers();
+                            setMemberSaving(null);
+                            toast.success(`${m.name} fjernet`);
+                          }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: 4, display: 'flex', borderRadius: 4 }}
+                          title="Fjern"
+                        >
+                          <Minus size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add members */}
+              {allUsers.filter(u => !members.some(m => m.id === u.id)).length > 0 && (
+                <div>
+                  <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                    Tilføj medarbejder
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {allUsers.filter(u => !members.some(m => m.id === u.id)).map(u => (
+                      <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#334455', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#AAB8C2', flexShrink: 0 }}>
+                          {u.name[0].toUpperCase()}
+                        </div>
+                        <span style={{ flex: 1, fontSize: '13px', color: '#AAB8C2' }}>{u.name}</span>
+                        <button
+                          disabled={memberSaving === u.id}
+                          onClick={async () => {
+                            setMemberSaving(u.id);
+                            await fetch(`/api/customers/${customer.id}/members`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ user_id: u.id }),
+                            });
+                            loadMembers();
+                            setMemberSaving(null);
+                            toast.success(`${u.name} tilføjet`);
+                          }}
+                          style={{ background: 'rgba(232,64,37,0.12)', border: '1px solid rgba(232,64,37,0.3)', borderRadius: 6, padding: '4px 10px', color: '#E84025', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Plus size={11} /> Tilføj
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

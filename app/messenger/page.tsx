@@ -18,6 +18,7 @@ interface Conversation {
   last_sender_name: string | null;
   unread_count: number;
   other_members: Array<{ id: string; name: string }> | null;
+  customer_id: string | null;
 }
 
 interface ChatMessage {
@@ -25,7 +26,12 @@ interface ChatMessage {
   conversation_id: string;
   sender_id: string;
   sender_name: string;
+  sender_type: string | null;
+  portal_sender_name: string | null;
   content: string;
+  file_name: string | null;
+  file_type: string | null;
+  file_data: string | null;
   created_at: string;
 }
 
@@ -96,9 +102,13 @@ export default function MessengerPage() {
 
   const [me, setMe] = useState<{ id: string; name: string } | null>(null);
 
+  // File attachment
+  const [pendingFile, setPendingFile] = useState<{ name: string; type: string; data: string } | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchMe = useCallback(async () => {
     const res = await fetch('/api/auth/me');
@@ -146,28 +156,50 @@ export default function MessengerPage() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!text.trim() || !selectedId || sending) return;
+    if ((!text.trim() && !pendingFile) || !selectedId || sending) return;
     const content = text.trim();
     setSending(true);
     setText('');
-    // Auto-resize textarea
+    const fileToSend = pendingFile;
+    setPendingFile(null);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
+
+    const body: Record<string, string> = { content };
+    if (fileToSend) {
+      body.file_name = fileToSend.name;
+      body.file_type = fileToSend.type;
+      body.file_data = fileToSend.data;
+    }
 
     const res = await fetch(`/api/chat/${selectedId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       const msg = await res.json();
       setMessages(prev => [...prev, msg]);
       setConversations(prev => prev.map(c =>
         c.id === selectedId
-          ? { ...c, last_message: msg.content, last_message_at: msg.created_at, last_sender_name: msg.sender_name }
+          ? { ...c, last_message: msg.content || '📎 Fil', last_message_at: msg.created_at, last_sender_name: msg.sender_name }
           : c
       ));
     }
     setSending(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('Filen er for stor (max 5MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
+      setPendingFile({ name: file.name, type: file.type, data: base64 });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleCreateConv = async () => {
@@ -194,8 +226,9 @@ export default function MessengerPage() {
   };
 
   const selectedConv = conversations.find(c => c.id === selectedId);
-  // Split conversations into groups (type=group) and directs
-  const groups = conversations.filter(c => c.type === 'group');
+  // Split conversations — customer portal threads get their own section
+  const customerThreads = conversations.filter(c => c.customer_id);
+  const groups = conversations.filter(c => c.type === 'group' && !c.customer_id);
   const directs = conversations.filter(c => c.type === 'direct');
 
   const filterConv = (list: Conversation[]) =>
@@ -357,6 +390,21 @@ export default function MessengerPage() {
               filterConv(directs).map(conv => <SidebarItem key={conv.id} conv={conv} />)
             )}
           </div>
+
+          {/* Kunder — portal-tråde */}
+          {customerThreads.length > 0 && (
+            <div style={{ marginTop: '16px' }}>
+              <div style={{ padding: '4px 8px 4px 10px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#E84025', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Kunder
+                </span>
+                <span style={{ fontSize: '9px', background: 'rgba(232,64,37,0.15)', color: '#E84025', borderRadius: 8, padding: '1px 5px', fontWeight: 700 }}>
+                  Portal
+                </span>
+              </div>
+              {filterConv(customerThreads).map(conv => <SidebarItem key={conv.id} conv={conv} />)}
+            </div>
+          )}
         </div>
 
         {/* Bund: bruger-info */}
@@ -472,51 +520,78 @@ export default function MessengerPage() {
                       )}
 
                       {/* Besked */}
-                      <div style={{
-                        display: 'flex', gap: '10px', alignItems: 'flex-start',
-                        marginBottom: isLastInGroup ? '12px' : '2px',
-                        paddingTop: showAvatar ? '4px' : '0',
-                      }}>
-                        {/* Avatar — vis kun første besked i gruppe */}
-                        <div style={{ width: '36px', flexShrink: 0 }}>
-                          {showAvatar && (
-                            <div style={{
-                              width: '36px', height: '36px', borderRadius: '8px',
-                              background: color,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: '13px', fontWeight: 800, color: '#fff',
-                            }}>
-                              {initials(msg.sender_name)}
-                            </div>
-                          )}
-                        </div>
-
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          {/* Navn + tid — kun første i gruppe */}
-                          {showAvatar && (
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
-                              <span style={{
-                                fontSize: '14px', fontWeight: 700,
-                                color: isMe ? '#ECF0F1' : color,
+                      {(() => {
+                        const isPortalMsg = msg.sender_type === 'customer';
+                        const displayName = isPortalMsg ? (msg.portal_sender_name || 'Kunde') : msg.sender_name;
+                        const avatarBg = isPortalMsg ? '#E84025' : color;
+                        return (
+                        <div style={{
+                          display: 'flex', gap: '10px', alignItems: 'flex-start',
+                          marginBottom: isLastInGroup ? '12px' : '2px',
+                          paddingTop: showAvatar ? '4px' : '0',
+                        }}>
+                          {/* Avatar */}
+                          <div style={{ width: '36px', flexShrink: 0 }}>
+                            {showAvatar && (
+                              <div style={{
+                                width: '36px', height: '36px', borderRadius: '8px',
+                                background: avatarBg,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '13px', fontWeight: 800, color: '#fff',
+                                position: 'relative',
                               }}>
-                                {msg.sender_name}
-                              </span>
-                              <span style={{ fontSize: '11px', color: '#445566' }}>
-                                {formatMsgTime(msg.created_at)}
-                              </span>
-                            </div>
-                          )}
+                                {initials(displayName)}
+                                {isPortalMsg && (
+                                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#E84025', border: '2px solid #0C1118', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6 }}>P</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
 
-                          {/* Besked-indhold */}
-                          <div style={{
-                            fontSize: '14px', color: '#D4E0E8',
-                            lineHeight: '1.55', whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                          }}>
-                            {msg.content}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {showAvatar && (
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: isPortalMsg ? '#E84025' : (isMe ? '#ECF0F1' : color) }}>
+                                  {displayName}
+                                </span>
+                                {isPortalMsg && (
+                                  <span style={{ fontSize: '9px', color: '#E84025', background: 'rgba(232,64,37,0.12)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase' }}>Kunde</span>
+                                )}
+                                <span style={{ fontSize: '11px', color: '#445566' }}>{formatMsgTime(msg.created_at)}</span>
+                              </div>
+                            )}
+
+                            {/* Fil-vedhæftning */}
+                            {msg.file_data && (
+                              <div style={{ marginBottom: msg.content ? '6px' : 0 }}>
+                                {msg.file_type?.startsWith('image/') ? (
+                                  <img
+                                    src={`data:${msg.file_type};base64,${msg.file_data}`}
+                                    alt={msg.file_name || 'Billede'}
+                                    style={{ maxWidth: 320, maxHeight: 240, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', display: 'block' }}
+                                  />
+                                ) : (
+                                  <a
+                                    href={`data:${msg.file_type};base64,${msg.file_data}`}
+                                    download={msg.file_name || 'fil'}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#3498DB', background: 'rgba(52,152,219,0.1)', border: '1px solid rgba(52,152,219,0.2)', borderRadius: 6, padding: '5px 10px', textDecoration: 'none' }}
+                                  >
+                                    📎 {msg.file_name || 'Download fil'}
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Besked-indhold */}
+                            {msg.content && (
+                              <div style={{ fontSize: '14px', color: '#D4E0E8', lineHeight: '1.55', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                {msg.content}
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -566,8 +641,29 @@ export default function MessengerPage() {
                 </button>
               </div>
 
+              {/* Pending file preview */}
+              {pendingFile && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 0', fontSize: 12, color: '#AAB8C2' }}>
+                  <span style={{ background: 'rgba(52,152,219,0.12)', border: '1px solid rgba(52,152,219,0.2)', borderRadius: 5, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    📎 {pendingFile.name}
+                  </span>
+                  <button onClick={() => setPendingFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: 2 }}>
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+
               {/* Textarea */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '8px 12px' }}>
+                {/* Hidden file input */}
+                <input ref={fileInputRef} type="file" accept="*/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Vedhæft fil"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: pendingFile ? '#3498DB' : '#445566', padding: '4px', display: 'flex', flexShrink: 0 }}
+                >
+                  📎
+                </button>
                 <textarea
                   ref={textareaRef}
                   value={text}
@@ -593,12 +689,12 @@ export default function MessengerPage() {
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!text.trim() || sending}
+                  disabled={(!text.trim() && !pendingFile) || sending}
                   style={{
                     width: 34, height: 34, borderRadius: '7px', border: 'none', flexShrink: 0,
-                    background: text.trim() && !sending ? '#E84025' : 'rgba(255,255,255,0.06)',
-                    color: text.trim() && !sending ? '#fff' : '#445566',
-                    cursor: text.trim() && !sending ? 'pointer' : 'not-allowed',
+                    background: (text.trim() || pendingFile) && !sending ? '#E84025' : 'rgba(255,255,255,0.06)',
+                    color: (text.trim() || pendingFile) && !sending ? '#fff' : '#445566',
+                    cursor: (text.trim() || pendingFile) && !sending ? 'pointer' : 'not-allowed',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.15s', fontSize: '12px', fontWeight: 600, gap: '4px',
                   }}

@@ -95,6 +95,8 @@ export default function KunderPage() {
   const [creating, setCreating] = useState(false);
   const [allProducts, setAllProducts] = useState<{id: string; name: string; price: number; type: string; currency: string}[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [allUsers, setAllUsers] = useState<{id: string; name: string; role: string}[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,6 +115,7 @@ export default function KunderPage() {
 
   useEffect(() => {
     fetch('/api/products').then(r => r.json()).then(d => setAllProducts(Array.isArray(d) ? d.filter((p: {active: number}) => p.active) : [])).catch(() => {});
+    fetch('/api/users').then(r => r.json()).then(d => setAllUsers(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   const handleUpdate = async (id: string, changes: Partial<Customer>) => {
@@ -140,7 +143,7 @@ export default function KunderPage() {
       const res = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, mrr: 0, health_score: Number(form.health_score) || 80 }),
+        body: JSON.stringify({ ...form, mrr: 0, health_score: Number(form.health_score) || 80, memberIds: selectedMemberIds }),
       });
       if (!res.ok) throw new Error('Failed');
       const created = await res.json();
@@ -152,9 +155,10 @@ export default function KunderPage() {
           body: JSON.stringify({ product_id: pid }),
         })
       ));
-      toast.success('Kunde oprettet');
+      toast.success('Kunde oprettet — messenger-tråd og projekt oprettet automatisk');
       setForm(EMPTY_FORM);
       setSelectedProductIds([]);
+      setSelectedMemberIds([]);
       setShowCreate(false);
       await load();
     } catch {
@@ -508,6 +512,36 @@ export default function KunderPage() {
             </div>
 
             <textarea placeholder="Interne noter" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ ...inputStyle, minHeight: '64px', resize: 'vertical' }} />
+
+            {allUsers.length > 0 && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                  Tilknyttede medarbejdere
+                </div>
+                <div style={{ fontSize: '11px', color: '#445566', marginBottom: '8px' }}>
+                  Tilføjes til messenger-tråd og projekt automatisk
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  {allUsers.map(u => {
+                    const isSel = selectedMemberIds.includes(u.id);
+                    return (
+                      <button key={u.id} onClick={() => setSelectedMemberIds(prev => isSel ? prev.filter(id => id !== u.id) : [...prev, u.id])}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '7px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left', border: `1px solid ${isSel ? 'rgba(232,64,37,0.5)' : 'rgba(255,255,255,0.07)'}`,
+                          background: isSel ? 'rgba(232,64,37,0.12)' : 'rgba(255,255,255,0.03)',
+                        }}>
+                        <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: isSel ? '#E84025' : 'transparent', border: `1px solid ${isSel ? '#E84025' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {isSel && <span style={{ color: '#fff', fontSize: '9px' }}>✓</span>}
+                        </div>
+                        <span style={{ fontSize: '12px', color: isSel ? '#ECF0F1' : '#AAB8C2', flex: 1 }}>{u.name}</span>
+                        <span style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase' }}>{u.role === 'admin' ? 'Admin' : 'Sælger'}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
               <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer' }}>
