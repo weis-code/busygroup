@@ -24,6 +24,7 @@ interface PortalMessage {
   id: string;
   sender_type: string | null;
   portal_sender_name: string | null;
+  sender_name: string | null;
   sender_id: string;
   content: string;
   file_name: string | null;
@@ -278,7 +279,7 @@ export default function PortalPage() {
                   const showHeader = !prevMsg || prevMsg.sender_type !== msg.sender_type ||
                     (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime()) > 300000;
                   const displayName = isFromUs
-                    ? (msg.portal_sender_name || 'BusyGroup Team')
+                    ? (msg.sender_name || msg.portal_sender_name || 'BusyGroup Team')
                     : customer.company;
 
                   return (

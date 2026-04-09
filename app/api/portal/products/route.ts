@@ -12,7 +12,7 @@ export async function GET() {
   const allProducts = await sql`
     SELECT id, name, description, price, type, currency
     FROM products
-    WHERE active = 1 OR active = true
+    WHERE active = 1
     ORDER BY type ASC, price DESC
   ` as unknown as Array<{ id: string; name: string; description: string | null; price: number; type: string; currency: string }>;
 

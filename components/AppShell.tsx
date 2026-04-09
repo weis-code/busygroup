@@ -47,9 +47,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   const isLogin = pathname === '/login';
+  const isPortal = pathname.startsWith('/portal');
   const w = collapsed ? W_CLOSED : W_OPEN;
 
-  if (isLogin) return <>{children}</>;
+  if (isLogin || isPortal) return <>{children}</>;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0C1118' }}>

@@ -19,11 +19,13 @@ export async function GET() {
 
   const messages = await sql`
     SELECT
-      id, conversation_id, sender_id, sender_type, content,
-      portal_sender_name, file_name, file_type, file_data, created_at
-    FROM chat_messages
-    WHERE conversation_id = ${convId}
-    ORDER BY created_at ASC
+      cm.id, cm.conversation_id, cm.sender_id, cm.sender_type, cm.content,
+      cm.portal_sender_name, cm.file_name, cm.file_type, cm.file_data, cm.created_at,
+      u.name AS sender_name
+    FROM chat_messages cm
+    LEFT JOIN users u ON u.id = cm.sender_id AND cm.sender_type != 'customer'
+    WHERE cm.conversation_id = ${convId}
+    ORDER BY cm.created_at ASC
     LIMIT 200
   `;
 
