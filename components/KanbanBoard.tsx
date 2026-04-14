@@ -38,9 +38,10 @@ interface KanbanBoardProps {
   leads: Lead[];
   onUpdateLead: (id: string, changes: Partial<Lead>) => Promise<void>;
   onSelectLead: (lead: Lead) => void;
+  columns?: Array<{ id: string; label: string }>;
 }
 
-const COLUMNS: Array<{ id: string; label: string }> = [
+const DEFAULT_COLUMNS: Array<{ id: string; label: string }> = [
   { id: 'new', label: 'Ny' },
   { id: 'contacted', label: 'Kontaktet' },
   { id: 'replied', label: 'Svar' },
@@ -177,7 +178,8 @@ function KanbanColumn({ column, leads, onSelect, activeId }: {
   );
 }
 
-export default function KanbanBoard({ leads, onUpdateLead, onSelectLead }: KanbanBoardProps) {
+export default function KanbanBoard({ leads, onUpdateLead, onSelectLead, columns }: KanbanBoardProps) {
+  const COLUMNS = columns && columns.length > 0 ? columns : DEFAULT_COLUMNS;
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);
   const [activeId, setActiveId] = useState<string | null>(null);
 

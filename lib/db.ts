@@ -407,6 +407,34 @@ export async function initSchema(): Promise<void> {
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_type TEXT DEFAULT 'user'`.catch(() => {});
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS portal_sender_name TEXT`.catch(() => {});
 
+  // ── Pipeline stages ───────────────────────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS pipeline_stages (
+      id         TEXT PRIMARY KEY,
+      label      TEXT NOT NULL,
+      position   INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+  `;
+
+  // Seed default stages if none exist
+  const stageCount = await sql`SELECT COUNT(*) as cnt FROM pipeline_stages`;
+  if (Number(stageCount[0].cnt) === 0) {
+    const now = new Date().toISOString();
+    const defaults = [
+      { id: 'new',        label: 'Ny',           position: 0 },
+      { id: 'contacted',  label: 'Kontaktet',    position: 1 },
+      { id: 'replied',    label: 'Svar',         position: 2 },
+      { id: 'interested', label: 'Interesseret', position: 3 },
+      { id: 'booked',     label: 'Møde booket',  position: 4 },
+      { id: 'won',        label: 'Vundet',       position: 5 },
+      { id: 'lost',       label: 'Tabt',         position: 6 },
+    ];
+    for (const s of defaults) {
+      await sql`INSERT INTO pipeline_stages (id, label, position, created_at) VALUES (${s.id}, ${s.label}, ${s.position}, ${now}) ON CONFLICT (id) DO NOTHING`;
+    }
+  }
+
   // ── CRM Workspaces ────────────────────────────────────────────────────────
   await sql`
     CREATE TABLE IF NOT EXISTS crm_workspaces (

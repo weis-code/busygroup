@@ -8,7 +8,7 @@ import LeadCreateModal from '@/components/LeadCreateModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import MetricTile from '@/components/MetricTile';
 import { useUser } from '@/lib/UserContext';
-import { Plus, Upload, Users, UserPlus, X, Eye, EyeOff } from 'lucide-react';
+import { Plus, Upload, Users, UserPlus, X, Eye, EyeOff, Settings2, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Lead {
@@ -38,6 +38,12 @@ interface Workspace {
   color: string;
 }
 
+interface PipelineStage {
+  id: string;
+  label: string;
+  position: number;
+}
+
 interface User {
   id: string;
   name: string;
@@ -61,6 +67,8 @@ export default function CRMPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<'internal' | string>('internal');
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+  const [showPipelineEditor, setShowPipelineEditor] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -77,6 +85,13 @@ export default function CRMPage() {
     } catch { /* ignore */ }
   }, []);
 
+  const fetchPipelineStages = useCallback(async () => {
+    try {
+      const res = await fetch('/api/pipeline-stages');
+      if (res.ok) setPipelineStages(await res.json());
+    } catch { /* ignore */ }
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/users');
@@ -89,8 +104,9 @@ export default function CRMPage() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
   useEffect(() => {
+    fetchPipelineStages();
     if (currentUser?.role === 'admin') { fetchUsers(); fetchWorkspaces(); }
-  }, [currentUser, fetchUsers, fetchWorkspaces]);
+  }, [currentUser, fetchUsers, fetchWorkspaces, fetchPipelineStages]);
 
   const handleLeadUpdate = async (id: string, changes: Partial<Lead>) => {
     try {
@@ -223,18 +239,34 @@ export default function CRMPage() {
 
       {/* Sub-tabs + action */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '0', background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px', padding: '3px' }}>
-          {SUB_TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{
-              padding: '6px 16px', borderRadius: '6px', border: 'none',
-              background: activeTab === tab ? '#1A2A38' : 'transparent',
-              color: activeTab === tab ? '#ECF0F1' : '#667788',
-              fontSize: '13px', fontWeight: activeTab === tab ? 600 : 400,
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}>
-              {tab}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '0', background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px', padding: '3px' }}>
+            {SUB_TABS.map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                padding: '6px 16px', borderRadius: '6px', border: 'none',
+                background: activeTab === tab ? '#1A2A38' : 'transparent',
+                color: activeTab === tab ? '#ECF0F1' : '#667788',
+                fontSize: '13px', fontWeight: activeTab === tab ? 600 : 400,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>
+                {tab}
+              </button>
+            ))}
+          </div>
+          {currentUser?.role === 'admin' && activeTab === 'Pipeline' && (
+            <button
+              onClick={() => setShowPipelineEditor(true)}
+              title="Rediger pipeline-stadier"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '5px',
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px', padding: '6px 10px', color: '#667788', cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >
+              <Settings2 size={13} /> Rediger pipeline
             </button>
-          ))}
+          )}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {currentUser?.role === 'admin' && (
@@ -272,7 +304,7 @@ export default function CRMPage() {
         <>
           {activeTab === 'Pipeline' && (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            <KanbanBoard leads={visibleLeads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} />
+            <KanbanBoard leads={visibleLeads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} columns={pipelineStages} />
           )}
           {activeTab === 'Leads' && (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -310,6 +342,14 @@ export default function CRMPage() {
             setActiveWorkspace(ws.id);
             setShowWorkspaceModal(false);
           }}
+        />
+      )}
+      {showPipelineEditor && (
+        <PipelineEditorModal
+          stages={pipelineStages}
+          leads={leads}
+          onClose={() => setShowPipelineEditor(false)}
+          onChanged={fetchPipelineStages}
         />
       )}
     </div>
@@ -588,6 +628,210 @@ function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onC
           </button>
           <button onClick={handleCreate} disabled={saving} style={{ flex: 2, background: color, border: 'none', borderRadius: 7, padding: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             {saving ? 'Opretter...' : 'Opret workspace'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PipelineEditorModal({
+  stages,
+  leads,
+  onClose,
+  onChanged,
+}: {
+  stages: PipelineStage[];
+  leads: Lead[];
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [local, setLocal] = useState<PipelineStage[]>(() => [...stages].sort((a, b) => a.position - b.position));
+  const [newLabel, setNewLabel] = useState('');
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const inp: React.CSSProperties = {
+    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 6, padding: '6px 10px', color: '#ECF0F1',
+    fontSize: 13, outline: 'none', flex: 1,
+  };
+
+  const leadCount = (stageId: string) => leads.filter(l => l.status === stageId).length;
+
+  const renameStage = async (id: string, label: string) => {
+    setSaving(id);
+    await fetch(`/api/pipeline-stages/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    });
+    setSaving(null);
+    onChanged();
+  };
+
+  const moveStage = async (index: number, dir: -1 | 1) => {
+    const newLocal = [...local];
+    const swapIdx = index + dir;
+    if (swapIdx < 0 || swapIdx >= newLocal.length) return;
+    [newLocal[index], newLocal[swapIdx]] = [newLocal[swapIdx], newLocal[index]];
+    // Re-assign positions
+    const updated = newLocal.map((s, i) => ({ ...s, position: i }));
+    setLocal(updated);
+    // Persist
+    await Promise.all(updated.map(s =>
+      fetch(`/api/pipeline-stages/${s.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ position: s.position }),
+      })
+    ));
+    onChanged();
+  };
+
+  const deleteStage = async (id: string) => {
+    const cnt = leadCount(id);
+    if (cnt > 0) {
+      toast.error(`Kan ikke slette — ${cnt} lead(s) er i dette stadie. Flyt dem først.`);
+      return;
+    }
+    if (!confirm('Slet dette stadie?')) return;
+    setSaving(id);
+    const res = await fetch(`/api/pipeline-stages/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const d = await res.json();
+      toast.error(d.error || 'Fejl ved sletning');
+    } else {
+      setLocal(prev => prev.filter(s => s.id !== id));
+      onChanged();
+    }
+    setSaving(null);
+  };
+
+  const addStage = async () => {
+    if (!newLabel.trim()) return;
+    setSaving('new');
+    const res = await fetch('/api/pipeline-stages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: newLabel.trim() }),
+    });
+    if (res.ok) {
+      const s = await res.json();
+      setLocal(prev => [...prev, s]);
+      setNewLabel('');
+      onChanged();
+      toast.success(`Stadie "${s.label}" tilføjet`);
+    } else {
+      toast.error('Fejl ved oprettelse');
+    }
+    setSaving(null);
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400 }} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 401,
+        background: '#111E2A', borderRadius: 12, padding: 24, width: 460,
+        border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16,
+        maxHeight: '85vh', overflow: 'hidden',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1' }}>Rediger pipeline</div>
+            <div style={{ fontSize: 11, color: '#445566', marginTop: 2 }}>Omdøb, tilføj eller slet stadier</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Stage list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', flex: 1 }}>
+          {local.map((stage, i) => {
+            const cnt = leadCount(stage.id);
+            return (
+              <div key={stage.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#0F1923', borderRadius: 8,
+                padding: '8px 10px', border: '1px solid rgba(255,255,255,0.07)',
+              }}>
+                {/* Up/down */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+                  <button
+                    onClick={() => moveStage(i, -1)}
+                    disabled={i === 0}
+                    style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? '#223344' : '#667788', padding: '1px' }}
+                  >
+                    <ChevronUp size={12} />
+                  </button>
+                  <button
+                    onClick={() => moveStage(i, 1)}
+                    disabled={i === local.length - 1}
+                    style={{ background: 'none', border: 'none', cursor: i === local.length - 1 ? 'default' : 'pointer', color: i === local.length - 1 ? '#223344' : '#667788', padding: '1px' }}
+                  >
+                    <ChevronDown size={12} />
+                  </button>
+                </div>
+
+                {/* Label input */}
+                <input
+                  defaultValue={stage.label}
+                  onBlur={e => {
+                    if (e.target.value.trim() && e.target.value.trim() !== stage.label) {
+                      setLocal(prev => prev.map(s => s.id === stage.id ? { ...s, label: e.target.value.trim() } : s));
+                      renameStage(stage.id, e.target.value.trim());
+                    }
+                  }}
+                  style={inp}
+                />
+
+                {/* Lead count badge */}
+                <span style={{
+                  fontSize: 11, color: cnt > 0 ? '#ECF0F1' : '#445566',
+                  background: cnt > 0 ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  borderRadius: 10, padding: '1px 6px', flexShrink: 0, minWidth: 20, textAlign: 'center',
+                }}>
+                  {cnt}
+                </span>
+
+                {/* Delete */}
+                <button
+                  onClick={() => deleteStage(stage.id)}
+                  disabled={saving === stage.id}
+                  title={cnt > 0 ? `${cnt} leads — flyt dem først` : 'Slet stadie'}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: cnt > 0 ? '#334455' : '#445566',
+                    flexShrink: 0, padding: '2px',
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add new stage */}
+        <div style={{ display: 'flex', gap: 8, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12 }}>
+          <input
+            placeholder="Nyt stadie..."
+            value={newLabel}
+            onChange={e => setNewLabel(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addStage()}
+            style={{ ...inp, background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)' }}
+          />
+          <button
+            onClick={addStage}
+            disabled={!newLabel.trim() || saving === 'new'}
+            style={{
+              background: newLabel.trim() ? '#E84025' : 'rgba(255,255,255,0.05)',
+              border: 'none', borderRadius: 6, padding: '6px 14px',
+              color: '#ECF0F1', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            {saving === 'new' ? '...' : '+ Tilføj'}
           </button>
         </div>
       </div>
