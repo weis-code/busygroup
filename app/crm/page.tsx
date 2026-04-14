@@ -8,7 +8,8 @@ import LeadCreateModal from '@/components/LeadCreateModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import MetricTile from '@/components/MetricTile';
 import { useUser } from '@/lib/UserContext';
-import { Plus, Upload, Users } from 'lucide-react';
+import { Plus, Upload, Users, UserPlus, X, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Lead {
   id: string;
@@ -48,6 +49,7 @@ export default function CRMPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchLeads = useCallback(async () => {
@@ -178,6 +180,16 @@ export default function CRMPage() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {currentUser?.role === 'admin' && (
+            <button onClick={() => setShowUserModal(true)} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px', padding: '8px 14px', color: '#ECF0F1', cursor: 'pointer',
+              fontSize: '13px', fontWeight: 500,
+            }}>
+              <UserPlus size={14} /> Ny bruger
+            </button>
+          )}
           <button onClick={() => setShowImportModal(true)} style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
@@ -227,6 +239,12 @@ export default function CRMPage() {
           onDone={fetchLeads}
         />
       )}
+      {showUserModal && (
+        <CreateUserModal
+          onClose={() => setShowUserModal(false)}
+          onCreated={() => { fetchUsers(); setShowUserModal(false); }}
+        />
+      )}
     </div>
   );
 }
@@ -267,6 +285,108 @@ function PipelineTab({
         {count}
       </span>
     </button>
+  );
+}
+
+function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'seller' });
+  const [showPw, setShowPw] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const inp: React.CSSProperties = {
+    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 7, padding: '8px 11px', color: '#ECF0F1',
+    fontSize: 13, width: '100%', outline: 'none', boxSizing: 'border-box',
+  };
+
+  const handleCreate = async () => {
+    if (!form.name.trim() || !form.email.trim() || !form.password.trim()) {
+      toast.error('Navn, email og adgangskode er påkrævet');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Fejl ved oprettelse'); return; }
+      toast.success(`${form.name} oprettet — kan nu logge ind`);
+      onCreated();
+    } catch {
+      toast.error('Fejl ved oprettelse');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400 }} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 401,
+        background: '#111E2A', borderRadius: 12, padding: 24, width: 420,
+        border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 14,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1' }}>Opret ny bruger</div>
+            <div style={{ fontSize: 11, color: '#445566', marginTop: 2 }}>Brugeren kan logge ind i dashboardet</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, color: '#667788', marginBottom: 5 }}>Navn</div>
+            <input placeholder="Fulde navn" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inp} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: '#667788', marginBottom: 5 }}>Email</div>
+            <input type="email" placeholder="email@firma.dk" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inp} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: '#667788', marginBottom: 5 }}>Adgangskode</div>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPw ? 'text' : 'password'}
+                placeholder="Midlertidig adgangskode"
+                value={form.password}
+                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                style={{ ...inp, paddingRight: 36 }}
+              />
+              <button onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: 0 }}>
+                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: '#667788', marginBottom: 5 }}>Rolle</div>
+            <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} style={{ ...inp, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}>
+              <option value="seller">Sælger — ser kun egne leads</option>
+              <option value="admin">Admin — fuld adgang</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ background: 'rgba(52,152,219,0.08)', border: '1px solid rgba(52,152,219,0.15)', borderRadius: 7, padding: '10px 12px', fontSize: 12, color: '#3498DB', lineHeight: 1.5 }}>
+          Brugeren logger ind på <strong style={{ color: '#5DADE2' }}>/login</strong> med email og adgangskoden du sætter her.
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: 10, color: '#ECF0F1', fontSize: 13, cursor: 'pointer' }}>
+            Annuller
+          </button>
+          <button onClick={handleCreate} disabled={saving} style={{ flex: 2, background: '#E84025', border: 'none', borderRadius: 7, padding: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            {saving ? 'Opretter...' : 'Opret bruger'}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
