@@ -407,6 +407,18 @@ export async function initSchema(): Promise<void> {
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_type TEXT DEFAULT 'user'`.catch(() => {});
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS portal_sender_name TEXT`.catch(() => {});
 
+  // ── CRM Workspaces ────────────────────────────────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_workspaces (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3498DB',
+      created_by TEXT REFERENCES users(id),
+      created_at TEXT NOT NULL
+    )
+  `;
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS workspace_id TEXT`.catch(() => {});
+
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;
   if (Number(agentCount[0].cnt) === 0) {

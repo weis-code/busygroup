@@ -25,10 +25,17 @@ interface Lead {
   status: string;
   market: string;
   assigned_to: string | null;
+  workspace_id: string | null;
   created_at: string;
   updated_at: string;
   product_names?: string;
   pipeline_value?: number;
+}
+
+interface Workspace {
+  id: string;
+  name: string;
+  color: string;
 }
 
 interface User {
@@ -51,13 +58,23 @@ export default function CRMPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<'internal' | string>('internal');
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     try {
-      const res = await fetch('/api/leads');
+      const res = await fetch('/api/leads?workspace_id=' + activeWorkspace);
       if (res.ok) setLeads(await res.json());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  }, [activeWorkspace]);
+
+  const fetchWorkspaces = useCallback(async () => {
+    try {
+      const res = await fetch('/api/workspaces');
+      if (res.ok) setWorkspaces(await res.json());
+    } catch { /* ignore */ }
   }, []);
 
   const fetchUsers = useCallback(async () => {
@@ -72,8 +89,8 @@ export default function CRMPage() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
   useEffect(() => {
-    if (currentUser?.role === 'admin') fetchUsers();
-  }, [currentUser, fetchUsers]);
+    if (currentUser?.role === 'admin') { fetchUsers(); fetchWorkspaces(); }
+  }, [currentUser, fetchUsers, fetchWorkspaces]);
 
   const handleLeadUpdate = async (id: string, changes: Partial<Lead>) => {
     try {
@@ -94,10 +111,11 @@ export default function CRMPage() {
     try {
       // Auto-assign to selected pipeline user if admin has one selected
       const assignedTo = selectedPipeline ?? data.assigned_to ?? undefined;
+      const workspaceId = activeWorkspace === 'internal' ? null : activeWorkspace;
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, assigned_to: assignedTo }),
+        body: JSON.stringify({ ...data, assigned_to: assignedTo, workspace_id: workspaceId }),
       });
       if (res.ok) {
         const newLead = await res.json();
@@ -122,6 +140,45 @@ export default function CRMPage() {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: '1440px', margin: '0 auto' }}>
+
+      {/* Workspace bar (kun admin) */}
+      {currentUser?.role === 'admin' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {/* Intern tab */}
+          <WorkspaceTab
+            label="Intern"
+            color="#445566"
+            active={activeWorkspace === 'internal'}
+            onClick={() => setActiveWorkspace('internal')}
+          />
+          {workspaces.map(ws => (
+            <WorkspaceTab
+              key={ws.id}
+              label={ws.name}
+              color={ws.color}
+              active={activeWorkspace === ws.id}
+              onClick={() => setActiveWorkspace(ws.id)}
+              onDelete={async () => {
+                if (!confirm(`Slet workspace "${ws.name}"? Leads i workspacet beholder deres data men mister tilknytningen.`)) return;
+                await fetch(`/api/workspaces/${ws.id}`, { method: 'DELETE' });
+                if (activeWorkspace === ws.id) setActiveWorkspace('internal');
+                fetchWorkspaces();
+                fetchLeads();
+              }}
+            />
+          ))}
+          <button
+            onClick={() => setShowWorkspaceModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px',
+              padding: '4px 10px', borderRadius: '6px', border: '1px dashed rgba(255,255,255,0.2)',
+              background: 'transparent', color: '#667788', fontSize: '12px', cursor: 'pointer',
+            }}
+          >
+            + Nyt workspace
+          </button>
+        </div>
+      )}
 
       {/* Pipeline-vælger (kun admin) */}
       {currentUser?.role === 'admin' && users.length > 0 && (
@@ -243,6 +300,16 @@ export default function CRMPage() {
         <CreateUserModal
           onClose={() => setShowUserModal(false)}
           onCreated={() => { fetchUsers(); setShowUserModal(false); }}
+        />
+      )}
+      {showWorkspaceModal && (
+        <CreateWorkspaceModal
+          onClose={() => setShowWorkspaceModal(false)}
+          onCreated={(ws) => {
+            fetchWorkspaces();
+            setActiveWorkspace(ws.id);
+            setShowWorkspaceModal(false);
+          }}
         />
       )}
     </div>
@@ -383,6 +450,144 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </button>
           <button onClick={handleCreate} disabled={saving} style={{ flex: 2, background: '#E84025', border: 'none', borderRadius: 7, padding: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             {saving ? 'Opretter...' : 'Opret bruger'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function WorkspaceTab({
+  label, color, active, onClick, onDelete,
+}: {
+  label: string;
+  color: string;
+  active: boolean;
+  onClick: () => void;
+  onDelete?: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+    >
+      <button
+        onClick={onClick}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '5px',
+          padding: onDelete ? '4px 24px 4px 10px' : '4px 10px',
+          borderRadius: '6px', border: 'none', cursor: 'pointer',
+          background: active ? color : 'rgba(255,255,255,0.05)',
+          color: active ? '#fff' : '#667788',
+          fontSize: '12px', fontWeight: active ? 600 : 400,
+          transition: 'all 0.15s',
+        }}
+      >
+        {!active && <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />}
+        {label}
+      </button>
+      {onDelete && hovered && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          style={{
+            position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: active ? 'rgba(255,255,255,0.7)' : '#445566',
+            padding: '2px', display: 'flex', alignItems: 'center', lineHeight: 1,
+            fontSize: '11px',
+          }}
+        >
+          <X size={10} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onCreated: (ws: Workspace) => void }) {
+  const PRESET_COLORS = ['#3498DB', '#2ECC71', '#E67E22', '#9B59B6', '#E84025', '#1ABC9C'];
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#3498DB');
+  const [saving, setSaving] = useState(false);
+
+  const inp: React.CSSProperties = {
+    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 7, padding: '8px 11px', color: '#ECF0F1',
+    fontSize: 13, width: '100%', outline: 'none', boxSizing: 'border-box',
+  };
+
+  const handleCreate = async () => {
+    if (!name.trim()) { toast.error('Navn er påkrævet'); return; }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), color }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Fejl'); return; }
+      toast.success(`Workspace "${name}" oprettet`);
+      onCreated(data);
+    } catch {
+      toast.error('Fejl ved oprettelse');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400 }} />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 401,
+        background: '#111E2A', borderRadius: 12, padding: 24, width: 380,
+        border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1' }}>Nyt workspace</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566' }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 11, color: '#667788', marginBottom: 5 }}>Navn</div>
+          <input
+            placeholder="f.eks. Kunde A"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            style={inp}
+            autoFocus
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 11, color: '#667788', marginBottom: 8 }}>Farve</div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {PRESET_COLORS.map(c => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                style={{
+                  width: 28, height: 28, borderRadius: '50%', background: c, border: 'none',
+                  cursor: 'pointer', outline: color === c ? `3px solid #fff` : 'none',
+                  outlineOffset: 2,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7, padding: 10, color: '#ECF0F1', fontSize: 13, cursor: 'pointer' }}>
+            Annuller
+          </button>
+          <button onClick={handleCreate} disabled={saving} style={{ flex: 2, background: color, border: 'none', borderRadius: 7, padding: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            {saving ? 'Opretter...' : 'Opret workspace'}
           </button>
         </div>
       </div>

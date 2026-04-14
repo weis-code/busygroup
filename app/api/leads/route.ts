@@ -12,6 +12,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search');
     const priority = searchParams.get('priority');
 
+    const workspace_id = searchParams.get('workspace_id');
+
     const role = req.headers.get('x-user-role');
     const userId = req.headers.get('x-user-id');
 
@@ -28,6 +30,7 @@ export async function GET(req: NextRequest) {
       ${market ? sql`AND l.market = ${market}` : sql``}
       ${priority ? sql`AND l.priority = ${priority}` : sql``}
       ${search ? sql`AND (l.company ILIKE ${'%' + search + '%'} OR l.contact_name ILIKE ${'%' + search + '%'} OR l.contact_title ILIKE ${'%' + search + '%'})` : sql``}
+      ${workspace_id === 'internal' ? sql`AND l.workspace_id IS NULL` : workspace_id ? sql`AND l.workspace_id = ${workspace_id}` : sql``}
       GROUP BY l.id
       ORDER BY l.created_at DESC
     `;
@@ -48,8 +51,8 @@ export async function POST(req: NextRequest) {
     const assignedTo = body.assigned_to || userId || null;
 
     await sql`
-      INSERT INTO leads (id, company, contact_name, contact_title, linkedin_url, email, phone, company_size, why_they_fit, priority, status, market, assigned_to, created_at, updated_at)
-      VALUES (${id}, ${body.company || ''}, ${body.contact_name || null}, ${body.contact_title || null}, ${body.linkedin_url || null}, ${body.email || null}, ${body.phone || null}, ${body.company_size || null}, ${body.why_they_fit || null}, ${body.priority || 'medium'}, ${body.status || 'new'}, ${body.market || 'sweden'}, ${assignedTo}, ${now}, ${now})
+      INSERT INTO leads (id, company, contact_name, contact_title, linkedin_url, email, phone, company_size, why_they_fit, priority, status, market, assigned_to, workspace_id, created_at, updated_at)
+      VALUES (${id}, ${body.company || ''}, ${body.contact_name || null}, ${body.contact_title || null}, ${body.linkedin_url || null}, ${body.email || null}, ${body.phone || null}, ${body.company_size || null}, ${body.why_they_fit || null}, ${body.priority || 'medium'}, ${body.status || 'new'}, ${body.market || 'sweden'}, ${assignedTo}, ${body.workspace_id || null}, ${now}, ${now})
     `;
 
     const [lead] = await sql`SELECT * FROM leads WHERE id = ${id}`;
