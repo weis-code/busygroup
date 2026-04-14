@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, ExternalLink, Mail, Phone, Edit3, MessageSquare, Calendar,
   FileText, ArrowRight, ShoppingBag, RefreshCw, Check, SkipForward,
-  Pause, StopCircle, PhoneCall, BookOpen, Send, Bot, Trash2,
+  Pause, StopCircle, PhoneCall, BookOpen, Send, Bot, Trash2, StickyNote,
 } from 'lucide-react';
 import { LeadStatusBadge, MarketBadge } from './StatusBadge';
 import { toast } from 'sonner';
@@ -163,6 +163,9 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   const [noteText, setNoteText] = useState('');
   const [callLogText, setCallLogText] = useState('');
   const [loggingCall, setLoggingCall] = useState(false);
+  const [showQuickNote, setShowQuickNote] = useState(false);
+  const [quickNoteText, setQuickNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [leadProducts, setLeadProducts] = useState<Product[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -249,6 +252,23 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
       toast.success('Note tilføjet');
       loadHistory();
     } catch { toast.error('Fejl ved tilføjelse af note'); }
+  };
+
+  const handleQuickNote = async () => {
+    if (!quickNoteText.trim()) return;
+    setSavingNote(true);
+    try {
+      await fetch(`/api/leads/${lead.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: quickNoteText }),
+      });
+      setQuickNoteText('');
+      setShowQuickNote(false);
+      toast.success('Note gemt');
+      loadHistory();
+    } catch { toast.error('Fejl ved tilføjelse af note'); }
+    finally { setSavingNote(false); }
   };
 
   const handleLogCall = async () => {
@@ -365,6 +385,19 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
             <button onClick={() => { setTab('Historik'); setCallLogText(' '); setTimeout(() => setCallLogText(''), 10); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 10px', color: '#ECF0F1', fontSize: '11px', cursor: 'pointer' }}>
               <PhoneCall size={11} /> Log opkald
             </button>
+            <button
+              onClick={() => { setShowQuickNote(v => !v); setQuickNoteText(''); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                background: showQuickNote ? 'rgba(243,156,18,0.15)' : 'rgba(255,255,255,0.06)',
+                border: showQuickNote ? '1px solid rgba(243,156,18,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '6px', padding: '5px 10px',
+                color: showQuickNote ? '#F39C12' : '#ECF0F1',
+                fontSize: '11px', cursor: 'pointer',
+              }}
+            >
+              <StickyNote size={11} /> Log note
+            </button>
             <button onClick={() => { setEditing(!editing); if (!editing) setEditData({ ...lead }); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 10px', color: '#ECF0F1', fontSize: '11px', cursor: 'pointer' }}>
               <Edit3 size={11} /> {editing ? 'Annuller' : 'Rediger'}
             </button>
@@ -412,6 +445,50 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
                   <Send size={10} /> Nurture-sekvens aktiv
                 </span>
               ) : null}
+            </div>
+          )}
+
+          {/* Quick note form */}
+          {showQuickNote && (
+            <div style={{
+              marginTop: '10px', background: 'rgba(243,156,18,0.06)',
+              border: '1px solid rgba(243,156,18,0.2)', borderRadius: '8px', padding: '10px 12px',
+            }}>
+              <textarea
+                autoFocus
+                value={quickNoteText}
+                onChange={e => setQuickNoteText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleQuickNote();
+                  if (e.key === 'Escape') { setShowQuickNote(false); setQuickNoteText(''); }
+                }}
+                placeholder="Skriv en note... (Cmd+Enter for at gemme)"
+                style={{
+                  ...textareaStyle, minHeight: '64px', marginBottom: '8px',
+                  background: '#0F1923', border: '1px solid rgba(243,156,18,0.25)',
+                }}
+              />
+              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => { setShowQuickNote(false); setQuickNoteText(''); }}
+                  style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 12px', color: '#667788', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  Annuller
+                </button>
+                <button
+                  onClick={handleQuickNote}
+                  disabled={!quickNoteText.trim() || savingNote}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    background: quickNoteText.trim() ? '#F39C12' : 'rgba(243,156,18,0.2)',
+                    border: 'none', borderRadius: '6px', padding: '5px 14px',
+                    color: quickNoteText.trim() ? '#0F1923' : '#667788',
+                    fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <StickyNote size={11} /> {savingNote ? 'Gemmer...' : 'Gem note'}
+                </button>
+              </div>
             </div>
           )}
         </div>
