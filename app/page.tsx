@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/lib/UserContext';
 import {
-  TrendingUp, Bot, Users, Zap, Target,
+  TrendingUp, Users, Zap, Target,
   CheckSquare, Square, ArrowRight, Plus,
   ChevronRight,
 } from 'lucide-react';
@@ -52,7 +52,7 @@ interface AgentItem {
   id: string;
   name: string;
   market: string;
-  status: string;
+  status: string;  // kept for type compatibility
   last_action: string | null;
   last_run: string | null;
 }
@@ -104,11 +104,6 @@ const STATUS_COLORS: Record<string, string> = {
   error: '#E74C3C',
 };
 
-const AGENT_COLORS = [
-  '#E84025', '#2ECC71', '#9B59B6', '#E74C3C',
-  '#F39C12', '#1ABC9C', '#E91E63', '#FF5722',
-];
-
 // ─── Kanban columns config ─────────────────────────────────────────────────────
 
 const COLUMNS = [
@@ -143,7 +138,6 @@ function Spark({ color }: { color: string }) {
 
 const TASK_COLORS: Record<string, string> = {
   CRM: '#E84025',
-  Agent: '#9B59B6',
   Mail: '#1ABC9C',
 };
 
@@ -154,8 +148,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashData | null>(null);
   const [tasks, setTasks] = useState([
     { id: 1, text: 'Tjek interesserede leads i CRM', tag: 'CRM', done: false },
-    { id: 2, text: 'Gennemgå ny outreach klar til send', tag: 'Agent', done: false },
-    { id: 3, text: 'Besvar mails i indbakken', tag: 'Mail', done: false },
+    { id: 2, text: 'Besvar mails i indbakken', tag: 'Mail', done: false },
   ]);
 
   const load = useCallback(async () => {
@@ -202,14 +195,6 @@ export default function DashboardPage() {
             background: 'transparent',
           }}>
             <TrendingUp size={13} /> Åbn CRM
-          </Link>
-          <Link href="/pipeline" style={{
-            padding: '8px 16px', borderRadius: '7px',
-            background: '#E84025', color: '#fff',
-            fontSize: '12px', fontWeight: 600, textDecoration: 'none',
-            display: 'flex', alignItems: 'center', gap: '5px',
-          }}>
-            <Bot size={13} /> Agenter
           </Link>
         </div>
       </div>
@@ -432,7 +417,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 (data?.activity || []).slice(0, 6).map((item, i) => {
-                  const color = AGENT_COLORS[i % AGENT_COLORS.length];
+                  const color = ['#E84025', '#2ECC71', '#9B59B6', '#E74C3C', '#F39C12', '#1ABC9C'][i % 6];
                   const initStr = initials(item.agent_name || 'AG');
                   return (
                     <div key={item.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
@@ -559,7 +544,7 @@ export default function DashboardPage() {
               <div style={{ fontSize: '12px', color: '#334455', textAlign: 'center', padding: '16px 0' }}>Ingen brugere</div>
             ) : (
               (data?.users || []).map((u, i) => {
-                const color = AGENT_COLORS[i % AGENT_COLORS.length];
+                const color = ['#E84025', '#2ECC71', '#9B59B6', '#E74C3C', '#F39C12', '#1ABC9C'][i % 6];
                 return (
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
@@ -591,49 +576,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Agenter status */}
-        <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h3 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#ECF0F1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bot size={13} style={{ color: '#9B59B6' }} /> Agenter
-            </h3>
-            <Link href="/pipeline" style={{ fontSize: '11px', color: '#445566', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '2px' }}>
-              Alle <ArrowRight size={10} />
-            </Link>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-            {(data?.agents || []).length === 0 ? (
-              <div style={{ fontSize: '12px', color: '#334455', textAlign: 'center', padding: '16px 0' }}>Ingen agenter</div>
-            ) : (
-              (data?.agents || []).slice(0, 6).map(agent => {
-                const isRunning = agent.status === 'running';
-                const isError = agent.status === 'error';
-                const dotColor = isRunning ? '#2ECC71' : isError ? '#E74C3C' : '#445566';
-                return (
-                  <div key={agent.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                      width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
-                      background: dotColor,
-                      boxShadow: isRunning ? `0 0 6px ${dotColor}` : 'none',
-                    }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '11px', color: '#AAB8C2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {agent.name}
-                      </div>
-                    </div>
-                    <span style={{
-                      fontSize: '9px', color: '#334455',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      maxWidth: '70px', textAlign: 'right',
-                    }}>
-                      {agent.last_run ? timeAgo(agent.last_run) : 'Aldrig'}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

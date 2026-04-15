@@ -6,7 +6,7 @@ import { useUser } from '@/lib/UserContext';
 import { useSidebar } from '@/lib/SidebarContext';
 import {
   LayoutDashboard, TrendingUp, MessageSquare,
-  Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight,
+  Settings, LogOut, Building2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { label: 'Messenger',     href: '/messenger',  icon: MessageSquare   },
   { label: 'CRM',           href: '/crm',        icon: TrendingUp      },
   { label: 'Kunder',        href: '/kunder',     icon: Building2       },
-  { label: 'Agenter',       href: '/pipeline',   icon: Bot             },
   { label: 'Indstillinger', href: '/settings',   icon: Settings        },
 ];
 

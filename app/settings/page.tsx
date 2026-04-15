@@ -2,16 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Play, Download, Plus, Pencil, Trash2, Check, X, Users, ShieldCheck, UserCircle, Mail, Server, Send } from 'lucide-react';
+import { Eye, EyeOff, Download, Plus, Pencil, Trash2, Check, X, Users, ShieldCheck, UserCircle, Mail, Server, Send } from 'lucide-react';
 import { useUser } from '@/lib/UserContext';
-
-interface Agent {
-  id: string;
-  name: string;
-  status: string;
-  last_run: string;
-  runs_today: number;
-}
 
 interface Product {
   id: string;
@@ -22,14 +14,6 @@ interface Product {
   currency: string;
   active: number;
 }
-
-const AGENT_SCHEDULES: Record<string, string> = {
-  'cso': 'Mandag 07:00',
-  'se-prospecting': 'Mandag 08:00',
-  'se-outreach': 'Mandag 09:00',
-  'se-followup': 'Daglig 08:30',
-  'se-booking': 'Daglig 09:00',
-};
 
 const API_KEYS = [
   { key: 'ANTHROPIC_API_KEY', label: 'Anthropic API Key', hint: 'console.anthropic.com → API Keys' },
@@ -50,15 +34,6 @@ const NOTIFICATIONS = [
 
 const CURRENCIES = ['DKK', 'SEK', 'EUR', 'NOK'];
 
-function timeAgo(dateStr: string): string {
-  if (!dateStr) return 'Aldrig';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m siden`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}t siden`;
-  return new Date(dateStr).toLocaleDateString('da-DK');
-}
 
 function formatPrice(price: number, currency: string, type: string) {
   return `${price.toLocaleString('da-DK')} ${currency}${type === 'mrr' ? '/md' : ' engangsbetaling'}`;
@@ -856,38 +831,9 @@ function ImapAccountsSection() {
 
 export default function SettingsPage() {
   const { user } = useUser();
-  const [agents, setAgents] = useState<Agent[]>([]);
   const [notifications, setNotifications] = useState<Record<string, boolean>>(
     Object.fromEntries(NOTIFICATIONS.map(n => [n.id, true]))
   );
-  const [runningAgent, setRunningAgent] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/api/agents').then(r => r.json()).then(setAgents).catch(() => {});
-  }, []);
-
-  const handleRunAgent = async (agentId: string) => {
-    if (runningAgent) return;
-    setRunningAgent(agentId);
-    const tid = toast.loading(`Starter ${agentId}...`);
-    try {
-      const res = await fetch(`/api/agents/${agentId}/run`, { method: 'POST' });
-      const json = await res.json();
-      toast.dismiss(tid);
-      if (json.success) {
-        toast.success(`Agent kørt på ${json.duration}ms`);
-        const agentsRes = await fetch('/api/agents');
-        setAgents(await agentsRes.json());
-      } else {
-        toast.error(json.message || 'Fejl');
-      }
-    } catch {
-      toast.dismiss(tid);
-      toast.error('Netværksfejl');
-    } finally {
-      setRunningAgent(null);
-    }
-  };
 
   const exportDB = async () => {
     try {
@@ -960,27 +906,6 @@ export default function SettingsPage() {
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {API_KEYS.map(k => (
             <SecretInput key={k.key} envKey={k.key} label={k.label} hint={k.hint} />
-          ))}
-        </div>
-      </div>
-
-      {/* Agent Schedules */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>Agent planlægning</div>
-        <div style={{ padding: '0' }}>
-          {agents.map((agent, i) => (
-            <div key={agent.id} style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: i < agents.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: '#ECF0F1' }}>{agent.name}</div>
-                <div style={{ fontSize: '11px', color: '#667788', marginTop: '2px' }}>
-                  {AGENT_SCHEDULES[agent.id] || '—'} · Sidst kørt: {timeAgo(agent.last_run)} · {agent.runs_today} gange i dag
-                </div>
-              </div>
-              <button onClick={() => handleRunAgent(agent.id)} disabled={!!runningAgent} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: runningAgent === agent.id ? 'rgba(232,64,37,0.4)' : 'rgba(232,64,37,0.15)', border: '1px solid rgba(232,64,37,0.3)', borderRadius: '6px', padding: '6px 12px', color: '#E84025', fontSize: '12px', cursor: runningAgent ? 'not-allowed' : 'pointer' }}>
-                <Play size={11} />
-                {runningAgent === agent.id ? 'Kører...' : 'Kør nu'}
-              </button>
-            </div>
           ))}
         </div>
       </div>
