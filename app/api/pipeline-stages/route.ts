@@ -5,11 +5,14 @@ import { randomUUID } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
-// GET — alle pipeline-stadier sorteret efter position
-export async function GET() {
-  const stages = await sql`
-    SELECT id, label, position FROM pipeline_stages ORDER BY position ASC
-  `;
+// GET — stadier for et specifikt workspace (?workspace=internal eller ?workspace=<id>)
+export async function GET(req: NextRequest) {
+  const workspace = req.nextUrl.searchParams.get('workspace') ?? 'internal';
+
+  const stages = workspace === 'internal'
+    ? await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id IS NULL ORDER BY position ASC`
+    : await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id = ${workspace} ORDER BY position ASC`;
+
   return NextResponse.json(stages);
 }
 
@@ -20,10 +23,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ingen adgang' }, { status: 403 });
   }
 
-  const { label } = await req.json() as { label?: string };
+  const { label, workspace } = await req.json() as { label?: string; workspace?: string };
   if (!label?.trim()) return NextResponse.json({ error: 'Label er påkrævet' }, { status: 400 });
 
-  // Generate a slug-like ID from the label
+  const workspaceId = (!workspace || workspace === 'internal') ? null : workspace;
+
+  // Generate a slug-like ID
   const slug = label.trim()
     .toLowerCase()
     .normalize('NFD')
@@ -31,19 +36,24 @@ export async function POST(req: NextRequest) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
-  // Ensure uniqueness
-  const existing = await sql`SELECT id FROM pipeline_stages WHERE id = ${slug}`;
+  // Ensure slug is unique within this workspace
+  const existing = workspaceId
+    ? await sql`SELECT pk FROM pipeline_stages WHERE id = ${slug} AND workspace_id = ${workspaceId}`
+    : await sql`SELECT pk FROM pipeline_stages WHERE id = ${slug} AND workspace_id IS NULL`;
   const id = existing.length > 0 ? `${slug}-${randomUUID().slice(0, 6)}` : slug;
 
-  // Insert at end
-  const [{ maxpos }] = await sql`SELECT COALESCE(MAX(position), -1) as maxpos FROM pipeline_stages` as unknown as Array<{ maxpos: number }>;
+  // Insert at end of this workspace's pipeline
+  const maxposResult = workspaceId
+    ? await sql`SELECT COALESCE(MAX(position), -1) as maxpos FROM pipeline_stages WHERE workspace_id = ${workspaceId}`
+    : await sql`SELECT COALESCE(MAX(position), -1) as maxpos FROM pipeline_stages WHERE workspace_id IS NULL`;
+  const maxpos = Number((maxposResult as unknown as Array<{ maxpos: number }>)[0].maxpos);
+
+  const pk = randomUUID();
   const now = new Date().toISOString();
 
-  const [stage] = await sql`
-    INSERT INTO pipeline_stages (id, label, position, created_at)
-    VALUES (${id}, ${label.trim()}, ${maxpos + 1}, ${now})
-    RETURNING id, label, position
-  `;
+  const [stage] = workspaceId
+    ? await sql`INSERT INTO pipeline_stages (pk, id, label, position, workspace_id, created_at) VALUES (${pk}, ${id}, ${label.trim()}, ${maxpos + 1}, ${workspaceId}, ${now}) RETURNING pk, id, label, position`
+    : await sql`INSERT INTO pipeline_stages (pk, id, label, position, workspace_id, created_at) VALUES (${pk}, ${id}, ${label.trim()}, ${maxpos + 1}, NULL, ${now}) RETURNING pk, id, label, position`;
 
   return NextResponse.json(stage, { status: 201 });
 }

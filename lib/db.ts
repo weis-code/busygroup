@@ -417,8 +417,18 @@ export async function initSchema(): Promise<void> {
     )
   `;
 
-  // Seed default stages if none exist
-  const stageCount = await sql`SELECT COUNT(*) as cnt FROM pipeline_stages`;
+  // Migrate: add pk (UUID) and workspace_id columns for per-workspace pipelines
+  await sql`ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS workspace_id TEXT`.catch(() => {});
+  await sql`ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS pk TEXT`.catch(() => {});
+  // Backfill pk for existing rows that don't have one yet
+  await sql`UPDATE pipeline_stages SET pk = gen_random_uuid()::text WHERE pk IS NULL`.catch(() => {});
+  // Drop old single-column PK so we can have duplicate slugs per workspace
+  await sql`ALTER TABLE pipeline_stages DROP CONSTRAINT IF EXISTS pipeline_stages_pkey`.catch(() => {});
+  // Add surrogate PK on pk column (silently fails if already set)
+  await sql`ALTER TABLE pipeline_stages ADD PRIMARY KEY (pk)`.catch(() => {});
+
+  // Seed default stages for internal workspace (workspace_id IS NULL) if none exist
+  const stageCount = await sql`SELECT COUNT(*) as cnt FROM pipeline_stages WHERE workspace_id IS NULL`;
   if (Number(stageCount[0].cnt) === 0) {
     const now = new Date().toISOString();
     const defaults = [
@@ -431,7 +441,9 @@ export async function initSchema(): Promise<void> {
       { id: 'lost',       label: 'Tabt',         position: 6 },
     ];
     for (const s of defaults) {
-      await sql`INSERT INTO pipeline_stages (id, label, position, created_at) VALUES (${s.id}, ${s.label}, ${s.position}, ${now}) ON CONFLICT (id) DO NOTHING`;
+      await sql`INSERT INTO pipeline_stages (pk, id, label, position, workspace_id, created_at)
+        VALUES (gen_random_uuid()::text, ${s.id}, ${s.label}, ${s.position}, NULL, ${now})
+        ON CONFLICT DO NOTHING`.catch(() => {});
     }
   }
 

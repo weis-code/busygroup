@@ -39,6 +39,7 @@ interface Workspace {
 }
 
 interface PipelineStage {
+  pk: string;
   id: string;
   label: string;
   position: number;
@@ -87,10 +88,10 @@ export default function CRMPage() {
 
   const fetchPipelineStages = useCallback(async () => {
     try {
-      const res = await fetch('/api/pipeline-stages');
+      const res = await fetch(`/api/pipeline-stages?workspace=${activeWorkspace}`);
       if (res.ok) setPipelineStages(await res.json());
     } catch { /* ignore */ }
-  }, []);
+  }, [activeWorkspace]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -105,8 +106,11 @@ export default function CRMPage() {
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
   useEffect(() => {
     fetchPipelineStages();
+  }, [fetchPipelineStages]);
+
+  useEffect(() => {
     if (currentUser?.role === 'admin') { fetchUsers(); fetchWorkspaces(); }
-  }, [currentUser, fetchUsers, fetchWorkspaces, fetchPipelineStages]);
+  }, [currentUser, fetchUsers, fetchWorkspaces]);
 
   const handleLeadUpdate = async (id: string, changes: Partial<Lead>) => {
     try {
@@ -348,6 +352,7 @@ export default function CRMPage() {
         <PipelineEditorModal
           stages={pipelineStages}
           leads={leads}
+          workspace={activeWorkspace}
           onClose={() => setShowPipelineEditor(false)}
           onChanged={fetchPipelineStages}
         />
@@ -638,11 +643,13 @@ function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onC
 function PipelineEditorModal({
   stages,
   leads,
+  workspace,
   onClose,
   onChanged,
 }: {
   stages: PipelineStage[];
   leads: Lead[];
+  workspace: string;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -658,9 +665,9 @@ function PipelineEditorModal({
 
   const leadCount = (stageId: string) => leads.filter(l => l.status === stageId).length;
 
-  const renameStage = async (id: string, label: string) => {
-    setSaving(id);
-    await fetch(`/api/pipeline-stages/${id}`, {
+  const renameStage = async (pk: string, label: string) => {
+    setSaving(pk);
+    await fetch(`/api/pipeline-stages/${pk}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label }),
@@ -674,12 +681,10 @@ function PipelineEditorModal({
     const swapIdx = index + dir;
     if (swapIdx < 0 || swapIdx >= newLocal.length) return;
     [newLocal[index], newLocal[swapIdx]] = [newLocal[swapIdx], newLocal[index]];
-    // Re-assign positions
     const updated = newLocal.map((s, i) => ({ ...s, position: i }));
     setLocal(updated);
-    // Persist
     await Promise.all(updated.map(s =>
-      fetch(`/api/pipeline-stages/${s.id}`, {
+      fetch(`/api/pipeline-stages/${s.pk}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ position: s.position }),
@@ -688,20 +693,20 @@ function PipelineEditorModal({
     onChanged();
   };
 
-  const deleteStage = async (id: string) => {
-    const cnt = leadCount(id);
+  const deleteStage = async (pk: string, stageId: string) => {
+    const cnt = leadCount(stageId);
     if (cnt > 0) {
       toast.error(`Kan ikke slette — ${cnt} lead(s) er i dette stadie. Flyt dem først.`);
       return;
     }
     if (!confirm('Slet dette stadie?')) return;
-    setSaving(id);
-    const res = await fetch(`/api/pipeline-stages/${id}`, { method: 'DELETE' });
+    setSaving(pk);
+    const res = await fetch(`/api/pipeline-stages/${pk}`, { method: 'DELETE' });
     if (!res.ok) {
       const d = await res.json();
       toast.error(d.error || 'Fejl ved sletning');
     } else {
-      setLocal(prev => prev.filter(s => s.id !== id));
+      setLocal(prev => prev.filter(s => s.pk !== pk));
       onChanged();
     }
     setSaving(null);
@@ -713,7 +718,7 @@ function PipelineEditorModal({
     const res = await fetch('/api/pipeline-stages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: newLabel.trim() }),
+      body: JSON.stringify({ label: newLabel.trim(), workspace }),
     });
     if (res.ok) {
       const s = await res.json();
@@ -779,8 +784,8 @@ function PipelineEditorModal({
                   defaultValue={stage.label}
                   onBlur={e => {
                     if (e.target.value.trim() && e.target.value.trim() !== stage.label) {
-                      setLocal(prev => prev.map(s => s.id === stage.id ? { ...s, label: e.target.value.trim() } : s));
-                      renameStage(stage.id, e.target.value.trim());
+                      setLocal(prev => prev.map(s => s.pk === stage.pk ? { ...s, label: e.target.value.trim() } : s));
+                      renameStage(stage.pk, e.target.value.trim());
                     }
                   }}
                   style={inp}
@@ -797,8 +802,8 @@ function PipelineEditorModal({
 
                 {/* Delete */}
                 <button
-                  onClick={() => deleteStage(stage.id)}
-                  disabled={saving === stage.id}
+                  onClick={() => deleteStage(stage.pk, stage.id)}
+                  disabled={saving === stage.pk}
                   title={cnt > 0 ? `${cnt} leads — flyt dem først` : 'Slet stadie'}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
