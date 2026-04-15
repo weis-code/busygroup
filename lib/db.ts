@@ -459,6 +459,15 @@ export async function initSchema(): Promise<void> {
   `;
   await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS workspace_id TEXT`.catch(() => {});
 
+  // ── Swedish outreach agent columns ───────────────────────────────────────
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS research_notes TEXT`.catch(() => {});
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_subject TEXT`.catch(() => {});
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_body TEXT`.catch(() => {});
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS decision_maker_name TEXT`.catch(() => {});
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS decision_maker_title TEXT`.catch(() => {});
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS vertical TEXT`.catch(() => {});
+  await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'SE'`.catch(() => {});
+
   // Seed default agents if none exist
   const agentCount = await sql`SELECT COUNT(*) as cnt FROM agents`;
   if (Number(agentCount[0].cnt) === 0) {

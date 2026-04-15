@@ -34,6 +34,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         priority = ${body.priority ?? existing.priority},
         status = ${body.status ?? existing.status},
         market = ${body.market ?? existing.market},
+        research_notes = ${body.research_notes !== undefined ? body.research_notes : (existing.research_notes ?? null)},
+        email_subject = ${body.email_subject !== undefined ? body.email_subject : (existing.email_subject ?? null)},
+        email_body = ${body.email_body !== undefined ? body.email_body : (existing.email_body ?? null)},
+        decision_maker_name = ${body.decision_maker_name !== undefined ? body.decision_maker_name : (existing.decision_maker_name ?? null)},
+        decision_maker_title = ${body.decision_maker_title !== undefined ? body.decision_maker_title : (existing.decision_maker_title ?? null)},
+        vertical = ${body.vertical !== undefined ? body.vertical : (existing.vertical ?? null)},
+        country = ${body.country !== undefined ? body.country : (existing.country ?? null)},
         updated_at = ${now}
       WHERE id = ${params.id}
     `;

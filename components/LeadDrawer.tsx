@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, ExternalLink, Mail, Phone, Edit3, MessageSquare, Calendar,
   FileText, ArrowRight, ShoppingBag, PhoneCall, Trash2, StickyNote,
+  Copy, Check, Send, Globe,
 } from 'lucide-react';
 import { LeadStatusBadge, MarketBadge } from './StatusBadge';
 import { toast } from 'sonner';
@@ -24,6 +25,14 @@ interface Lead {
   assigned_to?: string | null;
   created_at: string;
   updated_at: string;
+  // Swedish outreach fields
+  country?: string | null;
+  vertical?: string | null;
+  research_notes?: string | null;
+  email_subject?: string | null;
+  email_body?: string | null;
+  decision_maker_name?: string | null;
+  decision_maker_title?: string | null;
 }
 
 interface Product {
@@ -106,7 +115,8 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   onClose: () => void;
   onUpdate: (id: string, changes: Partial<Lead>) => Promise<void>;
 }) {
-  const [tab, setTab] = useState<'Overblik' | 'Historik'>('Overblik');
+  const isSE = lead.country === 'SE' || lead.market === 'sweden';
+  const [tab, setTab] = useState<'Overblik' | 'Outreach' | 'Historik'>('Overblik');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Lead>>({});
@@ -119,6 +129,12 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [leadProducts, setLeadProducts] = useState<Product[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // SE outreach state
+  const [editSubject, setEditSubject] = useState(lead.email_subject || '');
+  const [editBody, setEditBody] = useState(lead.email_body || '');
+  const [copied, setCopied] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const loadHistory = useCallback(() => {
     fetch(`/api/leads/${lead.id}/history`)
@@ -210,6 +226,34 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   const nextIdx = STATUS_ORDER.indexOf(lead.status) + 1;
   const nextSt = nextIdx < STATUS_ORDER.length ? STATUS_ORDER[nextIdx] : null;
 
+  // SE outreach helpers
+  const handleCopyEmail = () => {
+    const text = `Ämne: ${editSubject}\n\n${editBody}`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleSaveEmail = async () => {
+    setSavingEmail(true);
+    try {
+      await onUpdate(lead.id, { email_subject: editSubject, email_body: editBody });
+      toast.success('E-mail gemt');
+    } catch { toast.error('Fejl ved gemning'); }
+    finally { setSavingEmail(false); }
+  };
+
+  const handleMarkSent = async () => {
+    await onUpdate(lead.id, { status: 'contacted' });
+    toast.success('Markeret som sendt');
+  };
+
+  const handleMarkReplied = async () => {
+    await onUpdate(lead.id, { status: 'replied' });
+    toast.success('Svar registreret');
+  };
+
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
@@ -228,6 +272,16 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
               <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '5px', flexWrap: 'wrap' }}>
                 <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#ECF0F1' }}>{lead.company}</h2>
                 <MarketBadge market={lead.market} />
+                {isSE && (
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: '#FCD200', background: 'rgba(252,210,0,0.12)', border: '1px solid rgba(252,210,0,0.3)', borderRadius: '4px', padding: '1px 5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Globe size={8} /> SE
+                  </span>
+                )}
+                {isSE && lead.vertical && (
+                  <span style={{ fontSize: '9px', fontWeight: 600, color: '#9B59B6', background: 'rgba(155,89,182,0.12)', border: '1px solid rgba(155,89,182,0.25)', borderRadius: '4px', padding: '1px 5px' }}>
+                    {lead.vertical === 'klinik' ? '🏥 Klinik' : '🔧 Hantverkare'}
+                  </span>
+                )}
                 {lead.priority === 'high' && <span style={{ color: '#E74C3C', fontSize: '10px', fontWeight: 700 }}>● HØJ</span>}
               </div>
               <LeadStatusBadge status={lead.status} />
@@ -342,14 +396,17 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
 
         {/* ── Tabs ── */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
-          {(['Overblik', 'Historik'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
+          {(['Overblik', ...(isSE ? ['Outreach'] : []), 'Historik'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t as typeof tab)} style={{
               flex: 1, padding: '9px 4px', border: 'none', background: 'transparent',
               color: tab === t ? '#ECF0F1' : '#667788',
               borderBottom: `2px solid ${tab === t ? '#185FA5' : 'transparent'}`,
-              fontSize: '12px', fontWeight: tab === t ? 600 : 400, cursor: 'pointer',
+              fontSize: '12px', fontWeight: tab === t ? 600 : 400, cursor: 'pointer', position: 'relative',
             }}>
               {t}
+              {t === 'Outreach' && lead.email_body && (
+                <span style={{ position: 'absolute', top: '6px', right: '8px', width: '5px', height: '5px', borderRadius: '50%', background: '#2ECC71' }} />
+              )}
             </button>
           ))}
         </div>
@@ -449,6 +506,131 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
             </div>
           )}
 
+
+          {/* ========= OUTREACH (SE) ========= */}
+          {tab === 'Outreach' && isSE && (
+            <div>
+
+              {/* Research notes */}
+              {lead.research_notes && (
+                <div style={{ ...card, border: '1px solid rgba(155,89,182,0.2)', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#9B59B6', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <FileText size={11} /> Research
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {lead.research_notes.split('\n').filter(Boolean).map((line, i) => (
+                      <div key={i} style={{ fontSize: '12px', color: '#AAB8C2', lineHeight: 1.5 }}>{line}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Email draft */}
+              <div style={{ ...card, border: '1px solid rgba(24,95,165,0.2)', marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#185FA5', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Mail size={11} /> E-mail udkast
+                </div>
+
+                {(editSubject || lead.email_subject) ? (
+                  <>
+                    <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ämne</div>
+                    <input
+                      value={editSubject}
+                      onChange={e => setEditSubject(e.target.value)}
+                      style={{
+                        background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+                        fontSize: '12px', width: '100%', outline: 'none', boxSizing: 'border-box',
+                        marginBottom: '8px',
+                      }}
+                    />
+                    <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Meddelande</div>
+                    <textarea
+                      value={editBody}
+                      onChange={e => setEditBody(e.target.value)}
+                      style={{
+                        background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+                        fontSize: '12px', width: '100%', outline: 'none', boxSizing: 'border-box',
+                        resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
+                        minHeight: '160px', marginBottom: '10px',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                      <button
+                        onClick={handleCopyEmail}
+                        style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                          background: copied ? 'rgba(46,204,113,0.15)' : 'rgba(24,95,165,0.15)',
+                          border: `1px solid ${copied ? 'rgba(46,204,113,0.4)' : 'rgba(24,95,165,0.4)'}`,
+                          borderRadius: '6px', padding: '7px', color: copied ? '#2ECC71' : '#185FA5',
+                          fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        {copied ? <><Check size={12} /> Kopieret!</> : <><Copy size={12} /> Kopier email</>}
+                      </button>
+                      <button
+                        onClick={handleSaveEmail}
+                        disabled={savingEmail}
+                        style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '6px', padding: '7px', color: '#ECF0F1',
+                          fontSize: '12px', cursor: 'pointer',
+                        }}
+                      >
+                        {savingEmail ? 'Gemmer...' : 'Gem ændringer'}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#445566', textAlign: 'center' }}>
+                      Åbn Gmail og indsæt manuelt
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#445566', fontSize: '12px' }}>
+                    Ingen e-mail genereret endnu — kør outreach-agenten fra CRM
+                  </div>
+                )}
+              </div>
+
+              {/* Outreach status actions */}
+              <div style={{ ...card, border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#AAB8C2', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Send size={11} /> Outreach status
+                </div>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                  <button
+                    onClick={handleMarkSent}
+                    disabled={lead.status === 'contacted'}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                      background: lead.status === 'contacted' ? 'rgba(46,204,113,0.12)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${lead.status === 'contacted' ? 'rgba(46,204,113,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                      borderRadius: '6px', padding: '7px',
+                      color: lead.status === 'contacted' ? '#2ECC71' : '#ECF0F1',
+                      fontSize: '12px', cursor: lead.status === 'contacted' ? 'default' : 'pointer',
+                    }}
+                  >
+                    {lead.status === 'contacted' ? <><Check size={11} /> Sendt</> : 'Marker som sendt'}
+                  </button>
+                  <button
+                    onClick={handleMarkReplied}
+                    disabled={lead.status === 'replied'}
+                    style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                      background: lead.status === 'replied' ? 'rgba(243,156,18,0.12)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${lead.status === 'replied' ? 'rgba(243,156,18,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                      borderRadius: '6px', padding: '7px',
+                      color: lead.status === 'replied' ? '#F39C12' : '#ECF0F1',
+                      fontSize: '12px', cursor: lead.status === 'replied' ? 'default' : 'pointer',
+                    }}
+                  >
+                    {lead.status === 'replied' ? <><Check size={11} /> Svar modtaget</> : 'Svar modtaget'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ========= HISTORIK ========= */}
           {tab === 'Historik' && (

@@ -8,7 +8,7 @@ import LeadCreateModal from '@/components/LeadCreateModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import MetricTile from '@/components/MetricTile';
 import { useUser } from '@/lib/UserContext';
-import { Plus, Upload, Users, UserPlus, X, Eye, EyeOff, Settings2, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Plus, Upload, Users, UserPlus, X, Eye, EyeOff, Settings2, ChevronUp, ChevronDown, Trash2, Zap, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Lead {
@@ -30,6 +30,12 @@ interface Lead {
   updated_at: string;
   product_names?: string;
   pipeline_value?: number;
+  // SE fields
+  country?: string | null;
+  vertical?: string | null;
+  research_notes?: string | null;
+  email_subject?: string | null;
+  email_body?: string | null;
 }
 
 interface Workspace {
@@ -70,6 +76,9 @@ export default function CRMPage() {
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
   const [showPipelineEditor, setShowPipelineEditor] = useState(false);
+  const [marketFilter, setMarketFilter] = useState<'all' | 'sverige'>('all');
+  const [generatingLeads, setGeneratingLeads] = useState(false);
+  const [generateLog, setGenerateLog] = useState<string[]>([]);
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -145,10 +154,51 @@ export default function CRMPage() {
     } catch (e) { console.error(e); }
   };
 
+  const handleGenerateSELeads = async () => {
+    if (generatingLeads) return;
+    setGeneratingLeads(true);
+    setGenerateLog([]);
+    try {
+      const workspaceId = activeWorkspace === 'internal' ? null : activeWorkspace;
+      const res = await fetch('/api/agents/sweden-outreach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId }),
+      });
+      if (!res.body) throw new Error('No stream');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line.replace('data: ', ''));
+            setGenerateLog(prev => [...prev.slice(-8), event.message]);
+            if (event.stage === 'done') {
+              toast.success(event.message);
+              fetchLeads();
+            } else if (event.stage === 'error') {
+              toast.error(event.message);
+            }
+          } catch { /* ignore parse errors */ }
+        }
+      }
+    } catch (e) {
+      toast.error('Fejl ved generering af leads');
+      console.error(e);
+    } finally {
+      setGeneratingLeads(false);
+    }
+  };
+
   // Filter leads based on selected pipeline (admin only — sellers already filtered by API)
-  const visibleLeads = selectedPipeline
+  const visibleLeads = (selectedPipeline
     ? leads.filter(l => l.assigned_to === selectedPipeline)
-    : leads;
+    : leads
+  ).filter(l => marketFilter === 'sverige' ? (l.country === 'SE' || l.market === 'sweden') : true);
 
   const activeLeads = visibleLeads.filter(l => !['lost', 'deleted', 'won'].includes(l.status));
   const wonThisMonth = visibleLeads.filter(l => l.status === 'won' && l.updated_at && new Date(l.updated_at) > new Date(Date.now() - 30 * 24 * 3600000)).length;
@@ -231,6 +281,34 @@ export default function CRMPage() {
         </div>
       )}
 
+      {/* Market filter bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+        <Globe size={12} style={{ color: '#445566', flexShrink: 0 }} />
+        {([
+          { key: 'all', label: 'Alle markeder' },
+          { key: 'sverige', label: '🇸🇪 Sverige' },
+        ] as const).map(f => (
+          <button
+            key={f.key}
+            onClick={() => setMarketFilter(f.key)}
+            style={{
+              padding: '3px 10px', borderRadius: '5px', border: 'none', cursor: 'pointer',
+              background: marketFilter === f.key ? 'rgba(252,210,0,0.15)' : 'rgba(255,255,255,0.04)',
+              color: marketFilter === f.key ? '#FCD200' : '#667788',
+              fontSize: '12px', fontWeight: marketFilter === f.key ? 600 : 400,
+              transition: 'all 0.15s',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+        {marketFilter === 'sverige' && (
+          <span style={{ fontSize: '11px', color: '#445566', marginLeft: '4px' }}>
+            {visibleLeads.length} leads
+          </span>
+        )}
+      </div>
+
       {/* Metrics */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <MetricTile label="Leads i alt" value={visibleLeads.filter(l => l.status !== 'deleted').length} />
@@ -272,7 +350,7 @@ export default function CRMPage() {
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {currentUser?.role === 'admin' && (
             <button onClick={() => setShowUserModal(true)} style={{
               display: 'flex', alignItems: 'center', gap: '6px',
@@ -281,6 +359,23 @@ export default function CRMPage() {
               fontSize: '13px', fontWeight: 500,
             }}>
               <UserPlus size={14} /> Ny bruger
+            </button>
+          )}
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={handleGenerateSELeads}
+              disabled={generatingLeads}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                background: generatingLeads ? 'rgba(252,210,0,0.08)' : 'rgba(252,210,0,0.12)',
+                border: `1px solid ${generatingLeads ? 'rgba(252,210,0,0.4)' : 'rgba(252,210,0,0.3)'}`,
+                borderRadius: '6px', padding: '8px 14px',
+                color: '#FCD200', cursor: generatingLeads ? 'not-allowed' : 'pointer',
+                fontSize: '13px', fontWeight: 500,
+              }}
+            >
+              <Zap size={14} style={{ animation: generatingLeads ? 'pulse 1s infinite' : 'none' }} />
+              {generatingLeads ? 'Genererer...' : '🇸🇪 Generer svenske leads'}
             </button>
           )}
           <button onClick={() => setShowImportModal(true)} style={{
@@ -301,6 +396,22 @@ export default function CRMPage() {
           </button>
         </div>
       </div>
+
+      {/* Live progress log */}
+      {generatingLeads && generateLog.length > 0 && (
+        <div style={{
+          background: 'rgba(252,210,0,0.05)', border: '1px solid rgba(252,210,0,0.2)',
+          borderRadius: '8px', padding: '10px 14px', marginBottom: '16px',
+          display: 'flex', flexDirection: 'column', gap: '3px',
+        }}>
+          {generateLog.map((msg, i) => (
+            <div key={i} style={{ fontSize: '12px', color: i === generateLog.length - 1 ? '#FCD200' : '#445566', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {i === generateLog.length - 1 && <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#FCD200', animation: 'pulse 1s infinite', flexShrink: 0 }} />}
+              {msg}
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#667788' }}>Indlæser leads...</div>
