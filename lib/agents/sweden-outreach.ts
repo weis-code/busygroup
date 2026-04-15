@@ -32,9 +32,10 @@ interface ProspectedCompany {
 
 export async function runProspecting(
   onProgress: ProgressCallback,
-  workspaceId: string | null = null
+  workspaceId: string | null = null,
+  count: number = 10
 ): Promise<string[]> {
-  onProgress({ stage: 'prospecting', message: 'Finder svenske virksomheder...' });
+  onProgress({ stage: 'prospecting', message: `Finder ${count} svenske virksomheder...` });
 
   const prompt = `Du er en B2B sales prospecting specialist for AI Receptionist-produktet.
 
@@ -44,7 +45,7 @@ Målgrupp: Svenske små-medelstora serviceföretag (5-200 anställda) inom:
 - Kliniker (tandläkare, fysioterapeuter, kiropraktorer, veterinärer)
 - Hantverkare (VVS, elektriker, byggföretag, målare)
 
-Generera exakt 10 REALISTISKA svenska företag. Blanda vertikaler. Använd RIKTIGA svenska städer och TROVÄRDIGA namn.
+Generera exakt ${count} REALISTISKA svenska företag. Blanda vertikaler. Använd RIKTIGA svenska städer och TROVÄRDIGA namn. Variér städerna — undgå at bruge de samme byer igen og igen.
 
 Svara ENDAST med ett JSON-array, ingen annan text:
 [
@@ -57,13 +58,13 @@ Svara ENDAST med ett JSON-array, ingen annan text:
     "phone": "+46 XX XXX XX XX",
     "decision_maker_name": "Förnamn Efternamn",
     "decision_maker_title": "Titel",
-    "why_they_fit": "1-2 meningar om varför de passar"
+    "why_they_fit": "1-2 sentences in English about why they are a good fit"
   }
 ]`;
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 2000,
+    max_tokens: Math.max(2000, count * 250),
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -138,20 +139,20 @@ export async function runResearch(
 
     if (!lead) continue;
 
-    const prompt = `Du är en B2B sales researcher. Analysera detta svenska företag och skriv 3 korta research-punkter som en säljare kan använda.
+    const prompt = `You are a B2B sales researcher. Analyse this Swedish company and write 3 short research bullet points that a salesperson can use.
 
-Företag: ${lead.company}
-Storlek: ${lead.company_size}
-Vertikal: ${lead.vertical === 'klinik' ? 'Klinik (tandläkare/fysio/kiro/vet)' : 'Hantverkare (VVS/el/bygg/måleri)'}
-Bakgrund: ${lead.why_they_fit}
+Company: ${lead.company}
+Size: ${lead.company_size}
+Vertical: ${lead.vertical === 'klinik' ? 'Clinic (dentist/physio/chiro/vet)' : 'Tradesman (plumber/electrician/construction/painter)'}
+Background: ${lead.why_they_fit}
 
-Fokusera på:
-1. Hur hanterar de troligtvis samtal idag (manuellt, sekreterare, missar samtal?)
-2. Specifika smärtpunkter för denna typ av företag (missar bokningar, stör behandling etc.)
-3. Konkret värde av AI-receptionist för just dem
+Focus on:
+1. How they likely handle calls today (manually, receptionist, missing calls?)
+2. Specific pain points for this type of business (missed bookings, interrupting treatments, etc.)
+3. Concrete value of an AI receptionist specifically for them
 
-Svara ENDAST med JSON-array med 3 strings (bullet points på svenska):
-["punkt 1", "punkt 2", "punkt 3"]`;
+Respond ONLY with a JSON array of 3 strings in English:
+["point 1", "point 2", "point 3"]`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-5',
@@ -203,34 +204,34 @@ export async function runEmailWriter(
 
     const firstName = (lead.decision_maker_name || '').split(' ')[0] || 'Hej';
 
-    const prompt = `Du är en senior B2B copywriter som skriver kalla e-postmeddelanden på svenska.
+    const prompt = `You are a senior B2B copywriter writing cold emails in English.
 
-PRODUKT: AI-receptionist — "Vi sikrar att ditt företag aldrig missar ett samtal. Vår AI-receptionist svarar samtal, besvarar frågor, bokar möten och kopplar vidare till rätt kollega."
-PRIS: 1.000 DKK/månad (ca. 950 SEK)
-BOKNINGSLÄNK: [DIT CALENDLY LINK]
+PRODUCT: AI receptionist — "We make sure your business never misses a call. Our AI receptionist answers calls, responds to questions, books appointments and routes to the right colleague."
+PRICE: 1,000 DKK/month (approx. 950 SEK)
+BOOKING LINK: [YOUR CALENDLY LINK]
 
-LEAD-DATA:
-- Förnamn: ${firstName}
-- Företag: ${lead.company}
-- Typ: ${lead.vertical === 'klinik' ? 'Klinik' : 'Hantverksföretag'}
-- Storlek: ${lead.company_size}
+LEAD DATA:
+- First name: ${firstName}
+- Company: ${lead.company}
+- Type: ${lead.vertical === 'klinik' ? 'Clinic' : 'Trade/Craftsman business'}
+- Size: ${lead.company_size}
 - Research:
 ${lead.research_notes || lead.why_they_fit}
 
-KRAV:
-- Tilltala ${firstName} med förnamnet
-- Referera till NÅGOT SPECIFIKT från research (gör det personligt)
-- Tydligt värdeförslag
-- Nämn priset: 1.000 DKK/månad (ca. 950 SEK)
-- Avsluta med bokningslänk: [DIT CALENDLY LINK]
-- MAX 150 ord i mejlkroppen
-- Låter mänskligt, INTE mallartat
-- Inga klichéer som "Hoppas du mår bra"
+REQUIREMENTS:
+- Address ${firstName} by first name
+- Reference SOMETHING SPECIFIC from the research (make it personal)
+- Clear value proposition
+- Mention the price: 1,000 DKK/month (approx. 950 SEK)
+- End with booking link: [YOUR CALENDLY LINK]
+- MAX 150 words in email body
+- Sounds human, NOT templated
+- No clichés like "I hope this email finds you well"
 
-Svara ENDAST med JSON (inga kommentarer, ingen annan text):
+Respond ONLY with JSON (no comments, no other text):
 {
-  "subject": "ämnesrad här",
-  "body": "mejlkropp här"
+  "subject": "subject line here",
+  "body": "email body here"
 }`;
 
     const message = await client.messages.create({
@@ -242,7 +243,7 @@ Svara ENDAST med JSON (inga kommentarer, ingen annan text):
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
     const jsonMatch = raw.match(/\{[\s\S]*?\}/);
 
-    let subject = `AI-receptionist till ${lead.company}`;
+    let subject = `AI receptionist for ${lead.company}`;
     let body = '';
 
     if (jsonMatch) {
@@ -271,9 +272,10 @@ Svara ENDAST med JSON (inga kommentarer, ingen annan text):
 
 export async function runSwedenOutreach(
   onProgress: ProgressCallback,
-  workspaceId: string | null = null
+  workspaceId: string | null = null,
+  count: number = 10
 ): Promise<{ leadIds: string[] }> {
-  const leadIds = await runProspecting(onProgress, workspaceId);
+  const leadIds = await runProspecting(onProgress, workspaceId, count);
   await runResearch(leadIds, onProgress);
   await runEmailWriter(leadIds, onProgress);
   onProgress({ stage: 'done', message: `Færdig! ${leadIds.length} svenske leads klar til outreach.` });

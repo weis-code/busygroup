@@ -8,7 +8,7 @@ import LeadCreateModal from '@/components/LeadCreateModal';
 import CsvImportModal from '@/components/CsvImportModal';
 import MetricTile from '@/components/MetricTile';
 import { useUser } from '@/lib/UserContext';
-import { Plus, Upload, Users, UserPlus, X, Eye, EyeOff, Settings2, ChevronUp, ChevronDown, Trash2, Zap, Globe } from 'lucide-react';
+import { Plus, Upload, Users, UserPlus, X, Settings2, ChevronUp, ChevronDown, Trash2, Zap, Globe, Settings, Check, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Lead {
@@ -75,7 +75,7 @@ export default function CRMPage() {
   const [activeWorkspace, setActiveWorkspace] = useState<'internal' | string>('internal');
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
-  const [showPipelineEditor, setShowPipelineEditor] = useState(false);
+  const [showWorkspaceSettings, setShowWorkspaceSettings] = useState(false);
   const [marketFilter, setMarketFilter] = useState<'all' | 'sverige'>('all');
   const [generatingLeads, setGeneratingLeads] = useState(false);
   const [generateLog, setGenerateLog] = useState<string[]>([]);
@@ -214,12 +214,12 @@ export default function CRMPage() {
       {/* Workspace bar (kun admin) */}
       {currentUser?.role === 'admin' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          {/* Intern tab */}
           <WorkspaceTab
             label="Intern"
             color="#445566"
             active={activeWorkspace === 'internal'}
             onClick={() => setActiveWorkspace('internal')}
+            onSettings={() => { setActiveWorkspace('internal'); setShowWorkspaceSettings(true); }}
           />
           {workspaces.map(ws => (
             <WorkspaceTab
@@ -228,6 +228,7 @@ export default function CRMPage() {
               color={ws.color}
               active={activeWorkspace === ws.id}
               onClick={() => setActiveWorkspace(ws.id)}
+              onSettings={() => { setActiveWorkspace(ws.id); setShowWorkspaceSettings(true); }}
               onDelete={async () => {
                 if (!confirm(`Slet workspace "${ws.name}"? Leads i workspacet beholder deres data men mister tilknytningen.`)) return;
                 await fetch(`/api/workspaces/${ws.id}`, { method: 'DELETE' });
@@ -335,10 +336,10 @@ export default function CRMPage() {
               </button>
             ))}
           </div>
-          {currentUser?.role === 'admin' && activeTab === 'Pipeline' && (
+          {currentUser?.role === 'admin' && (
             <button
-              onClick={() => setShowPipelineEditor(true)}
-              title="Rediger pipeline-stadier"
+              onClick={() => setShowWorkspaceSettings(true)}
+              title={`Indstillinger for ${activeWorkspace === 'internal' ? 'Intern' : (workspaces.find(w => w.id === activeWorkspace)?.name ?? 'workspace')}`}
               style={{
                 display: 'flex', alignItems: 'center', gap: '5px',
                 background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
@@ -346,7 +347,7 @@ export default function CRMPage() {
                 fontSize: '12px',
               }}
             >
-              <Settings2 size={13} /> Rediger pipeline
+              <Settings size={13} /> Workspace indstillinger
             </button>
           )}
         </div>
@@ -419,7 +420,7 @@ export default function CRMPage() {
         <>
           {activeTab === 'Pipeline' && (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            <KanbanBoard leads={visibleLeads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} columns={pipelineStages} />
+            <KanbanBoard leads={visibleLeads as any} onUpdateLead={handleLeadUpdate} onSelectLead={(l: any) => setSelectedLead(l)} columns={pipelineStages} users={users} />
           )}
           {activeTab === 'Leads' && (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -432,7 +433,7 @@ export default function CRMPage() {
       )}
 
       {selectedLead && (
-        <LeadDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} onUpdate={handleLeadUpdate} />
+        <LeadDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} onUpdate={handleLeadUpdate} users={users} stages={pipelineStages} />
       )}
       {showCreateModal && (
         <LeadCreateModal onClose={() => setShowCreateModal(false)} onCreate={handleLeadCreate} />
@@ -459,13 +460,14 @@ export default function CRMPage() {
           }}
         />
       )}
-      {showPipelineEditor && (
-        <PipelineEditorModal
+      {showWorkspaceSettings && (
+        <WorkspaceSettingsModal
+          workspace={activeWorkspace}
+          workspaceMeta={activeWorkspace === 'internal' ? null : (workspaces.find(w => w.id === activeWorkspace) ?? null)}
           stages={pipelineStages}
           leads={leads}
-          workspace={activeWorkspace}
-          onClose={() => setShowPipelineEditor(false)}
-          onChanged={fetchPipelineStages}
+          onClose={() => setShowWorkspaceSettings(false)}
+          onChanged={() => { fetchPipelineStages(); fetchWorkspaces(); }}
         />
       )}
     </div>
@@ -614,12 +616,13 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
 }
 
 function WorkspaceTab({
-  label, color, active, onClick, onDelete,
+  label, color, active, onClick, onSettings, onDelete,
 }: {
   label: string;
   color: string;
   active: boolean;
   onClick: () => void;
+  onSettings?: () => void;
   onDelete?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -627,14 +630,15 @@ function WorkspaceTab({
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '1px' }}
     >
       <button
         onClick={onClick}
         style={{
           display: 'flex', alignItems: 'center', gap: '5px',
-          padding: onDelete ? '4px 24px 4px 10px' : '4px 10px',
-          borderRadius: '6px', border: 'none', cursor: 'pointer',
+          padding: '4px 10px',
+          borderRadius: onSettings ? '6px 0 0 6px' : '6px',
+          border: 'none', cursor: 'pointer',
           background: active ? color : 'rgba(255,255,255,0.05)',
           color: active ? '#fff' : '#667788',
           fontSize: '12px', fontWeight: active ? 600 : 400,
@@ -644,18 +648,40 @@ function WorkspaceTab({
         {!active && <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />}
         {label}
       </button>
-      {onDelete && hovered && (
+
+      {/* Settings gear — always visible on active tab, shown on hover for inactive */}
+      {onSettings && (active || hovered) && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSettings(); }}
+          title="Indstillinger"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '24px', height: '100%', minHeight: '26px',
+            borderRadius: '0 6px 6px 0',
+            border: 'none', cursor: 'pointer',
+            background: active ? `${color}cc` : 'rgba(255,255,255,0.08)',
+            color: active ? 'rgba(255,255,255,0.8)' : '#556677',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = active ? color : 'rgba(255,255,255,0.12)'; (e.currentTarget as HTMLButtonElement).style.color = '#ECF0F1'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = active ? `${color}cc` : 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = active ? 'rgba(255,255,255,0.8)' : '#556677'; }}
+        >
+          <Settings2 size={10} />
+        </button>
+      )}
+
+      {/* Delete X — on hover, for named workspaces */}
+      {onDelete && hovered && !active && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           style={{
-            position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: active ? 'rgba(255,255,255,0.7)' : '#445566',
-            padding: '2px', display: 'flex', alignItems: 'center', lineHeight: 1,
-            fontSize: '11px',
+            position: 'absolute', right: onSettings ? 28 : 4, top: '50%', transform: 'translateY(-50%)',
+            background: 'rgba(231,76,60,0.15)', border: 'none', cursor: 'pointer',
+            color: '#E74C3C', borderRadius: '3px',
+            padding: '2px 3px', display: 'flex', alignItems: 'center', lineHeight: 1,
           }}
         >
-          <X size={10} />
+          <X size={9} />
         </button>
       )}
     </div>
@@ -751,40 +777,84 @@ function CreateWorkspaceModal({ onClose, onCreated }: { onClose: () => void; onC
   );
 }
 
-function PipelineEditorModal({
+function WorkspaceSettingsModal({
+  workspace,
+  workspaceMeta,
   stages,
   leads,
-  workspace,
   onClose,
   onChanged,
 }: {
+  workspace: string;
+  workspaceMeta: Workspace | null; // null = internal workspace
   stages: PipelineStage[];
   leads: Lead[];
-  workspace: string;
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const isInternal = workspace === 'internal';
+  const PRESET_COLORS = ['#3498DB', '#2ECC71', '#E67E22', '#9B59B6', '#E84025', '#1ABC9C', '#E74C3C', '#F39C12'];
+
+  // Workspace meta state
+  const [wsName, setWsName] = useState(workspaceMeta?.name ?? 'Intern');
+  const [wsColor, setWsColor] = useState(workspaceMeta?.color ?? '#445566');
+  const [savingMeta, setSavingMeta] = useState(false);
+  const [metaSaved, setMetaSaved] = useState(false);
+
+  // Pipeline stage state
   const [local, setLocal] = useState<PipelineStage[]>(() => [...stages].sort((a, b) => a.position - b.position));
   const [newLabel, setNewLabel] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
+  // Track which stages have unsaved renames
+  const [pendingLabels, setPendingLabels] = useState<Record<string, string>>({});
 
   const inp: React.CSSProperties = {
-    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 6, padding: '6px 10px', color: '#ECF0F1',
+    background: '#0C1820', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 7, padding: '7px 11px', color: '#ECF0F1',
     fontSize: 13, outline: 'none', flex: 1,
   };
 
   const leadCount = (stageId: string) => leads.filter(l => l.status === stageId).length;
 
+  const saveWorkspaceMeta = async () => {
+    if (isInternal || !workspaceMeta) return;
+    setSavingMeta(true);
+    try {
+      const res = await fetch(`/api/workspaces/${workspace}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: wsName, color: wsColor }),
+      });
+      if (res.ok) {
+        setMetaSaved(true);
+        setTimeout(() => setMetaSaved(false), 2000);
+        onChanged();
+        toast.success('Workspace gemt');
+      } else {
+        toast.error('Fejl ved gemning');
+      }
+    } finally {
+      setSavingMeta(false);
+    }
+  };
+
   const renameStage = async (pk: string, label: string) => {
+    if (!label.trim()) return;
     setSaving(pk);
-    await fetch(`/api/pipeline-stages/${pk}`, {
+    const res = await fetch(`/api/pipeline-stages/${pk}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label }),
+      body: JSON.stringify({ label: label.trim() }),
     });
+    if (res.ok) {
+      setLocal(prev => prev.map(s => s.pk === pk ? { ...s, label: label.trim() } : s));
+      setPendingLabels(prev => { const n = { ...prev }; delete n[pk]; return n; });
+      onChanged();
+      toast.success('Stadie gemt');
+    } else {
+      toast.error('Fejl ved omdøb');
+    }
     setSaving(null);
-    onChanged();
   };
 
   const moveStage = async (index: number, dir: -1 | 1) => {
@@ -843,112 +913,214 @@ function PipelineEditorModal({
     setSaving(null);
   };
 
+  const accentColor = workspaceMeta?.color ?? '#445566';
+
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400 }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 400 }} />
       <div style={{
         position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 401,
-        background: '#111E2A', borderRadius: 12, padding: 24, width: 460,
-        border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 16,
-        maxHeight: '85vh', overflow: 'hidden',
+        background: '#111E2A', borderRadius: 14, width: 500,
+        border: `1px solid ${accentColor}40`,
+        display: 'flex', flexDirection: 'column',
+        maxHeight: '88vh', overflow: 'hidden',
+        boxShadow: `0 0 40px ${accentColor}20, 0 20px 60px rgba(0,0,0,0.5)`,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1' }}>Rediger pipeline</div>
-            <div style={{ fontSize: 11, color: '#445566', marginTop: 2 }}>Omdøb, tilføj eller slet stadier</div>
+        {/* Header strip */}
+        <div style={{
+          background: `linear-gradient(135deg, ${accentColor}22, transparent)`,
+          borderBottom: `1px solid ${accentColor}30`,
+          padding: '18px 20px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: accentColor, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1' }}>
+                {isInternal ? 'Intern workspace' : wsName}
+              </div>
+              <div style={{ fontSize: 11, color: '#445566', marginTop: 1 }}>
+                Workspace indstillinger &amp; pipeline
+              </div>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '2px' }}>
             <X size={18} />
           </button>
         </div>
 
-        {/* Stage list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', flex: 1 }}>
-          {local.map((stage, i) => {
-            const cnt = leadCount(stage.id);
-            return (
-              <div key={stage.id} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: '#0F1923', borderRadius: 8,
-                padding: '8px 10px', border: '1px solid rgba(255,255,255,0.07)',
-              }}>
-                {/* Up/down */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
-                  <button
-                    onClick={() => moveStage(i, -1)}
-                    disabled={i === 0}
-                    style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? '#223344' : '#667788', padding: '1px' }}
-                  >
-                    <ChevronUp size={12} />
-                  </button>
-                  <button
-                    onClick={() => moveStage(i, 1)}
-                    disabled={i === local.length - 1}
-                    style={{ background: 'none', border: 'none', cursor: i === local.length - 1 ? 'default' : 'pointer', color: i === local.length - 1 ? '#223344' : '#667788', padding: '1px' }}
-                  >
-                    <ChevronDown size={12} />
-                  </button>
-                </div>
+        <div style={{ overflowY: 'auto', flex: 1, padding: '20px' }}>
 
-                {/* Label input */}
+          {/* ── Workspace navn + farve (kun for navngivne workspaces) ── */}
+          {!isInternal && workspaceMeta && (
+            <div style={{
+              background: '#0C1820', borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.07)',
+              padding: '16px', marginBottom: '20px',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#667788', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>
+                Workspace info
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: 11, color: '#556677', marginBottom: 5 }}>Navn</div>
                 <input
-                  defaultValue={stage.label}
-                  onBlur={e => {
-                    if (e.target.value.trim() && e.target.value.trim() !== stage.label) {
-                      setLocal(prev => prev.map(s => s.pk === stage.pk ? { ...s, label: e.target.value.trim() } : s));
-                      renameStage(stage.pk, e.target.value.trim());
-                    }
-                  }}
+                  value={wsName}
+                  onChange={e => setWsName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveWorkspaceMeta()}
                   style={inp}
                 />
-
-                {/* Lead count badge */}
-                <span style={{
-                  fontSize: 11, color: cnt > 0 ? '#ECF0F1' : '#445566',
-                  background: cnt > 0 ? 'rgba(255,255,255,0.08)' : 'transparent',
-                  borderRadius: 10, padding: '1px 6px', flexShrink: 0, minWidth: 20, textAlign: 'center',
-                }}>
-                  {cnt}
-                </span>
-
-                {/* Delete */}
-                <button
-                  onClick={() => deleteStage(stage.pk, stage.id)}
-                  disabled={saving === stage.pk}
-                  title={cnt > 0 ? `${cnt} leads — flyt dem først` : 'Slet stadie'}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: cnt > 0 ? '#334455' : '#445566',
-                    flexShrink: 0, padding: '2px',
-                  }}
-                >
-                  <Trash2 size={13} />
-                </button>
               </div>
-            );
-          })}
-        </div>
 
-        {/* Add new stage */}
-        <div style={{ display: 'flex', gap: 8, borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12 }}>
-          <input
-            placeholder="Nyt stadie..."
-            value={newLabel}
-            onChange={e => setNewLabel(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addStage()}
-            style={{ ...inp, background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)' }}
-          />
-          <button
-            onClick={addStage}
-            disabled={!newLabel.trim() || saving === 'new'}
-            style={{
-              background: newLabel.trim() ? '#E84025' : 'rgba(255,255,255,0.05)',
-              border: 'none', borderRadius: 6, padding: '6px 14px',
-              color: '#ECF0F1', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            {saving === 'new' ? '...' : '+ Tilføj'}
-          </button>
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ fontSize: 11, color: '#556677', marginBottom: 7 }}>Farve</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {PRESET_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setWsColor(c)}
+                      style={{
+                        width: 26, height: 26, borderRadius: '50%', background: c,
+                        border: wsColor === c ? '3px solid #ECF0F1' : '3px solid transparent',
+                        cursor: 'pointer', outline: 'none', transition: 'border 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {wsColor === c && <Check size={12} color="#fff" strokeWidth={3} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={saveWorkspaceMeta}
+                disabled={savingMeta}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: metaSaved ? 'rgba(46,204,113,0.15)' : wsColor,
+                  border: 'none', borderRadius: 7, padding: '8px 16px',
+                  color: metaSaved ? '#2ECC71' : '#fff', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.2s',
+                }}
+              >
+                {metaSaved ? <><Check size={12} /> Gemt</> : savingMeta ? 'Gemmer...' : 'Gem ændringer'}
+              </button>
+            </div>
+          )}
+
+          {/* ── Pipeline stadier ── */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#667788', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+              Pipeline stadier
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: '12px' }}>
+              {local.length === 0 && (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#445566', fontSize: '12px', background: '#0C1820', borderRadius: 8 }}>
+                  Ingen stadier endnu — tilføj et nedenfor
+                </div>
+              )}
+              {local.map((stage, i) => {
+                const cnt = leadCount(stage.id);
+                const pending = pendingLabels[stage.pk];
+                const currentLabel = pending !== undefined ? pending : stage.label;
+                const isDirty = pending !== undefined && pending !== stage.label;
+
+                return (
+                  <div key={stage.pk} style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    background: '#0C1820', borderRadius: 8,
+                    padding: '8px 10px', border: `1px solid ${isDirty ? `${accentColor}50` : 'rgba(255,255,255,0.07)'}`,
+                    transition: 'border-color 0.15s',
+                  }}>
+                    {/* Position */}
+                    <span style={{ fontSize: 10, color: '#334455', width: 16, textAlign: 'center', flexShrink: 0, fontFamily: 'monospace' }}>
+                      {i + 1}
+                    </span>
+
+                    {/* Up/down */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, flexShrink: 0 }}>
+                      <button onClick={() => moveStage(i, -1)} disabled={i === 0}
+                        style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? '#1E3044' : '#556677', padding: '1px', lineHeight: 1 }}>
+                        <ChevronUp size={12} />
+                      </button>
+                      <button onClick={() => moveStage(i, 1)} disabled={i === local.length - 1}
+                        style={{ background: 'none', border: 'none', cursor: i === local.length - 1 ? 'default' : 'pointer', color: i === local.length - 1 ? '#1E3044' : '#556677', padding: '1px', lineHeight: 1 }}>
+                        <ChevronDown size={12} />
+                      </button>
+                    </div>
+
+                    {/* Label — controlled input with explicit save */}
+                    <input
+                      value={currentLabel}
+                      onChange={e => setPendingLabels(prev => ({ ...prev, [stage.pk]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') renameStage(stage.pk, currentLabel); if (e.key === 'Escape') setPendingLabels(prev => { const n = { ...prev }; delete n[stage.pk]; return n; }); }}
+                      style={{ ...inp, flex: 1 }}
+                    />
+
+                    {/* Save button — shows only when there's a pending rename */}
+                    {isDirty && (
+                      <button
+                        onClick={() => renameStage(stage.pk, currentLabel)}
+                        disabled={saving === stage.pk}
+                        style={{
+                          background: accentColor, border: 'none', borderRadius: 6,
+                          padding: '5px 10px', color: '#fff', fontSize: 11, fontWeight: 600,
+                          cursor: 'pointer', flexShrink: 0,
+                        }}
+                      >
+                        {saving === stage.pk ? '...' : 'Gem'}
+                      </button>
+                    )}
+
+                    {/* Lead count */}
+                    <span style={{
+                      fontSize: 11, color: cnt > 0 ? '#AAB8C8' : '#334455',
+                      background: cnt > 0 ? 'rgba(255,255,255,0.07)' : 'transparent',
+                      borderRadius: 10, padding: '1px 6px', flexShrink: 0, minWidth: 20, textAlign: 'center',
+                    }}>
+                      {cnt}
+                    </span>
+
+                    {/* Delete */}
+                    <button
+                      onClick={() => deleteStage(stage.pk, stage.id)}
+                      disabled={saving === stage.pk}
+                      title={cnt > 0 ? `${cnt} leads — flyt dem først` : 'Slet stadie'}
+                      style={{ background: 'none', border: 'none', cursor: cnt > 0 ? 'not-allowed' : 'pointer', color: cnt > 0 ? '#1E3044' : '#445566', flexShrink: 0, padding: '3px' }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Add new stage */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                placeholder="Tilføj nyt stadie..."
+                value={newLabel}
+                onChange={e => setNewLabel(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addStage()}
+                style={{ ...inp, background: '#0C1820' }}
+              />
+              <button
+                onClick={addStage}
+                disabled={!newLabel.trim() || saving === 'new'}
+                style={{
+                  background: newLabel.trim() ? accentColor : 'rgba(255,255,255,0.05)',
+                  border: 'none', borderRadius: 7, padding: '7px 14px',
+                  color: newLabel.trim() ? '#fff' : '#445566',
+                  fontSize: 13, fontWeight: 600, cursor: newLabel.trim() ? 'pointer' : 'default',
+                  flexShrink: 0, transition: 'all 0.15s',
+                }}
+              >
+                {saving === 'new' ? '...' : '+ Tilføj'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

@@ -9,9 +9,32 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const workspace = req.nextUrl.searchParams.get('workspace') ?? 'internal';
 
-  const stages = workspace === 'internal'
-    ? await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id IS NULL ORDER BY position ASC`
-    : await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id = ${workspace} ORDER BY position ASC`;
+  if (workspace === 'internal') {
+    const stages = await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id IS NULL ORDER BY position ASC`;
+    return NextResponse.json(stages);
+  }
+
+  // For a named workspace: return its own stages
+  let stages = await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id = ${workspace} ORDER BY position ASC` as unknown as Array<{ pk: string; id: string; label: string; position: number }>;
+
+  // Auto-seed from internal if this workspace has no stages yet
+  if (stages.length === 0) {
+    const internalStages = await sql`SELECT id, label, position FROM pipeline_stages WHERE workspace_id IS NULL ORDER BY position ASC` as unknown as Array<{ id: string; label: string; position: number }>;
+
+    if (internalStages.length > 0) {
+      const now = new Date().toISOString();
+      for (const s of internalStages) {
+        const pk = randomUUID();
+        await sql`
+          INSERT INTO pipeline_stages (pk, id, label, position, workspace_id, created_at)
+          VALUES (${pk}, ${s.id}, ${s.label}, ${s.position}, ${workspace}, ${now})
+          ON CONFLICT DO NOTHING
+        `.catch(() => {});
+      }
+      // Re-fetch after seeding
+      stages = await sql`SELECT pk, id, label, position FROM pipeline_stages WHERE workspace_id = ${workspace} ORDER BY position ASC` as unknown as Array<{ pk: string; id: string; label: string; position: number }>;
+    }
+  }
 
   return NextResponse.json(stages);
 }

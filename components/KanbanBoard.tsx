@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -20,6 +20,13 @@ import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import { MarketBadge } from './StatusBadge';
+import { UserRound } from 'lucide-react';
+
+interface User {
+  id: string;
+  name: string;
+  role: string;
+}
 
 interface Lead {
   id: string;
@@ -30,6 +37,7 @@ interface Lead {
   status: string;
   market: string;
   updated_at: string;
+  assigned_to?: string | null;
   product_names?: string;
   pipeline_value?: number;
 }
@@ -39,6 +47,7 @@ interface KanbanBoardProps {
   onUpdateLead: (id: string, changes: Partial<Lead>) => Promise<void>;
   onSelectLead: (lead: Lead) => void;
   columns?: Array<{ id: string; label: string }>;
+  users?: User[];
 }
 
 const DEFAULT_COLUMNS: Array<{ id: string; label: string }> = [
@@ -56,17 +65,118 @@ function daysAgo(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function KanbanCard({ lead, onSelect, isDragging }: {
+// Colour palette — each user gets a consistent colour based on index
+const USER_COLORS = ['#185FA5', '#2ECC71', '#E67E22', '#9B59B6', '#E84025', '#1ABC9C'];
+
+function AssignButton({ lead, users, onAssign }: {
   lead: Lead;
+  users: User[];
+  onAssign: (leadId: string, userId: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const assigned = users.find(u => u.id === lead.assigned_to);
+  const colorIdx = assigned ? users.indexOf(assigned) % USER_COLORS.length : -1;
+  const color = colorIdx >= 0 ? USER_COLORS[colorIdx] : '#334455';
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+        title={assigned ? `Tildelt: ${assigned.name}` : 'Tildel til sælger'}
+        style={{
+          width: 22, height: 22, borderRadius: '50%',
+          background: assigned ? `${color}30` : 'rgba(255,255,255,0.06)',
+          border: `1.5px solid ${assigned ? color : 'rgba(255,255,255,0.12)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', flexShrink: 0, padding: 0,
+        }}
+      >
+        {assigned ? (
+          <span style={{ fontSize: '9px', fontWeight: 700, color }}>{assigned.name.charAt(0).toUpperCase()}</span>
+        ) : (
+          <UserRound size={10} color="#445566" />
+        )}
+      </button>
+
+      {open && (
+        <div
+          onPointerDown={e => e.stopPropagation()}
+          style={{
+            position: 'absolute', bottom: '100%', right: 0, marginBottom: '4px',
+            background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '8px', padding: '5px', zIndex: 500,
+            minWidth: '150px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          }}
+        >
+          {/* Unassign option */}
+          <div
+            onClick={e => { e.stopPropagation(); onAssign(lead.id, null); setOpen(false); }}
+            style={{
+              padding: '5px 8px', borderRadius: '5px', fontSize: '11px',
+              color: '#556677', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <UserRound size={11} /> Ingen tildeling
+          </div>
+          {users.map((u, i) => {
+            const c = USER_COLORS[i % USER_COLORS.length];
+            const isActive = lead.assigned_to === u.id;
+            return (
+              <div
+                key={u.id}
+                onClick={e => { e.stopPropagation(); onAssign(lead.id, u.id); setOpen(false); }}
+                style={{
+                  padding: '5px 8px', borderRadius: '5px', cursor: 'pointer',
+                  background: isActive ? `${c}18` : 'transparent',
+                  display: 'flex', alignItems: 'center', gap: '7px',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: `${c}25`, border: `1.5px solid ${c}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '9px', fontWeight: 700, color: c, flexShrink: 0,
+                }}>
+                  {u.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: isActive ? '#ECF0F1' : '#AAB8C8', fontWeight: isActive ? 600 : 400 }}>{u.name}</div>
+                  <div style={{ fontSize: '9px', color: '#445566', textTransform: 'uppercase' }}>{u.role === 'admin' ? 'Admin' : 'Sælger'}</div>
+                </div>
+                {isActive && <span style={{ marginLeft: 'auto', width: 5, height: 5, borderRadius: '50%', background: c, flexShrink: 0 }} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KanbanCard({ lead, users, onSelect, onAssign, isDragging }: {
+  lead: Lead;
+  users: User[];
   onSelect: (l: Lead) => void;
+  onAssign: (leadId: string, userId: string | null) => void;
   isDragging?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: lead.id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.3 : 1,
-  };
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
@@ -107,25 +217,30 @@ function KanbanCard({ lead, onSelect, isDragging }: {
           <span style={{ fontSize: '10px', color: '#667788' }}>
             {daysAgo(lead.updated_at)}d i status
           </span>
-          {Number(lead.pipeline_value) > 0 ? (
-            <span style={{ fontSize: '10px', color: '#2ECC71', fontWeight: 600 }}>
-              {Number(lead.pipeline_value) >= 1000
-                ? `${(Number(lead.pipeline_value) / 1000).toFixed(0)}k kr`
-                : `${Number(lead.pipeline_value)} kr`}
-            </span>
-          ) : (
-            <span style={{ fontSize: '10px', color: '#667788' }}>—</span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {Number(lead.pipeline_value) > 0 && (
+              <span style={{ fontSize: '10px', color: '#2ECC71', fontWeight: 600 }}>
+                {Number(lead.pipeline_value) >= 1000
+                  ? `${(Number(lead.pipeline_value) / 1000).toFixed(0)}k kr`
+                  : `${Number(lead.pipeline_value)} kr`}
+              </span>
+            )}
+            {users.length > 0 && (
+              <AssignButton lead={lead} users={users} onAssign={onAssign} />
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function KanbanColumn({ column, leads, onSelect, activeId }: {
+function KanbanColumn({ column, leads, users, onSelect, onAssign, activeId }: {
   column: { id: string; label: string };
   leads: Lead[];
+  users: User[];
   onSelect: (l: Lead) => void;
+  onAssign: (leadId: string, userId: string | null) => void;
   activeId: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -163,7 +278,9 @@ function KanbanColumn({ column, leads, onSelect, activeId }: {
             <KanbanCard
               key={lead.id}
               lead={lead}
+              users={users}
               onSelect={onSelect}
+              onAssign={onAssign}
               isDragging={activeId === lead.id}
             />
           ))}
@@ -178,12 +295,22 @@ function KanbanColumn({ column, leads, onSelect, activeId }: {
   );
 }
 
-export default function KanbanBoard({ leads, onUpdateLead, onSelectLead, columns }: KanbanBoardProps) {
+export default function KanbanBoard({ leads, onUpdateLead, onSelectLead, columns, users = [] }: KanbanBoardProps) {
   const COLUMNS = columns && columns.length > 0 ? columns : DEFAULT_COLUMNS;
   const [localLeads, setLocalLeads] = useState<Lead[]>(leads);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => { setLocalLeads(leads); }, [leads]);
+
+  const handleAssign = async (leadId: string, userId: string | null) => {
+    setLocalLeads(prev => prev.map(l => l.id === leadId ? { ...l, assigned_to: userId } : l));
+    const user = users.find(u => u.id === userId);
+    toast.success(userId ? `Tildelt: ${user?.name ?? 'sælger'}` : 'Tildeling fjernet');
+    await onUpdateLead(leadId, { assigned_to: userId }).catch(() => {
+      setLocalLeads(prev => prev.map(l => l.id === leadId ? { ...l, assigned_to: leads.find(o => o.id === leadId)?.assigned_to } : l));
+      toast.error('Fejl ved tildeling');
+    });
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const activeLead = localLeads.find(l => l.id === activeId);
@@ -231,7 +358,9 @@ export default function KanbanBoard({ leads, onUpdateLead, onSelectLead, columns
             key={col.id}
             column={col}
             leads={visibleLeads.filter(l => l.status === col.id)}
+            users={users}
             onSelect={onSelectLead}
+            onAssign={handleAssign}
             activeId={activeId}
           />
         ))}

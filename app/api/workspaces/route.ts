@@ -40,9 +40,11 @@ export async function POST(req: NextRequest) {
       SELECT id, label, position FROM pipeline_stages WHERE workspace_id IS NULL ORDER BY position ASC
     ` as unknown as Array<{ id: string; label: string; position: number }>;
     for (const s of internalStages) {
+      const stagePk = randomUUID();
       await sql`
         INSERT INTO pipeline_stages (pk, id, label, position, workspace_id, created_at)
-        VALUES (gen_random_uuid()::text, ${s.id}, ${s.label}, ${s.position}, ${id}, ${now})
+        VALUES (${stagePk}, ${s.id}, ${s.label}, ${s.position}, ${id}, ${now})
+        ON CONFLICT DO NOTHING
       `.catch(() => {});
     }
 

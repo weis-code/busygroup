@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, ExternalLink, Mail, Phone, Edit3, MessageSquare, Calendar,
   FileText, ArrowRight, ShoppingBag, PhoneCall, Trash2, StickyNote,
-  Copy, Check, Send, Globe,
+  Copy, Check, Send, Globe, UserRound, ChevronDown,
 } from 'lucide-react';
 import { LeadStatusBadge, MarketBadge } from './StatusBadge';
 import { toast } from 'sonner';
@@ -110,10 +110,26 @@ const card: React.CSSProperties = {
   background: '#1A2A38', borderRadius: '8px', padding: '14px', marginBottom: '10px',
 };
 
-export default function LeadDrawer({ lead, onClose, onUpdate }: {
+interface PipelineStage {
+  pk: string;
+  id: string;
+  label: string;
+  position: number;
+}
+
+interface User {
+  id: string;
+  name: string;
+  role: string;
+  active: boolean;
+}
+
+export default function LeadDrawer({ lead, onClose, onUpdate, users = [], stages = [] }: {
   lead: Lead;
   onClose: () => void;
   onUpdate: (id: string, changes: Partial<Lead>) => Promise<void>;
+  users?: User[];
+  stages?: PipelineStage[];
 }) {
   const isSE = lead.country === 'SE' || lead.market === 'sweden';
   const [tab, setTab] = useState<'Overblik' | 'Outreach' | 'Historik'>('Overblik');
@@ -129,12 +145,21 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [leadProducts, setLeadProducts] = useState<Product[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showAssignMenu, setShowAssignMenu] = useState(false);
 
   // SE outreach state
   const [editSubject, setEditSubject] = useState(lead.email_subject || '');
   const [editBody, setEditBody] = useState(lead.email_body || '');
   const [copied, setCopied] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
+
+  // Close assign menu on outside click
+  useEffect(() => {
+    if (!showAssignMenu) return;
+    const handler = () => setShowAssignMenu(false);
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [showAssignMenu]);
 
   const loadHistory = useCallback(() => {
     fetch(`/api/leads/${lead.id}/history`)
@@ -169,11 +194,17 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
   };
 
   const handleNextStatus = async () => {
-    const idx = STATUS_ORDER.indexOf(lead.status);
-    if (idx === -1 || idx >= STATUS_ORDER.length - 1) return;
-    const next = STATUS_ORDER[idx + 1];
+    const order = stages.length > 0
+      ? stages.sort((a, b) => a.position - b.position).map(s => s.id)
+      : STATUS_ORDER;
+    const labels: Record<string, string> = stages.length > 0
+      ? Object.fromEntries(stages.map(s => [s.id, s.label]))
+      : STATUS_LABELS;
+    const idx = order.indexOf(lead.status);
+    if (idx === -1 || idx >= order.length - 1) return;
+    const next = order[idx + 1];
     await onUpdate(lead.id, { status: next });
-    toast.success(`Status → ${STATUS_LABELS[next]}`);
+    toast.success(`Status → ${labels[next] ?? next}`);
   };
 
   const handleAddNote = async () => {
@@ -223,8 +254,16 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
     finally { setLoggingCall(false); }
   };
 
-  const nextIdx = STATUS_ORDER.indexOf(lead.status) + 1;
-  const nextSt = nextIdx < STATUS_ORDER.length ? STATUS_ORDER[nextIdx] : null;
+  // Use workspace-specific stages if available, else fall back to hardcoded defaults
+  const stageOrder = stages.length > 0
+    ? stages.sort((a, b) => a.position - b.position).map(s => s.id)
+    : STATUS_ORDER;
+  const stageLabels: Record<string, string> = stages.length > 0
+    ? Object.fromEntries(stages.map(s => [s.id, s.label]))
+    : STATUS_LABELS;
+
+  const nextIdx = stageOrder.indexOf(lead.status) + 1;
+  const nextSt = nextIdx > 0 && nextIdx < stageOrder.length ? stageOrder[nextIdx] : null;
 
   // SE outreach helpers
   const handleCopyEmail = () => {
@@ -253,6 +292,15 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
     await onUpdate(lead.id, { status: 'replied' });
     toast.success('Svar registreret');
   };
+
+  const handleAssign = async (userId: string | null) => {
+    setShowAssignMenu(false);
+    await onUpdate(lead.id, { assigned_to: userId });
+    const name = userId ? (users.find(u => u.id === userId)?.name ?? 'sælger') : 'ingen';
+    toast.success(`Tildelt: ${name}`);
+  };
+
+  const assignedUser = lead.assigned_to ? users.find(u => u.id === lead.assigned_to) : null;
 
   return (
     <>
@@ -286,7 +334,72 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
               </div>
               <LeadStatusBadge status={lead.status} />
             </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667788', padding: '4px' }}><X size={18} /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {users.length > 0 && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowAssignMenu(v => !v)}
+                    title="Tildel til sælger"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      background: assignedUser ? 'rgba(24,95,165,0.15)' : 'rgba(255,255,255,0.05)',
+                      border: assignedUser ? '1px solid rgba(24,95,165,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '6px', padding: '4px 8px',
+                      color: assignedUser ? '#5B9BD5' : '#667788',
+                      fontSize: '11px', cursor: 'pointer',
+                    }}
+                  >
+                    <UserRound size={12} />
+                    {assignedUser ? assignedUser.name.split(' ')[0] : 'Tildel'}
+                    <ChevronDown size={10} />
+                  </button>
+                  {showAssignMenu && (
+                    <div style={{
+                      position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+                      background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px', padding: '6px', zIndex: 300,
+                      minWidth: '160px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    }}>
+                      <div
+                        onClick={() => handleAssign(null)}
+                        style={{
+                          padding: '6px 10px', borderRadius: '5px', fontSize: '12px',
+                          color: '#667788', cursor: 'pointer',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        Ingen tildeling
+                      </div>
+                      {users.map(u => (
+                        <div
+                          key={u.id}
+                          onClick={() => handleAssign(u.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '6px 10px', borderRadius: '5px', fontSize: '12px',
+                            color: lead.assigned_to === u.id ? '#ECF0F1' : '#AAB8C8',
+                            background: lead.assigned_to === u.id ? 'rgba(24,95,165,0.18)' : 'transparent',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={e => { if (lead.assigned_to !== u.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                          onMouseLeave={e => { if (lead.assigned_to !== u.id) e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(24,95,165,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#185FA5', flexShrink: 0 }}>
+                            {u.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: lead.assigned_to === u.id ? 600 : 400 }}>{u.name}</div>
+                            <div style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase' }}>{u.role === 'admin' ? 'Admin' : 'Sælger'}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667788', padding: '4px' }}><X size={18} /></button>
+            </div>
           </div>
 
           {/* Action bar */}
@@ -303,7 +416,7 @@ export default function LeadDrawer({ lead, onClose, onUpdate }: {
             )}
             {nextSt && (
               <button onClick={handleNextStatus} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#185FA5', border: 'none', borderRadius: '6px', padding: '5px 10px', color: '#ECF0F1', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>
-                <ArrowRight size={11} /> {STATUS_LABELS[nextSt]}
+                <ArrowRight size={11} /> {stageLabels[nextSt] ?? nextSt}
               </button>
             )}
             <button onClick={() => { setTab('Historik'); setCallLogText(' '); setTimeout(() => setCallLogText(''), 10); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '5px 10px', color: '#ECF0F1', fontSize: '11px', cursor: 'pointer' }}>

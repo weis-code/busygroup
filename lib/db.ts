@@ -459,6 +459,37 @@ export async function initSchema(): Promise<void> {
   `;
   await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS workspace_id TEXT`.catch(() => {});
 
+  // ── Backfill: copy internal pipeline stages to any workspace that has none ──
+  try {
+    const workspacesWithoutStages = await sql`
+      SELECT w.id FROM crm_workspaces w
+      WHERE NOT EXISTS (
+        SELECT 1 FROM pipeline_stages ps WHERE ps.workspace_id = w.id
+      )
+    ` as unknown as Array<{ id: string }>;
+
+    if (workspacesWithoutStages.length > 0) {
+      const internalStages = await sql`
+        SELECT id, label, position FROM pipeline_stages WHERE workspace_id IS NULL ORDER BY position ASC
+      ` as unknown as Array<{ id: string; label: string; position: number }>;
+
+      const now = new Date().toISOString();
+      for (const ws of workspacesWithoutStages) {
+        for (const s of internalStages) {
+          const pk = randomUUID();
+          await sql`
+            INSERT INTO pipeline_stages (pk, id, label, position, workspace_id, created_at)
+            VALUES (${pk}, ${s.id}, ${s.label}, ${s.position}, ${ws.id}, ${now})
+            ON CONFLICT DO NOTHING
+          `.catch(() => {});
+        }
+      }
+      if (workspacesWithoutStages.length > 0) {
+        console.log(`[DB] Backfilled pipeline stages for ${workspacesWithoutStages.length} workspace(s)`);
+      }
+    }
+  } catch { /* non-critical migration */ }
+
   // ── Swedish outreach agent columns ───────────────────────────────────────
   await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS research_notes TEXT`.catch(() => {});
   await sql`ALTER TABLE leads ADD COLUMN IF NOT EXISTS email_subject TEXT`.catch(() => {});

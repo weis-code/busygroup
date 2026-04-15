@@ -6,13 +6,14 @@ import { useUser } from '@/lib/UserContext';
 import { useSidebar } from '@/lib/SidebarContext';
 import {
   LayoutDashboard, TrendingUp, MessageSquare,
-  Settings, LogOut, Building2, ChevronLeft, ChevronRight,
+  Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bot,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Oversigt',      href: '/',          icon: LayoutDashboard },
   { label: 'Messenger',     href: '/messenger',  icon: MessageSquare   },
   { label: 'CRM',           href: '/crm',        icon: TrendingUp      },
+  { label: 'Agenter',       href: '/agenter',    icon: Bot             },
   { label: 'Kunder',        href: '/kunder',     icon: Building2       },
   { label: 'Indstillinger', href: '/settings',   icon: Settings        },
 ];
