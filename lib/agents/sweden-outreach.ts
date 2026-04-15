@@ -139,24 +139,25 @@ export async function runResearch(
 
     if (!lead) continue;
 
-    const prompt = `You are a B2B sales researcher. Analyse this Swedish company and write 3 short research bullet points that a salesperson can use.
+    const prompt = `Analyse this Swedish service company and write 3 short research bullet points for a salesperson.
 
 Company: ${lead.company}
 Size: ${lead.company_size}
-Vertical: ${lead.vertical === 'klinik' ? 'Clinic (dentist/physio/chiro/vet)' : 'Tradesman (plumber/electrician/construction/painter)'}
+Type: ${lead.vertical === 'klinik' ? 'Clinic (dentist / physio / chiropractor / vet)' : 'Tradesman (plumber / electrician / construction / painter)'}
 Background: ${lead.why_they_fit}
 
-Focus on:
-1. How they likely handle calls today (manually, receptionist, missing calls?)
-2. Specific pain points for this type of business (missed bookings, interrupting treatments, etc.)
-3. Concrete value of an AI receptionist specifically for them
+Cover:
+1. How they likely handle incoming calls today (manual, receptionist, missing calls?)
+2. Key pain points for this business type (missed bookings, interrupted treatments, etc.)
+3. Concrete value our AI receptionist delivers specifically for them
 
-Respond ONLY with a JSON array of 3 strings in English:
-["point 1", "point 2", "point 3"]`;
+Return ONLY a raw JSON array — no markdown, no extra text:
+["bullet 1", "bullet 2", "bullet 3"]`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 600,
+      system: 'You are a B2B sales researcher. You ONLY write in English. Never write in Swedish, Danish, or any other language. All output must be English regardless of the language of the input data.',
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -204,44 +205,42 @@ export async function runEmailWriter(
 
     const firstName = (lead.decision_maker_name || '').split(' ')[0] || 'Hej';
 
-    const prompt = `You are a senior B2B copywriter writing cold emails in English.
+    const prompt = `Write a cold outreach email in English for the following lead.
 
-PRODUCT: AI receptionist — "We make sure your business never misses a call. Our AI receptionist answers calls, responds to questions, books appointments and routes to the right colleague."
+PRODUCT: AI receptionist — "We make sure your business never misses a call. Our AI receptionist answers calls, takes messages, books appointments, and routes to the right colleague."
 PRICE: 1,000 DKK/month (approx. 950 SEK)
 BOOKING LINK: [YOUR CALENDLY LINK]
 
-LEAD DATA:
-- First name: ${firstName}
+LEAD:
+- Name: ${firstName}
 - Company: ${lead.company}
-- Type: ${lead.vertical === 'klinik' ? 'Clinic' : 'Trade/Craftsman business'}
+- Business type: ${lead.vertical === 'klinik' ? 'Clinic' : 'Tradesman/Craftsman'}
 - Size: ${lead.company_size}
-- Research:
+- Research notes:
 ${lead.research_notes || lead.why_they_fit}
 
-REQUIREMENTS:
-- Address ${firstName} by first name
-- Reference SOMETHING SPECIFIC from the research (make it personal)
-- Clear value proposition
-- Mention the price: 1,000 DKK/month (approx. 950 SEK)
-- End with booking link: [YOUR CALENDLY LINK]
-- MAX 150 words in email body
-- Sounds human, NOT templated
-- No clichés like "I hope this email finds you well"
+RULES — follow these exactly:
+- Email MUST be written in English
+- Open with "${firstName}," — no "Hi", no "Dear"
+- Reference one specific detail from the research notes to show it's personalised
+- Clear value proposition in 1 sentence
+- State the price: 1,000 DKK/month
+- Close with the booking link on its own line
+- Body: 100–130 words maximum
+- No corporate filler, no "I hope this finds you well", no bullet points in the email itself
 
-Respond ONLY with JSON (no comments, no other text):
-{
-  "subject": "subject line here",
-  "body": "email body here"
-}`;
+Return ONLY raw JSON — no markdown fences, no extra text:
+{"subject": "...", "body": "..."}`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 800,
+      system: 'You are a senior B2B copywriter. You write exclusively in English. Never write in Swedish, Danish, or any other Scandinavian language — even if the company names or input data are in Swedish. All subject lines and email bodies must be in English.',
       messages: [{ role: 'user', content: prompt }],
     });
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-    const jsonMatch = raw.match(/\{[\s\S]*?\}/);
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
 
     let subject = `AI receptionist for ${lead.company}`;
     let body = '';
