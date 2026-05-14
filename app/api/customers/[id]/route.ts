@@ -35,6 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         health_score = ${body.health_score ?? existing.health_score},
         segment = ${body.segment ?? existing.segment},
         notes = ${body.notes ?? existing.notes},
+        active = ${body.active !== undefined ? body.active : existing.active},
         updated_at = ${now}
       WHERE id = ${params.id}
     `;

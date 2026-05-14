@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, Mail, Phone, Edit3, Calendar, FileText, ShoppingBag,
   TrendingUp, AlertTriangle, CheckCircle, Clock, ExternalLink, Trash2,
-  Globe, Eye, EyeOff, Copy, Check, Users, Plus, Minus,
+  Globe, Eye, EyeOff, Copy, Check, Users, Plus, Minus, PowerOff, Power,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +24,7 @@ interface Customer {
   segment: string;
   notes: string;
   updated_at: string;
+  active: boolean;
 }
 
 interface Product {
@@ -310,6 +311,22 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               }}
             >
               <Edit3 size={12} /> {editing ? 'Annuller' : 'Rediger'}
+            </button>
+            <button
+              onClick={async () => {
+                await onUpdate(customer.id, { active: !customer.active } as Partial<Customer>);
+                toast.success(customer.active ? `${customer.company} markeret som inaktiv` : `${customer.company} markeret som aktiv`);
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                background: customer.active ? 'rgba(255,255,255,0.04)' : 'rgba(46,204,113,0.1)',
+                border: customer.active ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(46,204,113,0.25)',
+                borderRadius: '6px', padding: '6px 12px',
+                color: customer.active ? '#667788' : '#2ECC71',
+                fontSize: '12px', cursor: 'pointer',
+              }}
+            >
+              {customer.active ? <><PowerOff size={12} /> Deaktiver</> : <><Power size={12} /> Aktiver</>}
             </button>
             {onDelete && !confirmDelete && (
               <button

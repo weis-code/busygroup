@@ -398,6 +398,9 @@ export async function initSchema(): Promise<void> {
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_board_id TEXT`.catch(() => {});
   await sql`ALTER TABLE chat_conversations ADD COLUMN IF NOT EXISTS customer_id TEXT`.catch(() => {});
 
+  // ── Kunde aktiv/inaktiv status ────────────────────────────────────────────
+  await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`.catch(() => {});
+
   // ── Fil-vedhæftninger i chat (base64, max ~5MB) ───────────────────────────
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_name TEXT`.catch(() => {});
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_type TEXT`.catch(() => {});

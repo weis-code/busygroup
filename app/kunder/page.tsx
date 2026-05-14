@@ -25,6 +25,7 @@ interface Customer {
   notes: string;
   updated_at: string;
   product_names?: string;
+  active: boolean;
 }
 
 const CHURN_COLORS: Record<string, string> = {
@@ -168,34 +169,39 @@ export default function KunderPage() {
     }
   };
 
-  // Stats
-  const totalMrr = customers.reduce((s, c) => s + (c.mrr || 0), 0);
-  const highRisk = customers.filter(c => c.churn_risk === 'high').length;
-  const renewSoon = customers.filter(c => { const d = daysUntil(c.contract_end); return d > 0 && d < 60; }).length;
-  const avgHealth = customers.length ? Math.round(customers.reduce((s, c) => s + (c.health_score || 0), 0) / customers.length) : 0;
+  // Stats — based on active customers only
+  const active = customers.filter(c => c.active !== false);
+  const totalMrr = active.reduce((s, c) => s + (c.mrr || 0), 0);
+  const highRisk = active.filter(c => c.churn_risk === 'high').length;
+  const renewSoon = active.filter(c => { const d = daysUntil(c.contract_end); return d > 0 && d < 60; }).length;
+  const avgHealth = active.length ? Math.round(active.reduce((s, c) => s + (c.health_score || 0), 0) / active.length) : 0;
 
   // Filter + sort
-  const filtered = customers
-    .filter(c => {
-      if (search && !c.company.toLowerCase().includes(search.toLowerCase()) && !c.contact_name?.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterMarket !== 'all' && c.market !== filterMarket) return false;
-      if (filterRisk !== 'all' && c.churn_risk !== filterRisk) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      let av: number | string, bv: number | string;
-      if (sortBy === 'mrr') { av = a.mrr || 0; bv = b.mrr || 0; }
-      else if (sortBy === 'health_score') { av = a.health_score || 0; bv = b.health_score || 0; }
-      else if (sortBy === 'contract_end') { av = a.contract_end || ''; bv = b.contract_end || ''; }
-      else if (sortBy === 'churn_risk') {
-        const order: Record<string, number> = { high: 0, medium: 1, low: 2 };
-        av = order[a.churn_risk] ?? 1; bv = order[b.churn_risk] ?? 1;
-      }
-      else { av = a.company.toLowerCase(); bv = b.company.toLowerCase(); }
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
+  const sortFn = (a: Customer, b: Customer) => {
+    let av: number | string, bv: number | string;
+    if (sortBy === 'mrr') { av = a.mrr || 0; bv = b.mrr || 0; }
+    else if (sortBy === 'health_score') { av = a.health_score || 0; bv = b.health_score || 0; }
+    else if (sortBy === 'contract_end') { av = a.contract_end || ''; bv = b.contract_end || ''; }
+    else if (sortBy === 'churn_risk') {
+      const order: Record<string, number> = { high: 0, medium: 1, low: 2 };
+      av = order[a.churn_risk] ?? 1; bv = order[b.churn_risk] ?? 1;
+    }
+    else { av = a.company.toLowerCase(); bv = b.company.toLowerCase(); }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  };
+
+  const matchesFilter = (c: Customer) => {
+    if (search && !c.company.toLowerCase().includes(search.toLowerCase()) && !c.contact_name?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterMarket !== 'all' && c.market !== filterMarket) return false;
+    if (filterRisk !== 'all' && c.churn_risk !== filterRisk) return false;
+    return true;
+  };
+
+  const activeCustomers   = customers.filter(c => c.active !== false && matchesFilter(c)).sort(sortFn);
+  const inactiveCustomers = customers.filter(c => c.active === false && matchesFilter(c)).sort(sortFn);
+  const filtered = [...activeCustomers, ...inactiveCustomers];
 
   const toggleSort = (key: SortKey) => {
     if (sortBy === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -238,7 +244,7 @@ export default function KunderPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         <StatCard label="Total MRR" value={`${totalMrr.toLocaleString('da-DK')} DKK`} sub={`${(totalMrr * 12).toLocaleString('da-DK')} DKK ARR`} color="#2ECC71" icon={<TrendingUp size={16} />} />
-        <StatCard label="Aktive kunder" value={String(customers.length)} sub={`${customers.filter(c => c.market === 'denmark').length} DK · ${customers.filter(c => c.market === 'sweden').length} SE`} icon={<Users size={16} />} />
+        <StatCard label="Aktive kunder" value={String(active.length)} sub={`${active.filter(c => c.market === 'denmark').length} DK · ${active.filter(c => c.market === 'sweden').length} SE`} icon={<Users size={16} />} />
         <StatCard label="Høj churn-risiko" value={String(highRisk)} sub={highRisk > 0 ? 'Kræver handling' : 'Alt OK'} color={highRisk > 0 ? '#E74C3C' : '#2ECC71'} icon={<AlertTriangle size={16} />} />
         <StatCard label="Avg. health score" value={String(avgHealth)} sub={`${renewSoon} kontrakter fornyes inden 60d`} color={avgHealth >= 70 ? '#2ECC71' : avgHealth >= 40 ? '#F39C12' : '#E74C3C'} icon={<TrendingUp size={16} />} />
       </div>
@@ -320,18 +326,35 @@ export default function KunderPage() {
               const days = daysUntil(c.contract_end);
               const renewWarning = days > 0 && days < 60;
               const expired = days <= 0;
+              const isInactive = c.active === false;
+              const isFirstInactive = isInactive && (i === 0 || filtered[i - 1].active !== false);
               return (
-                <tr
-                  key={c.id}
-                  onClick={() => setSelected(c)}
-                  style={{
-                    borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
+                <>
+                  {isFirstInactive && inactiveCustomers.length > 0 && (
+                    <tr key={`divider-${c.id}`}>
+                      <td colSpan={8} style={{ padding: '8px 12px 4px', background: 'transparent' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+                          <span style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            Inaktive kunder ({inactiveCustomers.length})
+                          </span>
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  <tr
+                    key={c.id}
+                    onClick={() => setSelected(c)}
+                    style={{
+                      borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'background 0.1s',
+                      opacity: isInactive ? 0.45 : 1,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
                   <td style={{ padding: '12px 12px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{c.company}</div>
                     {c.segment && (
@@ -391,7 +414,8 @@ export default function KunderPage() {
                       <div style={{ fontSize: '10px', color: '#F39C12', marginTop: '1px' }}>om {days}d</div>
                     )}
                   </td>
-                </tr>
+                  </tr>
+                </>
               );
             })}
           </tbody>
