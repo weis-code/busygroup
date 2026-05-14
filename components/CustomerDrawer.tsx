@@ -25,6 +25,9 @@ interface Customer {
   notes: string;
   updated_at: string;
   active: boolean;
+  assigned_to?: string;
+  assigned_user_name?: string;
+  assigned_user_email?: string;
 }
 
 interface Product {
@@ -439,6 +442,37 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                       </a>
                     )}
                   </div>
+                )}
+              </div>
+
+              {/* Lead */}
+              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Ansvarlig (Lead)</div>
+                {editing ? (
+                  <select
+                    value={editData.assigned_to || ''}
+                    onChange={e => setEditData(p => ({ ...p, assigned_to: e.target.value || undefined }))}
+                    style={{ ...inputStyle, marginBottom: 0 }}
+                  >
+                    <option value="">— Ingen —</option>
+                    {allUsers.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.role === 'admin' ? 'Admin' : 'Bruger'})</option>
+                    ))}
+                  </select>
+                ) : customer.assigned_user_name ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(232,64,37,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#E84025', flexShrink: 0 }}>
+                      {customer.assigned_user_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{customer.assigned_user_name}</div>
+                      {customer.assigned_user_email && (
+                        <a href={`mailto:${customer.assigned_user_email}`} style={{ fontSize: '11px', color: '#445566', textDecoration: 'none' }}>{customer.assigned_user_email}</a>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '12px', color: '#445566' }}>Ingen ansvarlig valgt</div>
                 )}
               </div>
 

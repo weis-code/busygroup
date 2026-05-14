@@ -36,6 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         segment = ${body.segment ?? existing.segment},
         notes = ${body.notes ?? existing.notes},
         active = ${body.active !== undefined ? body.active : existing.active},
+        assigned_to = ${body.assigned_to !== undefined ? (body.assigned_to || null) : existing.assigned_to},
         updated_at = ${now}
       WHERE id = ${params.id}
     `;

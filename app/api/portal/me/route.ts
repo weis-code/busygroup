@@ -13,6 +13,8 @@ export async function GET() {
       c.id, c.company, c.contact_name, c.contact_title, c.contact_email,
       c.contact_phone, c.market, c.mrr, c.contract_start, c.contract_end,
       c.health_score, c.segment, c.notes, c.portal_email,
+      u.name  AS assigned_user_name,
+      u.email AS assigned_user_email,
       COALESCE(
         (SELECT string_agg(p.name, ', ' ORDER BY p.name)
          FROM customer_products cp
@@ -28,6 +30,7 @@ export async function GET() {
         '[]'::json
       ) AS products
     FROM customers c
+    LEFT JOIN users u ON u.id = c.assigned_to
     WHERE c.id = ${session.id}
     LIMIT 1
   ` as unknown as Array<Record<string, unknown>>;

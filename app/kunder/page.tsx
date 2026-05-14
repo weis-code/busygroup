@@ -26,6 +26,9 @@ interface Customer {
   updated_at: string;
   product_names?: string;
   active: boolean;
+  assigned_to?: string;
+  assigned_user_name?: string;
+  assigned_user_email?: string;
 }
 
 const CHURN_COLORS: Record<string, string> = {
@@ -293,6 +296,7 @@ export default function KunderPage() {
                 Firma {sortBy === 'company' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
               </th>
               <th style={thStyle}>Kontakt</th>
+              <th style={thStyle}>Lead</th>
               <th style={thStyle}>Marked</th>
               <th style={thStyle}>Produkter</th>
               <th style={{ ...thStyle }} onClick={() => toggleSort('mrr')}>
@@ -366,6 +370,18 @@ export default function KunderPage() {
                   <td style={{ padding: '12px' }}>
                     <div style={{ fontSize: '12px', color: '#AAB8C2' }}>{c.contact_name || '—'}</div>
                     {c.contact_title && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{c.contact_title}</div>}
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    {c.assigned_user_name ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(232,64,37,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#E84025', flexShrink: 0 }}>
+                          {c.assigned_user_name.charAt(0).toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#AAB8C2' }}>{c.assigned_user_name.split(' ')[0]}</span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: '#445566' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '12px' }}>
                     <span style={{ fontSize: '12px', color: '#AAB8C2' }}>

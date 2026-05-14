@@ -17,6 +17,8 @@ interface Customer {
   contract_end: string | null;
   health_score: number;
   portal_email: string | null;
+  assigned_user_name: string | null;
+  assigned_user_email: string | null;
   products: Array<{ id: string; name: string; price: number; type: string; currency: string }>;
 }
 
@@ -279,7 +281,7 @@ export default function PortalPage() {
                   const showHeader = !prevMsg || prevMsg.sender_type !== msg.sender_type ||
                     (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime()) > 300000;
                   const displayName = isFromUs
-                    ? (msg.sender_name || msg.portal_sender_name || 'BusyGroup Team')
+                    ? (msg.sender_name || msg.portal_sender_name || 'BusyConsulting Team')
                     : customer.company;
 
                   return (
@@ -487,9 +489,25 @@ export default function PortalPage() {
         <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ background: '#0C0F14', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '16px' }}>
             <div style={{ fontSize: 11, color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Jeres kontakt hos os</div>
-            <div style={{ fontSize: 13, color: '#ECF0F1', fontWeight: 500 }}>BusyGroup Team</div>
-            <div style={{ fontSize: 11, color: '#445566', marginTop: 3 }}>Svar indenfor 1 hverdag</div>
-            <button onClick={() => setTab('beskeder')} style={{ marginTop: 10, background: `rgba(232,64,37,0.12)`, border: `1px solid rgba(232,64,37,0.25)`, borderRadius: 6, padding: '6px 14px', color: PRIMARY, fontSize: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            {customer.assigned_user_name ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: `rgba(232,64,37,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: PRIMARY, flexShrink: 0 }}>
+                  {customer.assigned_user_name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, color: '#ECF0F1', fontWeight: 600 }}>{customer.assigned_user_name}</div>
+                  {customer.assigned_user_email && (
+                    <a href={`mailto:${customer.assigned_user_email}`} style={{ fontSize: 11, color: '#445566', textDecoration: 'none' }}>{customer.assigned_user_email}</a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, color: '#ECF0F1', fontWeight: 500 }}>BusyConsulting Team</div>
+                <div style={{ fontSize: 11, color: '#445566', marginTop: 3 }}>Svar indenfor 1 hverdag</div>
+              </>
+            )}
+            <button onClick={() => setTab('beskeder')} style={{ marginTop: customer.assigned_user_name ? 4 : 10, background: `rgba(232,64,37,0.12)`, border: `1px solid rgba(232,64,37,0.25)`, borderRadius: 6, padding: '6px 14px', color: PRIMARY, fontSize: 12, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
               <MessageSquare size={11} /> Send besked
             </button>
           </div>

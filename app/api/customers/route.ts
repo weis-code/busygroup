@@ -12,12 +12,15 @@ export async function GET(req: NextRequest) {
     const rows = await sql`
       SELECT c.*,
         COALESCE(SUM(CASE WHEN p.type='mrr' THEN p.price ELSE 0 END), 0) AS mrr_calculated,
-        STRING_AGG(p.name, ', ') AS product_names
+        STRING_AGG(p.name, ', ') AS product_names,
+        u.name  AS assigned_user_name,
+        u.email AS assigned_user_email
       FROM customers c
       LEFT JOIN customer_products cp ON cp.customer_id = c.id
       LEFT JOIN products p ON p.id = cp.product_id
+      LEFT JOIN users u ON u.id = c.assigned_to
       ${role === 'seller' && userId ? sql`WHERE c.assigned_to = ${userId}` : sql``}
-      GROUP BY c.id
+      GROUP BY c.id, u.name, u.email
       ORDER BY c.mrr DESC, c.company ASC
     `;
     return NextResponse.json(rows);
