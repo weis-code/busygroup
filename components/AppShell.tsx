@@ -85,7 +85,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {!collapsed && (
             <div style={{ flex: 1, paddingLeft: 10 }}>
               <div style={{ fontWeight: 700, color: '#ECF0F1', fontSize: '14px', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
-                BusyGroup
+                BusyConsulting
               </div>
               <div style={{ fontSize: '10px', color: '#445566', letterSpacing: '0.02em' }}>
                 Client Platform
