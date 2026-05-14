@@ -8,25 +8,36 @@ async function recalcMrr(customerId: string) {
   await sql`
     UPDATE customers SET
       mrr = (
-        SELECT COALESCE(SUM(p.price), 0)
+        SELECT COALESCE(SUM(COALESCE(cp.custom_price, p.price)), 0)
         FROM customer_products cp
         JOIN products p ON p.id = cp.product_id
-        WHERE cp.customer_id = ${customerId} AND p.type = 'mrr'
+        WHERE cp.customer_id = ${customerId}
+          AND COALESCE(cp.custom_type, p.type) = 'mrr'
       ),
       updated_at = ${new Date().toISOString()}
     WHERE id = ${customerId}
   `;
 }
 
+function fetchRows(customerId: string) {
+  return sql`
+    SELECT
+      p.id, p.name, p.description, p.price AS default_price,
+      p.type AS default_type, p.currency, p.active,
+      cp.custom_price,
+      cp.custom_type,
+      COALESCE(cp.custom_price, p.price) AS effective_price,
+      COALESCE(cp.custom_type,  p.type)  AS effective_type
+    FROM products p
+    JOIN customer_products cp ON cp.product_id = p.id
+    WHERE cp.customer_id = ${customerId}
+    ORDER BY effective_type, effective_price DESC
+  `;
+}
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const rows = await sql`
-      SELECT p.* FROM products p
-      JOIN customer_products cp ON cp.product_id = p.id
-      WHERE cp.customer_id = ${params.id}
-      ORDER BY p.type, p.price DESC
-    `;
-    return NextResponse.json(rows);
+    return NextResponse.json(await fetchRows(params.id));
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
@@ -41,13 +52,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ON CONFLICT (customer_id, product_id) DO NOTHING
     `;
     await recalcMrr(params.id);
-    const updated = await sql`
-      SELECT p.* FROM products p
-      JOIN customer_products cp ON cp.product_id = p.id
-      WHERE cp.customer_id = ${params.id}
-      ORDER BY p.type, p.price DESC
+    return NextResponse.json(await fetchRows(params.id));
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { product_id, custom_price, custom_type } = await req.json();
+    await sql`
+      UPDATE customer_products
+      SET
+        custom_price = ${custom_price ?? null},
+        custom_type  = ${custom_type  ?? null}
+      WHERE customer_id = ${params.id} AND product_id = ${product_id}
     `;
-    return NextResponse.json(updated);
+    await recalcMrr(params.id);
+    return NextResponse.json(await fetchRows(params.id));
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
@@ -58,13 +80,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const { product_id } = await req.json();
     await sql`DELETE FROM customer_products WHERE customer_id = ${params.id} AND product_id = ${product_id}`;
     await recalcMrr(params.id);
-    const updated = await sql`
-      SELECT p.* FROM products p
-      JOIN customer_products cp ON cp.product_id = p.id
-      WHERE cp.customer_id = ${params.id}
-      ORDER BY p.type, p.price DESC
-    `;
-    return NextResponse.json(updated);
+    return NextResponse.json(await fetchRows(params.id));
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

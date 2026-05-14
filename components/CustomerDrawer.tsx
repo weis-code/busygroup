@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   X, Mail, Phone, Edit3, Calendar, FileText, ShoppingBag,
   TrendingUp, AlertTriangle, CheckCircle, Clock, ExternalLink, Trash2,
-  Globe, Eye, EyeOff, Copy, Check, Users, Plus, Minus, PowerOff, Power,
+  Globe, Eye, EyeOff, Copy, Check, Users, Plus, Minus, PowerOff, Power, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,7 +35,13 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  default_price?: number;
+  default_type?: 'mrr' | 'onetime';
   type: 'mrr' | 'onetime';
+  effective_price?: number;
+  effective_type?: 'mrr' | 'onetime';
+  custom_price?: number | null;
+  custom_type?: string | null;
   currency: string;
   active: number;
 }
@@ -142,6 +148,12 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
   const [allUsers,   setAllUsers]   = useState<{id: string; name: string; role: string}[]>([]);
   const [memberSaving, setMemberSaving] = useState<string | null>(null);
 
+  // Price override editing state
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [priceInput, setPriceInput] = useState('');
+  const [typeInput, setTypeInput] = useState<'mrr' | 'onetime'>('mrr');
+  const [priceSaving, setPriceSaving] = useState(false);
+
   const loadProducts = useCallback(() => {
     fetch('/api/products')
       .then(r => r.json())
@@ -229,11 +241,46 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
     }
   };
 
+  const openPriceEdit = (p: Product) => {
+    setEditingProductId(p.id);
+    setPriceInput(String(p.effective_price ?? p.price));
+    setTypeInput((p.effective_type ?? p.type) as 'mrr' | 'onetime');
+  };
+
+  const savePrice = async (productId: string) => {
+    setPriceSaving(true);
+    try {
+      const res = await fetch(`/api/customers/${customer.id}/products`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, custom_price: Number(priceInput) || null, custom_type: typeInput }),
+      });
+      if (res.ok) {
+        setCustomerProducts(await res.json());
+        setEditingProductId(null);
+        toast.success('Pris opdateret');
+      }
+    } finally { setPriceSaving(false); }
+  };
+
+  const resetPrice = async (productId: string) => {
+    const res = await fetch(`/api/customers/${customer.id}/products`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId, custom_price: null, custom_type: null }),
+    });
+    if (res.ok) {
+      setCustomerProducts(await res.json());
+      setEditingProductId(null);
+      toast.success('Nulstillet til standardpris');
+    }
+  };
+
   const renewDays = daysUntil(customer.contract_end);
-  const mrrProducts = customerProducts.filter(p => p.type === 'mrr');
-  const onetimeProducts = customerProducts.filter(p => p.type === 'onetime');
-  const totalMrr = mrrProducts.reduce((s, p) => s + p.price, 0);
-  const totalOnetime = onetimeProducts.reduce((s, p) => s + p.price, 0);
+  const mrrProducts = customerProducts.filter(p => (p.effective_type ?? p.type) === 'mrr');
+  const onetimeProducts = customerProducts.filter(p => (p.effective_type ?? p.type) === 'onetime');
+  const totalMrr = mrrProducts.reduce((s, p) => s + (p.effective_price ?? p.price), 0);
+  const totalOnetime = onetimeProducts.reduce((s, p) => s + (p.effective_price ?? p.price), 0);
   const upsellProducts = allProducts.filter(p => !customerProducts.some(cp => cp.id === p.id));
 
   return (
@@ -558,41 +605,102 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {allProducts.map(product => {
-                      const selected = customerProducts.some(p => p.id === product.id);
+                      const active = customerProducts.find(p => p.id === product.id);
+                      const isEditing = editingProductId === product.id;
+                      const effPrice = active ? (active.effective_price ?? active.price) : product.price;
+                      const effType  = active ? (active.effective_type  ?? active.type)  : product.type;
+                      const isOverridden = active && (active.custom_price != null || active.custom_type != null);
                       return (
-                        <button
-                          key={product.id}
-                          onClick={() => toggleProduct(product)}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left',
-                            background: selected ? 'rgba(24,95,165,0.15)' : 'rgba(255,255,255,0.03)',
-                            border: `1px solid ${selected ? 'rgba(24,95,165,0.5)' : 'rgba(255,255,255,0.07)'}`,
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{
-                              width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
-                              background: selected ? '#185FA5' : 'rgba(255,255,255,0.08)',
-                              border: `1px solid ${selected ? '#185FA5' : 'rgba(255,255,255,0.15)'}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              {selected && <span style={{ color: '#fff', fontSize: '10px' }}>✓</span>}
+                        <div key={product.id} style={{ borderRadius: '6px', overflow: 'hidden', border: `1px solid ${active ? 'rgba(24,95,165,0.5)' : 'rgba(255,255,255,0.07)'}` }}>
+                          {/* Row */}
+                          <div
+                            style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
+                              background: active ? 'rgba(24,95,165,0.12)' : 'rgba(255,255,255,0.03)',
+                            }}
+                            onClick={() => { if (!isEditing) toggleProduct(product); }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{
+                                width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
+                                background: active ? '#185FA5' : 'rgba(255,255,255,0.08)',
+                                border: `1px solid ${active ? '#185FA5' : 'rgba(255,255,255,0.15)'}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                {active && <span style={{ color: '#fff', fontSize: '10px' }}>✓</span>}
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '12px', fontWeight: 500, color: active ? '#ECF0F1' : '#AAB8C2' }}>{product.name}</div>
+                                {product.description && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{product.description}</div>}
+                              </div>
                             </div>
-                            <div>
-                              <div style={{ fontSize: '12px', fontWeight: 500, color: selected ? '#ECF0F1' : '#AAB8C2' }}>{product.name}</div>
-                              {product.description && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{product.description}</div>}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '8px' }}>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: isOverridden ? '#F39C12' : (active ? '#185FA5' : '#667788') }}>
+                                  {effPrice.toLocaleString('da-DK')} {product.currency}
+                                </span>
+                                <span style={{ fontSize: '10px', color: '#667788', display: 'block' }}>
+                                  {effType === 'mrr' ? '/md' : 'engangsbetaling'}
+                                  {isOverridden && <span style={{ color: '#F39C12' }}> *</span>}
+                                </span>
+                              </div>
+                              {active && (
+                                <button
+                                  onClick={e => { e.stopPropagation(); isEditing ? setEditingProductId(null) : openPriceEdit(active); }}
+                                  title="Tilpas pris"
+                                  style={{ background: isEditing ? 'rgba(243,156,18,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isEditing ? 'rgba(243,156,18,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', color: isEditing ? '#F39C12' : '#667788', fontSize: '11px' }}
+                                >
+                                  <Pencil size={10} />
+                                </button>
+                              )}
                             </div>
                           </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '8px' }}>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: selected ? '#185FA5' : '#667788' }}>
-                              {product.price.toLocaleString('da-DK')} {product.currency}
-                            </span>
-                            <span style={{ fontSize: '10px', color: '#667788', display: 'block' }}>
-                              {product.type === 'mrr' ? '/md' : 'engangsbetaling'}
-                            </span>
-                          </div>
-                        </button>
+
+                          {/* Inline price editor */}
+                          {isEditing && (
+                            <div style={{ padding: '10px 12px', background: 'rgba(243,156,18,0.06)', borderTop: '1px solid rgba(243,156,18,0.15)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div style={{ fontSize: '10px', color: '#F39C12', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tilpas pris for denne kunde</div>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                  type="number"
+                                  value={priceInput}
+                                  onChange={e => setPriceInput(e.target.value)}
+                                  style={{ ...inputStyle, width: '100px', marginBottom: 0 }}
+                                  placeholder="Pris"
+                                />
+                                <span style={{ fontSize: '11px', color: '#667788' }}>{product.currency}</span>
+                                <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+                                  {(['mrr', 'onetime'] as const).map(t => (
+                                    <button
+                                      key={t}
+                                      onClick={() => setTypeInput(t)}
+                                      style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px', border: `1px solid ${typeInput === t ? 'rgba(243,156,18,0.5)' : 'rgba(255,255,255,0.1)'}`, background: typeInput === t ? 'rgba(243,156,18,0.15)' : 'transparent', color: typeInput === t ? '#F39C12' : '#667788', cursor: 'pointer' }}
+                                    >
+                                      {t === 'mrr' ? 'MRR' : 'Engangsbetaling'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <button onClick={() => savePrice(product.id)} disabled={priceSaving} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '5px', border: 'none', background: '#F39C12', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                                  {priceSaving ? 'Gemmer...' : 'Gem'}
+                                </button>
+                                <button onClick={() => setEditingProductId(null)} style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#667788', cursor: 'pointer' }}>
+                                  Annuller
+                                </button>
+                                {isOverridden && (
+                                  <button onClick={() => resetPrice(product.id)} style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#445566', cursor: 'pointer', marginLeft: 'auto' }}>
+                                    Nulstil til standard ({(product.price).toLocaleString('da-DK')} {product.currency})
+                                  </button>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#445566' }}>
+                                Standardpris: {product.price.toLocaleString('da-DK')} {product.currency}{product.type === 'mrr' ? '/md' : ' engangsbetaling'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

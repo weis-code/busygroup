@@ -16,14 +16,20 @@ export async function GET() {
     ORDER BY type ASC, price DESC
   ` as unknown as Array<{ id: string; name: string; description: string | null; price: number; type: string; currency: string }>;
 
-  const owned = await sql`
-    SELECT product_id FROM customer_products WHERE customer_id = ${session.id}
-  ` as unknown as Array<{ product_id: string }>;
+  const ownedRows = await sql`
+    SELECT
+      p.id, p.name, p.description, p.currency,
+      COALESCE(cp.custom_price, p.price) AS price,
+      COALESCE(cp.custom_type,  p.type)  AS type
+    FROM products p
+    JOIN customer_products cp ON cp.product_id = p.id
+    WHERE cp.customer_id = ${session.id} AND p.active = 1
+  ` as unknown as Array<{ id: string; name: string; description: string | null; price: number; type: string; currency: string }>;
 
-  const ownedIds = new Set(owned.map(r => r.product_id));
+  const ownedIds = new Set(ownedRows.map(r => r.id));
 
   return NextResponse.json({
-    owned: allProducts.filter(p => ownedIds.has(p.id)),
+    owned: ownedRows,
     available: allProducts.filter(p => !ownedIds.has(p.id)),
   });
 }

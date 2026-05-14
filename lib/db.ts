@@ -401,6 +401,10 @@ export async function initSchema(): Promise<void> {
   // ── Kunde aktiv/inaktiv status ────────────────────────────────────────────
   await sql`ALTER TABLE customers ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`.catch(() => {});
 
+  // ── Pris/type-overrides per kunde per produkt ─────────────────────────────
+  await sql`ALTER TABLE customer_products ADD COLUMN IF NOT EXISTS custom_price INTEGER`.catch(() => {});
+  await sql`ALTER TABLE customer_products ADD COLUMN IF NOT EXISTS custom_type TEXT`.catch(() => {});
+
   // ── Fil-vedhæftninger i chat (base64, max ~5MB) ───────────────────────────
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_name TEXT`.catch(() => {});
   await sql`ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS file_type TEXT`.catch(() => {});
