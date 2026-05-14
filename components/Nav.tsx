@@ -6,10 +6,8 @@ import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 
 const tabs = [
-  { label: 'Oversigt', href: '/' },
-  { label: 'CRM', href: '/crm' },
   { label: 'Kunder', href: '/kunder' },
-  { label: 'Pipeline', href: '/pipeline' },
+  { label: 'Messenger', href: '/messenger' },
   { label: 'Indstillinger', href: '/settings' },
 ];
 
@@ -39,7 +37,6 @@ export default function Nav() {
       {/* Left */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '200px' }}>
         <span style={{ fontWeight: 700, color: '#ECF0F1', fontSize: '14px' }}>BusyGroup</span>
-        <span style={{ color: '#667788', fontSize: '14px' }}>· Agent Dashboard</span>
       </div>
 
       {/* Center tabs */}
@@ -64,15 +61,6 @@ export default function Nav() {
       {/* Right */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '200px', justifyContent: 'flex-end' }}>
         <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#667788' }}>{time}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{
-            width: '8px', height: '8px', borderRadius: '50%', background: '#2ECC71',
-            boxShadow: '0 0 0 0 rgba(46,204,113,0.5)',
-            animation: 'pulse-ring 2s ease-in-out infinite',
-            display: 'inline-block',
-          }} />
-          <span style={{ fontSize: '12px', color: '#2ECC71', fontWeight: 500 }}>Live</span>
-        </div>
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(255,255,255,0.07)', paddingLeft: '12px' }}>
             {/* Role badge */}
@@ -82,7 +70,7 @@ export default function Nav() {
               color: user.role === 'admin' ? '#E74C3C' : '#185FA5',
               textTransform: 'uppercase', letterSpacing: '0.04em',
             }}>
-              {user.role === 'admin' ? 'Admin' : 'Sælger'}
+              {user.role === 'admin' ? 'Admin' : 'Bruger'}
             </span>
             {/* User name */}
             <span style={{ fontSize: '12px', color: '#ECF0F1', fontWeight: 500 }}>
