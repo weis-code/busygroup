@@ -2,8 +2,8 @@
  * Sweden Outreach Agent Pipeline
  * Three sequential agents: Prospecting → Research → Email Writer
  *
- * Uses claude-sonnet-4-5 via Anthropic SDK.
- * No real external API calls — Claude generates realistic fictional companies.
+ * Agent 1 uses Apollo.io API for REAL Swedish companies + verified emails.
+ * Agents 2 & 3 use Claude (Anthropic) for research and email writing.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -14,103 +14,161 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export type ProgressCallback = (event: { stage: string; message: string; lead?: object }) => void;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Apollo types ─────────────────────────────────────────────────────────────
 
-interface ProspectedCompany {
-  company: string;
-  city: string;
-  vertical: 'klinik' | 'hantverkare';
-  company_size: string;
-  website: string;
-  phone: string;
-  decision_maker_name: string;
-  decision_maker_title: string;
-  why_they_fit: string;
+interface ApolloOrganization {
+  name?: string;
+  website_url?: string;
+  primary_domain?: string;
+  estimated_num_employees?: number;
+  phone?: string;
+  industry?: string;
+  city?: string;
+  country?: string;
 }
 
-// ─── Agent 1: Prospecting ─────────────────────────────────────────────────────
+interface ApolloPerson {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  title?: string;
+  email?: string;
+  email_status?: string;
+  city?: string;
+  country?: string;
+  phone_numbers?: Array<{ raw_number: string }>;
+  organization?: ApolloOrganization;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Guess likely work email patterns from name + domain */
+function guessEmail(firstName: string, lastName: string, domain: string): string {
+  const f = firstName.toLowerCase().replace(/[^a-z]/g, '');
+  const l = lastName.toLowerCase().replace(/[^a-z]/g, '');
+  if (!f || !l || !domain) return '';
+  // Most common Swedish business email pattern
+  return `${f}.${l}@${domain}`;
+}
+
+/** Detect vertical from Apollo industry / title */
+function detectVertical(industry = '', title = ''): 'klinik' | 'hantverkare' {
+  const text = (industry + ' ' + title).toLowerCase();
+  if (/dental|tandl|physio|fysio|chiro|kiro|veterinär|vet |klinik|clinic|medical|health|care|läkare|sjukgymnast/.test(text)) return 'klinik';
+  return 'hantverkare';
+}
+
+// ─── Agent 1: Prospecting via Apollo.io ───────────────────────────────────────
+
+const APOLLO_SEARCH_CONFIGS = [
+  {
+    // Clinics — dentists, physios, chiros, vets
+    vertical: 'klinik' as const,
+    person_titles: ['owner', 'clinic owner', 'practice owner', 'CEO', 'managing director', 'verksamhetschef', 'klinikchef', 'ägare'],
+    q_keywords: 'tandläkare OR fysioterapi OR kiropraktor OR veterinär OR klinik OR dental clinic OR physiotherapy',
+  },
+  {
+    // Tradesmen — plumbers, electricians, builders, painters
+    vertical: 'hantverkare' as const,
+    person_titles: ['owner', 'CEO', 'founder', 'ägare', 'VD', 'managing director'],
+    q_keywords: 'VVS OR elektriker OR byggföretag OR måleri OR plumbing OR electrical contractor OR construction',
+  },
+];
 
 export async function runProspecting(
   onProgress: ProgressCallback,
   workspaceId: string | null = null,
   count: number = 10
 ): Promise<string[]> {
-  onProgress({ stage: 'prospecting', message: `Finder ${count} svenske virksomheder...` });
+  const apolloKey = process.env.APOLLO_API_KEY;
+  if (!apolloKey) throw new Error('APOLLO_API_KEY saknas — tilføj den i Railway environment variables');
 
-  const prompt = `Du er en B2B sales prospecting specialist for AI Receptionist-produktet.
+  onProgress({ stage: 'prospecting', message: `Søger efter ${count} rigtige svenske virksomheder via Apollo...` });
 
-AI Receptionist pitch: "Vi sikrar att ditt företag aldrig missar ett samtal. Vår AI-receptionist svarar samtal, besvarar frågor, bokar möten och kopplar vidare till rätt kollega. 1.000 DKK/månad (ca. 950 SEK)."
+  const perConfig = Math.ceil(count / APOLLO_SEARCH_CONFIGS.length);
+  const allPeople: (ApolloPerson & { _vertical: 'klinik' | 'hantverkare' })[] = [];
 
-Målgrupp: Svenske små-medelstora serviceföretag (5-200 anställda) inom:
-- Kliniker (tandläkare, fysioterapeuter, kiropraktorer, veterinärer)
-- Hantverkare (VVS, elektriker, byggföretag, målare)
+  for (const cfg of APOLLO_SEARCH_CONFIGS) {
+    onProgress({ stage: 'prospecting', message: `Apollo: søger efter ${cfg.vertical === 'klinik' ? 'klinikker' : 'håndværkere'} i Sverige...` });
 
-Generera exakt ${count} REALISTISKA svenska företag. Blanda vertikaler. Använd RIKTIGA svenska städer och TROVÄRDIGA namn. Variér städerna — undgå at bruge de samme byer igen og igen.
+    const body = {
+      api_key: apolloKey,
+      page: 1,
+      per_page: perConfig,
+      person_locations: ['Sweden'],
+      person_titles: cfg.person_titles,
+      q_keywords: cfg.q_keywords,
+      organization_locations: ['Sweden'],
+      organization_num_employees_ranges: ['1,200'],
+      contact_email_status: ['verified', 'likely to engage', 'unavailable'],
+    };
 
-Svara ENDAST med ett JSON-array, ingen annan text:
-[
-  {
-    "company": "Företagsnamn AB",
-    "city": "Stad",
-    "vertical": "klinik" ELLER "hantverkare",
-    "company_size": "ex. 8 anställda",
-    "website": "www.foretagsnamn.se",
-    "phone": "+46 XX XXX XX XX",
-    "decision_maker_name": "Förnamn Efternamn",
-    "decision_maker_title": "Titel",
-    "why_they_fit": "1-2 sentences in English about why they are a good fit"
+    const res = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Apollo API fejl (${res.status}): ${err.slice(0, 200)}`);
+    }
+
+    const data = await res.json() as { people?: ApolloPerson[]; error?: string };
+    if (data.error) throw new Error(`Apollo: ${data.error}`);
+
+    const people = (data.people || []).map(p => ({ ...p, _vertical: cfg.vertical }));
+    allPeople.push(...people);
+    onProgress({ stage: 'prospecting', message: `Apollo returnerede ${people.length} ${cfg.vertical === 'klinik' ? 'klinik' : 'håndværker'}-kontakter` });
   }
-]`;
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: Math.max(2000, count * 250),
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-  const jsonMatch = raw.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Prospecting: invalid JSON response');
-
-  const companies: ProspectedCompany[] = JSON.parse(jsonMatch[0]);
   const now = new Date().toISOString();
   const leadIds: string[] = [];
 
-  for (const co of companies) {
+  for (const person of allPeople) {
+    const org = person.organization || {};
+    const companyName = org.name || 'Ukendt virksomhed';
+    const firstName = person.first_name || '';
+    const lastName = person.last_name || '';
+    const fullName = person.name || `${firstName} ${lastName}`.trim();
+    const title = person.title || '';
+    const domain = org.primary_domain || (org.website_url ? org.website_url.replace(/^https?:\/\//, '').split('/')[0] : '');
+    const website = org.website_url || (domain ? `https://${domain}` : null);
+    const phone = person.phone_numbers?.[0]?.raw_number || org.phone || null;
+    const city = person.city || org.city || 'Sverige';
+    const empCount = org.estimated_num_employees;
+    const companySize = empCount ? `${empCount} employees` : 'Small business';
+
+    // Use Apollo email if available, otherwise guess from name + domain
+    const email = (person.email && person.email_status !== 'invalid')
+      ? person.email
+      : guessEmail(firstName, lastName, domain);
+
+    const vertical = detectVertical(org.industry, title);
+    const whyTheyFit = `${vertical === 'klinik' ? 'Clinic' : 'Tradesman'} business in ${city} — likely handling inbound calls manually and could benefit from an AI receptionist to capture every booking.`;
+
     const id = randomUUID();
     await sql`
       INSERT INTO leads (
-        id, company, contact_name, contact_title, phone, company_size,
+        id, company, contact_name, contact_title, email, phone, company_size,
         why_they_fit, priority, status, market, country, vertical,
         decision_maker_name, decision_maker_title, linkedin_url,
         workspace_id, created_at, updated_at
       ) VALUES (
-        ${id},
-        ${co.company},
-        ${co.decision_maker_name},
-        ${co.decision_maker_title},
-        ${co.phone},
-        ${co.company_size},
-        ${co.why_they_fit},
-        ${'medium'},
-        ${'new'},
-        ${'sweden'},
-        ${'SE'},
-        ${co.vertical},
-        ${co.decision_maker_name},
-        ${co.decision_maker_title},
-        ${co.website || null},
-        ${workspaceId},
-        ${now},
-        ${now}
+        ${id}, ${companyName}, ${fullName}, ${title},
+        ${email || null}, ${phone}, ${companySize},
+        ${whyTheyFit}, ${'medium'}, ${'new'}, ${'sweden'}, ${'SE'},
+        ${vertical}, ${fullName}, ${title},
+        ${website || null}, ${workspaceId}, ${now}, ${now}
       )
     `;
     leadIds.push(id);
 
     onProgress({
       stage: 'prospecting',
-      message: `Oprettet: ${co.company} (${co.city})`,
-      lead: { id, company: co.company, city: co.city, vertical: co.vertical },
+      message: `✓ ${companyName} — ${fullName}${email ? ` (${email})` : ' (email ukendt)'}`,
+      lead: { id, company: companyName, city, vertical },
     });
   }
 

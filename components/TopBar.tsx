@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Search, Bell } from 'lucide-react';
 import { useUser } from '@/lib/UserContext';
 
@@ -19,25 +20,33 @@ export default function TopBar() {
   const pathname = usePathname();
   const { user } = useUser();
 
-  const pageName = PAGE_NAMES[pathname] ?? 'BusyGroup';
+  const pageName = PAGE_NAMES[pathname] ?? 'BusyConsulting';
 
   const initials = user?.name
     ? user.name
         .split(' ')
         .slice(0, 2)
-        .map((part) => part[0])
+        .map((part: string) => part[0])
         .join('')
         .toUpperCase()
-    : 'MB';
+    : 'BC';
 
   const today = new Date().getDate();
+
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    const check = () => fetch('/api/chat/unread').then(r => r.ok ? r.json() : { unread: 0 }).then(d => setUnread(d.unread)).catch(() => {});
+    check();
+    const t = setInterval(check, 10000);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <div
       style={{
         height: 48,
-        background: '#0C0F14',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        background: '#FFFFFF',
+        borderBottom: '1px solid rgba(0,0,0,0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -47,11 +56,9 @@ export default function TopBar() {
     >
       {/* Left: Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-        <span style={{ color: '#334455', fontSize: 12 }}>BusyGroup</span>
-        <span style={{ color: '#223344', fontSize: 12, margin: '0 4px' }}>/</span>
-        <span style={{ color: '#334455', fontSize: 12 }}>BusyConsulting</span>
-        <span style={{ color: '#223344', fontSize: 12, margin: '0 4px' }}>/</span>
-        <span style={{ color: '#AAB8C2', fontSize: 12, fontWeight: 500 }}>{pageName}</span>
+        <span style={{ color: '#94A3B8', fontSize: 12 }}>BusyConsulting</span>
+        <span style={{ color: '#CBD5E1', fontSize: 12, margin: '0 4px' }}>/</span>
+        <span style={{ color: '#475569', fontSize: 12, fontWeight: 500 }}>{pageName}</span>
       </div>
 
       {/* Right: Actions */}
@@ -59,8 +66,8 @@ export default function TopBar() {
         {/* Search bar */}
         <div
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: '#F8FAFC',
+            border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: 7,
             padding: '6px 12px',
             display: 'flex',
@@ -70,13 +77,13 @@ export default function TopBar() {
             boxSizing: 'border-box',
           }}
         >
-          <Search size={12} color="#334455" />
-          <span style={{ color: '#334455', fontSize: 12, flex: 1 }}>Søg i alt...</span>
+          <Search size={12} color="#94A3B8" />
+          <span style={{ color: '#94A3B8', fontSize: 12, flex: 1 }}>Søg i alt...</span>
           <span
             style={{
-              color: '#223344',
+              color: '#CBD5E1',
               fontSize: 11,
-              background: 'rgba(255,255,255,0.05)',
+              background: 'rgba(0,0,0,0.04)',
               borderRadius: 4,
               padding: '1px 5px',
             }}
@@ -95,35 +102,37 @@ export default function TopBar() {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: '#445566',
+            color: unread > 0 ? '#1E293B' : '#94A3B8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
           <Bell size={15} />
-          <span
-            style={{
-              position: 'absolute',
-              top: 6,
-              right: 6,
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#E74C3C',
-            }}
-          />
+          {unread > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: 6,
+                right: 6,
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                background: '#E74C3C',
+              }}
+            />
+          )}
         </button>
 
         {/* Date badge */}
         <div
           style={{
-            background: 'rgba(255,255,255,0.05)',
+            background: '#F1F5F9',
             borderRadius: 7,
             padding: '5px 10px',
             fontSize: 12,
             fontWeight: 600,
-            color: '#AAB8C2',
+            color: '#475569',
           }}
         >
           {today}
@@ -135,7 +144,7 @@ export default function TopBar() {
             width: 30,
             height: 30,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #E74C3C, #C0392B)',
+            background: 'linear-gradient(135deg, #E84025, #C4331B)',
             color: 'white',
             fontSize: 11,
             fontWeight: 700,

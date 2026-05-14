@@ -247,14 +247,14 @@ export default function MessengerPage() {
         style={{
           width: '100%', textAlign: 'left', padding: '5px 10px 5px 12px',
           border: 'none', cursor: 'pointer',
-          background: isSelected ? 'rgba(255,255,255,0.1)' : 'transparent',
+          background: isSelected ? 'rgba(0,0,0,0.08)' : 'transparent',
           borderRadius: '6px',
           display: 'flex', gap: '8px', alignItems: 'center',
           transition: 'background 0.1s', marginBottom: '1px',
         }}
       >
         {isGroup ? (
-          <span style={{ fontSize: '14px', color: isSelected ? '#ECF0F1' : '#8899AA', fontWeight: hasUnread ? 700 : 400 }}>
+          <span style={{ fontSize: '14px', color: isSelected ? '#1E293B' : '#64748B', fontWeight: hasUnread ? 700 : 400 }}>
             # {name}
           </span>
         ) : (
@@ -268,7 +268,7 @@ export default function MessengerPage() {
               {initials(name)}
             </div>
             <span style={{
-              flex: 1, fontSize: '13px', color: isSelected ? '#ECF0F1' : '#8899AA',
+              flex: 1, fontSize: '13px', color: isSelected ? '#1E293B' : '#64748B',
               fontWeight: hasUnread ? 700 : 400,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -291,13 +291,13 @@ export default function MessengerPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 48px)', background: '#0C1118', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - 48px)', background: '#F1F5F9', overflow: 'hidden' }}>
 
       {/* ── Venstre sidebar: Slack-style ──────────────────────────────────── */}
       <div style={{
         width: '240px', flexShrink: 0,
-        background: '#0F1621',
-        borderRight: '1px solid rgba(255,255,255,0.07)',
+        background: '#FFFFFF',
+        borderRight: '1px solid rgba(0,0,0,0.08)',
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
       }}>
@@ -305,15 +305,15 @@ export default function MessengerPage() {
         {/* Workspace header */}
         <div style={{
           padding: '14px 16px 10px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '14px', color: '#ECF0F1' }}>BusyConsulting</div>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: '#1E293B' }}>BusyConsulting</div>
           </div>
           <button
             onClick={() => { setShowNew(true); fetchUsers(); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8899AA', padding: '4px' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: '4px' }}
             title="Ny samtale"
           >
             <Plus size={16} />
@@ -323,18 +323,18 @@ export default function MessengerPage() {
         {/* Search */}
         <div style={{ padding: '8px 10px' }}>
           <div style={{
-            background: 'rgba(255,255,255,0.07)', borderRadius: '6px',
+            background: 'rgba(0,0,0,0.08)', borderRadius: '6px',
             display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '5px 10px', border: '1px solid rgba(255,255,255,0.06)',
+            padding: '5px 10px', border: '1px solid rgba(0,0,0,0.06)',
           }}>
-            <Search size={12} color="#556677" />
+            <Search size={12} color="#94A3B8" />
             <input
               placeholder="Søg samtaler..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
                 background: 'none', border: 'none', outline: 'none',
-                color: '#AAB8C2', fontSize: '12px', width: '100%',
+                color: '#475569', fontSize: '12px', width: '100%',
               }}
             />
           </div>
@@ -349,20 +349,20 @@ export default function MessengerPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '4px 8px 4px 10px', marginBottom: '2px',
             }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#556677', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Kanaler
               </span>
               <button
                 onClick={() => { setIsGroup(true); setShowNew(true); fetchUsers(); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#556677', padding: '2px' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}
               >
                 <Plus size={13} />
               </button>
             </div>
             {loading ? (
-              <div style={{ padding: '8px 12px', fontSize: '12px', color: '#445566' }}>Indlæser...</div>
+              <div style={{ padding: '8px 12px', fontSize: '12px', color: '#94A3B8' }}>Indlæser...</div>
             ) : filterConv(groups).length === 0 ? (
-              <div style={{ padding: '4px 12px', fontSize: '12px', color: '#445566' }}>Ingen kanaler</div>
+              <div style={{ padding: '4px 12px', fontSize: '12px', color: '#94A3B8' }}>Ingen kanaler</div>
             ) : (
               filterConv(groups).map(conv => <SidebarItem key={conv.id} conv={conv} />)
             )}
@@ -374,18 +374,18 @@ export default function MessengerPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '4px 8px 4px 10px', marginBottom: '2px',
             }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#556677', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Direkte
               </span>
               <button
                 onClick={() => { setIsGroup(false); setShowNew(true); fetchUsers(); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#556677', padding: '2px' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}
               >
                 <Plus size={13} />
               </button>
             </div>
             {filterConv(directs).length === 0 ? (
-              <div style={{ padding: '4px 12px', fontSize: '12px', color: '#445566' }}>Ingen direkte beskeder</div>
+              <div style={{ padding: '4px 12px', fontSize: '12px', color: '#94A3B8' }}>Ingen direkte beskeder</div>
             ) : (
               filterConv(directs).map(conv => <SidebarItem key={conv.id} conv={conv} />)
             )}
@@ -410,7 +410,7 @@ export default function MessengerPage() {
         {/* Bund: bruger-info */}
         {me && (
           <div style={{
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            borderTop: '1px solid rgba(0,0,0,0.06)',
             padding: '10px 14px',
             display: 'flex', alignItems: 'center', gap: '8px',
           }}>
@@ -426,10 +426,10 @@ export default function MessengerPage() {
               <div style={{
                 position: 'absolute', bottom: '-1px', right: '-1px',
                 width: '8px', height: '8px', borderRadius: '50%',
-                background: '#2ECC71', border: '1.5px solid #0F1621',
+                background: '#2ECC71', border: '1.5px solid #FFFFFF',
               }} />
             </div>
-            <span style={{ fontSize: '13px', color: '#AAB8C2', fontWeight: 500 }}>{me.name}</span>
+            <span style={{ fontSize: '13px', color: '#475569', fontWeight: 500 }}>{me.name}</span>
           </div>
         )}
       </div>
@@ -442,13 +442,13 @@ export default function MessengerPage() {
           <div style={{
             padding: '0 20px',
             height: '50px', flexShrink: 0,
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: '1px solid rgba(0,0,0,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: '#0C1118',
+            background: '#F1F5F9',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {selectedConv.type === 'group' ? (
-                <span style={{ fontSize: '16px', fontWeight: 700, color: '#ECF0F1' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>
                   # {convDisplayName(selectedConv)}
                 </span>
               ) : (
@@ -461,21 +461,21 @@ export default function MessengerPage() {
                   }}>
                     {initials(convDisplayName(selectedConv))}
                   </div>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#ECF0F1' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#1E293B' }}>
                     {convDisplayName(selectedConv)}
                   </span>
                 </>
               )}
               {selectedConv.type === 'group' && selectedConv.other_members && (
-                <span style={{ fontSize: '12px', color: '#445566' }}>
+                <span style={{ fontSize: '12px', color: '#94A3B8' }}>
                   {selectedConv.other_members.length + 1} medlemmer
                 </span>
               )}
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '6px' }}><Search size={15} /></button>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '6px' }}><Zap size={15} /></button>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: '6px' }}><Settings size={15} /></button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '6px' }}><Search size={15} /></button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '6px' }}><Zap size={15} /></button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '6px' }}><Settings size={15} /></button>
             </div>
           </div>
 
@@ -487,7 +487,7 @@ export default function MessengerPage() {
             display: 'flex', flexDirection: 'column',
           }}>
             {messages.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#334455', padding: '60px 0', fontSize: '13px' }}>
+              <div style={{ textAlign: 'center', color: '#64748B', padding: '60px 0', fontSize: '13px' }}>
                 {selectedConv.type === 'group'
                   ? `Velkommen til # ${convDisplayName(selectedConv)} 👋`
                   : `Start en samtale med ${convDisplayName(selectedConv)}`}
@@ -511,11 +511,11 @@ export default function MessengerPage() {
                           display: 'flex', alignItems: 'center', gap: '10px',
                           margin: '16px 0 12px',
                         }}>
-                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
-                          <span style={{ fontSize: '11px', color: '#445566', fontWeight: 600, letterSpacing: '0.05em' }}>
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.08)' }} />
+                          <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600, letterSpacing: '0.05em' }}>
                             {formatDateSeparator(msg.created_at)}
                           </span>
-                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.08)' }} />
                         </div>
                       )}
 
@@ -542,7 +542,7 @@ export default function MessengerPage() {
                               }}>
                                 {initials(displayName)}
                                 {isPortalMsg && (
-                                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#E84025', border: '2px solid #0C1118', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6 }}>P</div>
+                                  <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#E84025', border: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6 }}>P</div>
                                 )}
                               </div>
                             )}
@@ -551,13 +551,13 @@ export default function MessengerPage() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {showAvatar && (
                               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
-                                <span style={{ fontSize: '14px', fontWeight: 700, color: isPortalMsg ? '#E84025' : (isMe ? '#ECF0F1' : color) }}>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: isPortalMsg ? '#E84025' : color }}>
                                   {displayName}
                                 </span>
                                 {isPortalMsg && (
                                   <span style={{ fontSize: '9px', color: '#E84025', background: 'rgba(232,64,37,0.12)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase' }}>Kunde</span>
                                 )}
-                                <span style={{ fontSize: '11px', color: '#445566' }}>{formatMsgTime(msg.created_at)}</span>
+                                <span style={{ fontSize: '11px', color: '#94A3B8' }}>{formatMsgTime(msg.created_at)}</span>
                               </div>
                             )}
 
@@ -569,7 +569,7 @@ export default function MessengerPage() {
                                   <img
                                     src={`data:${msg.file_type};base64,${msg.file_data}`}
                                     alt={msg.file_name || 'Billede'}
-                                    style={{ maxWidth: 320, maxHeight: 240, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', display: 'block' }}
+                                    style={{ maxWidth: 320, maxHeight: 240, borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', display: 'block' }}
                                   />
                                 ) : (
                                   <a
@@ -585,7 +585,7 @@ export default function MessengerPage() {
 
                             {/* Besked-indhold */}
                             {msg.content && (
-                              <div style={{ fontSize: '14px', color: '#D4E0E8', lineHeight: '1.55', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                              <div style={{ fontSize: '14px', color: '#334155', lineHeight: '1.55', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                 {msg.content}
                               </div>
                             )}
@@ -605,11 +605,11 @@ export default function MessengerPage() {
           <div style={{
             flexShrink: 0,
             padding: '12px 20px 16px',
-            background: '#0C1118',
+            background: '#F1F5F9',
           }}>
             <div style={{
-              background: '#1A2535',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: '#F8FAFC',
+              border: '1px solid rgba(0,0,0,0.08)',
               borderRadius: '10px',
               overflow: 'hidden',
             }}>
@@ -617,7 +617,7 @@ export default function MessengerPage() {
               <div style={{
                 padding: '8px 12px 0',
                 display: 'flex', gap: '6px', alignItems: 'center',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                borderBottom: '1px solid rgba(0,0,0,0.05)',
                 paddingBottom: '6px',
               }}>
                 {[
@@ -630,25 +630,25 @@ export default function MessengerPage() {
                 ].map((btn, i) => (
                   <button key={i} style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#556677', fontSize: '13px', padding: '2px 5px', borderRadius: '4px',
+                    color: '#94A3B8', fontSize: '13px', padding: '2px 5px', borderRadius: '4px',
                     ...btn.style,
                   }}>
                     {btn.label}
                   </button>
                 ))}
                 <div style={{ flex: 1 }} />
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#556677' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
                   <Zap size={13} />
                 </button>
               </div>
 
               {/* Pending file preview */}
               {pendingFile && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 0', fontSize: 12, color: '#AAB8C2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 0', fontSize: 12, color: '#475569' }}>
                   <span style={{ background: 'rgba(52,152,219,0.12)', border: '1px solid rgba(52,152,219,0.2)', borderRadius: 5, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 5 }}>
                     📎 {pendingFile.name}
                   </span>
-                  <button onClick={() => setPendingFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: 2 }}>
+                  <button onClick={() => setPendingFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 2 }}>
                     <X size={12} />
                   </button>
                 </div>
@@ -661,7 +661,7 @@ export default function MessengerPage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   title="Vedhæft fil"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: pendingFile ? '#3498DB' : '#445566', padding: '4px', display: 'flex', flexShrink: 0 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: pendingFile ? '#3498DB' : '#94A3B8', padding: '4px', display: 'flex', flexShrink: 0 }}
                 >
                   📎
                 </button>
@@ -683,7 +683,7 @@ export default function MessengerPage() {
                   rows={1}
                   style={{
                     flex: 1, background: 'transparent', border: 'none',
-                    color: '#ECF0F1', fontSize: '14px', outline: 'none',
+                    color: '#1E293B', fontSize: '14px', outline: 'none',
                     resize: 'none', lineHeight: '1.5', fontFamily: 'inherit',
                     minHeight: '22px', maxHeight: '160px', overflowY: 'auto',
                   }}
@@ -693,8 +693,8 @@ export default function MessengerPage() {
                   disabled={(!text.trim() && !pendingFile) || sending}
                   style={{
                     width: 34, height: 34, borderRadius: '7px', border: 'none', flexShrink: 0,
-                    background: (text.trim() || pendingFile) && !sending ? '#E84025' : 'rgba(255,255,255,0.06)',
-                    color: (text.trim() || pendingFile) && !sending ? '#fff' : '#445566',
+                    background: (text.trim() || pendingFile) && !sending ? '#E84025' : 'rgba(0,0,0,0.06)',
+                    color: (text.trim() || pendingFile) && !sending ? '#fff' : '#94A3B8',
                     cursor: (text.trim() || pendingFile) && !sending ? 'pointer' : 'not-allowed',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.15s', fontSize: '12px', fontWeight: 600, gap: '4px',
@@ -704,7 +704,7 @@ export default function MessengerPage() {
                 </button>
               </div>
             </div>
-            <div style={{ fontSize: '10px', color: '#334455', marginTop: '5px', paddingLeft: '2px' }}>
+            <div style={{ fontSize: '10px', color: '#64748B', marginTop: '5px', paddingLeft: '2px' }}>
               Enter sender · Shift+Enter ny linje
             </div>
           </div>
@@ -713,11 +713,11 @@ export default function MessengerPage() {
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          color: '#334455', gap: '10px', background: '#0C1118',
+          color: '#64748B', gap: '10px', background: '#F1F5F9',
         }}>
           <MessageSquare size={48} style={{ opacity: 0.12 }} />
-          <div style={{ fontSize: '16px', color: '#445566', fontWeight: 600 }}>Vælg en samtale</div>
-          <div style={{ fontSize: '13px', color: '#334455' }}>eller start en ny med + knappen</div>
+          <div style={{ fontSize: '16px', color: '#94A3B8', fontWeight: 600 }}>Vælg en samtale</div>
+          <div style={{ fontSize: '13px', color: '#64748B' }}>eller start en ny med + knappen</div>
         </div>
       )}
 
@@ -732,15 +732,15 @@ export default function MessengerPage() {
           onClick={e => { if (e.target === e.currentTarget) setShowNew(false); }}
         >
           <div style={{
-            background: '#111E2A', border: '1px solid rgba(255,255,255,0.1)',
+            background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: '12px', padding: '24px', width: '420px',
             maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '14px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#ECF0F1', fontWeight: 700 }}>
+              <h3 style={{ margin: 0, fontSize: '15px', color: '#1E293B', fontWeight: 700 }}>
                 Ny samtale
               </h3>
-              <button onClick={() => setShowNew(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566' }}>
+              <button onClick={() => setShowNew(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}>
                 <X size={16} />
               </button>
             </div>
@@ -751,8 +751,8 @@ export default function MessengerPage() {
                 onClick={() => setIsGroup(false)}
                 style={{
                   flex: 1, padding: '8px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                  background: !isGroup ? 'rgba(232,64,37,0.2)' : 'rgba(255,255,255,0.05)',
-                  color: !isGroup ? '#E84025' : '#556677', fontSize: '12px', fontWeight: 600,
+                  background: !isGroup ? 'rgba(232,64,37,0.2)' : 'rgba(0,0,0,0.05)',
+                  color: !isGroup ? '#E84025' : '#94A3B8', fontSize: '12px', fontWeight: 600,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                 }}
               >
@@ -762,8 +762,8 @@ export default function MessengerPage() {
                 onClick={() => setIsGroup(true)}
                 style={{
                   flex: 1, padding: '8px', borderRadius: '7px', border: 'none', cursor: 'pointer',
-                  background: isGroup ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: isGroup ? '#2ECC71' : '#556677', fontSize: '12px', fontWeight: 600,
+                  background: isGroup ? 'rgba(46,204,113,0.15)' : 'rgba(0,0,0,0.05)',
+                  color: isGroup ? '#2ECC71' : '#94A3B8', fontSize: '12px', fontWeight: 600,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                 }}
               >
@@ -777,8 +777,8 @@ export default function MessengerPage() {
                 value={groupName}
                 onChange={e => setGroupName(e.target.value)}
                 style={{
-                  background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '7px', padding: '9px 12px', color: '#ECF0F1',
+                  background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
+                  borderRadius: '7px', padding: '9px 12px', color: '#1E293B',
                   fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box',
                 }}
               />
@@ -787,10 +787,10 @@ export default function MessengerPage() {
             {/* Brugere */}
             <div style={{
               maxHeight: '220px', overflowY: 'auto',
-              border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px',
+              border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px',
             }}>
               {allUsers.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#445566', fontSize: '12px' }}>Indlæser...</div>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>Indlæser...</div>
               ) : (
                 allUsers.map(u => {
                   const picked = selectedUsers.includes(u.id);
@@ -805,7 +805,7 @@ export default function MessengerPage() {
                         width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer',
                         background: picked ? 'rgba(232,64,37,0.1)' : 'transparent',
                         padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px',
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderBottom: '1px solid rgba(0,0,0,0.04)',
                       }}
                     >
                       <div style={{
@@ -816,12 +816,12 @@ export default function MessengerPage() {
                         {initials(u.name)}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', color: '#ECF0F1' }}>{u.name}</div>
-                        <div style={{ fontSize: '11px', color: '#445566' }}>{u.email}</div>
+                        <div style={{ fontSize: '13px', color: '#1E293B' }}>{u.name}</div>
+                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>{u.email}</div>
                       </div>
                       <div style={{
                         width: '18px', height: '18px', borderRadius: '4px',
-                        border: picked ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                        border: picked ? 'none' : '1px solid rgba(0,0,0,0.12)',
                         background: picked ? '#E84025' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
@@ -838,8 +838,8 @@ export default function MessengerPage() {
                 onClick={() => setShowNew(false)}
                 style={{
                   flex: 1, padding: '9px', borderRadius: '7px',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'transparent', color: '#556677', cursor: 'pointer', fontSize: '13px',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  background: 'transparent', color: '#94A3B8', cursor: 'pointer', fontSize: '13px',
                 }}
               >
                 Annuller
@@ -849,8 +849,8 @@ export default function MessengerPage() {
                 disabled={selectedUsers.length === 0 || creating}
                 style={{
                   flex: 2, padding: '9px', borderRadius: '7px', border: 'none',
-                  background: selectedUsers.length > 0 && !creating ? '#E84025' : 'rgba(255,255,255,0.06)',
-                  color: selectedUsers.length > 0 && !creating ? '#fff' : '#445566',
+                  background: selectedUsers.length > 0 && !creating ? '#E84025' : 'rgba(0,0,0,0.06)',
+                  color: selectedUsers.length > 0 && !creating ? '#fff' : '#94A3B8',
                   cursor: selectedUsers.length > 0 && !creating ? 'pointer' : 'not-allowed',
                   fontSize: '13px', fontWeight: 600,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',

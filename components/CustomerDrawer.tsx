@@ -94,7 +94,7 @@ function HealthBar({ score }: { score: number }) {
   const color = score >= 80 ? '#2ECC71' : score >= 50 ? '#F39C12' : '#E74C3C';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+      <div style={{ flex: 1, height: '6px', background: 'rgba(0,0,0,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
         <div style={{ width: `${score}%`, height: '100%', background: color, borderRadius: '3px', transition: 'width 0.4s' }} />
       </div>
       <span style={{ fontSize: '12px', fontWeight: 600, color, minWidth: '32px', textAlign: 'right' }}>{score}</span>
@@ -107,8 +107,8 @@ const SEGMENTS = ['smb', 'mid-market', 'enterprise'];
 const CHURN_RISKS = ['low', 'medium', 'high'];
 
 const inputStyle: React.CSSProperties = {
-  background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+  background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
+  borderRadius: '6px', padding: '7px 10px', color: '#1E293B',
   fontSize: '12px', width: '100%', outline: 'none', boxSizing: 'border-box',
   marginBottom: '8px',
 };
@@ -178,7 +178,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
       .then(data => {
         if (data && !data.error) {
           setPortalEnabled(!!data.portal_enabled);
-          setPortalEmail(data.portal_email || '');
+          setPortalEmail(data.portal_email || customer.contact_email || '');
         }
       })
       .catch(() => {});
@@ -288,18 +288,18 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }} />
       <div style={{
         position: 'fixed', right: 0, top: 0, bottom: 0, zIndex: 201,
-        width: '500px', background: '#111E2A',
-        borderLeft: '1px solid rgba(255,255,255,0.07)',
+        width: '500px', background: '#F1F5F9',
+        borderLeft: '1px solid rgba(0,0,0,0.08)',
         display: 'flex', flexDirection: 'column',
         boxShadow: '-8px 0 32px rgba(0,0,0,0.4)',
       }}>
         {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#ECF0F1' }}>{customer.company}</h2>
-                <span style={{ fontSize: '12px', color: '#667788' }}>{MARKETS[customer.market] ?? customer.market}</span>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>{customer.company}</h2>
+                <span style={{ fontSize: '12px', color: '#94A3B8' }}>{MARKETS[customer.market] ?? customer.market}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <ChurnBadge risk={customer.churn_risk} />
@@ -315,25 +315,25 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 )}
               </div>
             </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667788', padding: '4px', flexShrink: 0 }}>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '4px', flexShrink: 0 }}>
               <X size={18} />
             </button>
           </div>
 
           {/* KPI strip */}
           <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            <div style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
-              <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+            <div style={{ flex: 1, background: '#FFFFFF', borderRadius: '6px', padding: '8px 10px' }}>
+              <div style={{ fontSize: '10px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
                 <TrendingUp size={11} /> MRR
               </div>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#2ECC71' }}>
                 {totalMrr > 0 ? `${totalMrr.toLocaleString('da-DK')} DKK` : '—'}
               </div>
-              {totalMrr > 0 && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{(totalMrr * 12).toLocaleString('da-DK')} DKK/år</div>}
+              {totalMrr > 0 && <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>{(totalMrr * 12).toLocaleString('da-DK')} DKK/år</div>}
             </div>
             {totalOnetime > 0 && (
-              <div style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
-                <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+              <div style={{ flex: 1, background: '#FFFFFF', borderRadius: '6px', padding: '8px 10px' }}>
+                <div style={{ fontSize: '10px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
                   <TrendingUp size={11} /> Engangs
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#F39C12' }}>
@@ -341,8 +341,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 </div>
               </div>
             )}
-            <div style={{ flex: 1, background: '#1A2A38', borderRadius: '6px', padding: '8px 10px' }}>
-              <div style={{ fontSize: '10px', color: '#667788', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
+            <div style={{ flex: 1, background: '#FFFFFF', borderRadius: '6px', padding: '8px 10px' }}>
+              <div style={{ fontSize: '10px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '3px' }}>
                 <CheckCircle size={11} /> Health
               </div>
               <div style={{ fontSize: '12px', fontWeight: 700, color: customer.health_score >= 70 ? '#2ECC71' : customer.health_score >= 40 ? '#F39C12' : '#E74C3C' }}>
@@ -356,8 +356,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               onClick={() => { setEditing(!editing); if (!editing) setEditData({ ...customer }); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
-                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px', padding: '6px 12px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer',
+                background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)',
+                borderRadius: '6px', padding: '6px 12px', color: '#1E293B', fontSize: '12px', cursor: 'pointer',
               }}
             >
               <Edit3 size={12} /> {editing ? 'Annuller' : 'Rediger'}
@@ -369,10 +369,10 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
-                background: customer.active ? 'rgba(255,255,255,0.04)' : 'rgba(46,204,113,0.1)',
-                border: customer.active ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(46,204,113,0.25)',
+                background: customer.active ? 'rgba(0,0,0,0.04)' : 'rgba(46,204,113,0.1)',
+                border: customer.active ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(46,204,113,0.25)',
                 borderRadius: '6px', padding: '6px 12px',
-                color: customer.active ? '#667788' : '#2ECC71',
+                color: customer.active ? '#94A3B8' : '#2ECC71',
                 fontSize: '12px', cursor: 'pointer',
               }}
             >
@@ -409,8 +409,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 <button
                   onClick={() => setConfirmDelete(false)}
                   style={{
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '6px', padding: '6px 12px', color: '#ECF0F1', fontSize: '12px', cursor: 'pointer',
+                    background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '6px', padding: '6px 12px', color: '#1E293B', fontSize: '12px', cursor: 'pointer',
                   }}
                 >
                   Annuller
@@ -421,11 +421,11 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }}>
           {(['Overblik', 'Produkter', 'Noter', 'Medlemmer', 'Portal'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '10px', border: 'none', background: 'transparent',
-              color: tab === t ? '#ECF0F1' : '#667788',
+              color: tab === t ? '#1E293B' : '#94A3B8',
               borderBottom: `2px solid ${tab === t ? '#185FA5' : 'transparent'}`,
               fontSize: '12px', fontWeight: tab === t ? 600 : 400, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -437,7 +437,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ECC71', display: 'inline-block' }} />
               )}
               {t === 'Medlemmer' && members.length > 0 && (
-                <span style={{ fontSize: 9, background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '1px 5px', color: '#AAB8C2' }}>{members.length}</span>
+                <span style={{ fontSize: 9, background: 'rgba(0,0,0,0.08)', borderRadius: 8, padding: '1px 5px', color: '#475569' }}>{members.length}</span>
               )}
             </button>
           ))}
@@ -451,8 +451,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
               {/* Health score */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
                   Sundhedsscore
                 </div>
                 <HealthBar score={customer.health_score ?? 0} />
@@ -465,8 +465,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               </div>
 
               {/* Contact */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Kontaktperson</div>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Kontaktperson</div>
                 {editing ? (
                   <>
                     <input placeholder="Navn" value={editData.contact_name || ''} onChange={e => setEditData(p => ({ ...p, contact_name: e.target.value }))} style={inputStyle} />
@@ -476,15 +476,15 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                   </>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECF0F1' }}>{customer.contact_name || '—'}</div>
-                    {customer.contact_title && <div style={{ fontSize: '12px', color: '#667788' }}>{customer.contact_title}</div>}
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B' }}>{customer.contact_name || '—'}</div>
+                    {customer.contact_title && <div style={{ fontSize: '12px', color: '#94A3B8' }}>{customer.contact_title}</div>}
                     {customer.contact_email && (
                       <a href={`mailto:${customer.contact_email}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#185FA5', fontSize: '12px', textDecoration: 'none' }}>
                         <Mail size={12} /> {customer.contact_email}
                       </a>
                     )}
                     {customer.contact_phone && (
-                      <a href={`tel:${customer.contact_phone}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#667788', fontSize: '12px', textDecoration: 'none' }}>
+                      <a href={`tel:${customer.contact_phone}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94A3B8', fontSize: '12px', textDecoration: 'none' }}>
                         <Phone size={12} /> {customer.contact_phone}
                       </a>
                     )}
@@ -493,8 +493,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               </div>
 
               {/* Lead */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Ansvarlig (Lead)</div>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Ansvarlig (Lead)</div>
                 {editing ? (
                   <select
                     value={editData.assigned_to || ''}
@@ -512,33 +512,33 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                       {customer.assigned_user_name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{customer.assigned_user_name}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B' }}>{customer.assigned_user_name}</div>
                       {customer.assigned_user_email && (
-                        <a href={`mailto:${customer.assigned_user_email}`} style={{ fontSize: '11px', color: '#445566', textDecoration: 'none' }}>{customer.assigned_user_email}</a>
+                        <a href={`mailto:${customer.assigned_user_email}`} style={{ fontSize: '11px', color: '#94A3B8', textDecoration: 'none' }}>{customer.assigned_user_email}</a>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: '12px', color: '#445566' }}>Ingen ansvarlig valgt</div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8' }}>Ingen ansvarlig valgt</div>
                 )}
               </div>
 
               {/* Contract */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Kontrakt</div>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Kontrakt</div>
                 {editing ? (
                   <>
-                    <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Startdato</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Startdato</div>
                     <input type="date" value={editData.contract_start || ''} onChange={e => setEditData(p => ({ ...p, contract_start: e.target.value }))} style={inputStyle} />
-                    <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Slutdato</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Slutdato</div>
                     <input type="date" value={editData.contract_end || ''} onChange={e => setEditData(p => ({ ...p, contract_end: e.target.value }))} style={inputStyle} />
-                    <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Churn-risiko</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Churn-risiko</div>
                     <select value={editData.churn_risk || 'low'} onChange={e => setEditData(p => ({ ...p, churn_risk: e.target.value as 'low' | 'medium' | 'high' }))} style={selectStyle}>
                       {CHURN_RISKS.map(r => <option key={r} value={r}>{r === 'low' ? 'Lav' : r === 'medium' ? 'Medium' : 'Høj'}</option>)}
                     </select>
-                    <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Health score (0-100)</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Health score (0-100)</div>
                     <input type="number" min={0} max={100} value={editData.health_score ?? ''} onChange={e => setEditData(p => ({ ...p, health_score: Number(e.target.value) }))} style={inputStyle} />
-                    <div style={{ fontSize: '11px', color: '#667788', marginBottom: '4px' }}>Segment</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>Segment</div>
                     <select value={editData.segment || 'smb'} onChange={e => setEditData(p => ({ ...p, segment: e.target.value }))} style={{ ...selectStyle, marginBottom: 0 }}>
                       {SEGMENTS.map(s => <option key={s} value={s}>{s === 'smb' ? 'SMB' : s === 'mid-market' ? 'Mid-Market' : 'Enterprise'}</option>)}
                     </select>
@@ -546,19 +546,19 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#667788', display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={11} /> Start</span>
-                      <span style={{ fontSize: '12px', color: '#ECF0F1' }}>{formatDate(customer.contract_start)}</span>
+                      <span style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={11} /> Start</span>
+                      <span style={{ fontSize: '12px', color: '#1E293B' }}>{formatDate(customer.contract_start)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#667788', display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={11} /> Udløber</span>
-                      <span style={{ fontSize: '12px', color: renewDays < 60 ? '#F39C12' : '#ECF0F1' }}>
+                      <span style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={11} /> Udløber</span>
+                      <span style={{ fontSize: '12px', color: renewDays < 60 ? '#F39C12' : '#1E293B' }}>
                         {formatDate(customer.contract_end)}
-                        {renewDays > 0 && renewDays < 365 && <span style={{ marginLeft: '6px', fontSize: '11px', color: '#667788' }}>({renewDays}d)</span>}
+                        {renewDays > 0 && renewDays < 365 && <span style={{ marginLeft: '6px', fontSize: '11px', color: '#94A3B8' }}>({renewDays}d)</span>}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#667788' }}>Segment</span>
-                      <span style={{ fontSize: '12px', color: '#ECF0F1', textTransform: 'capitalize' }}>
+                      <span style={{ fontSize: '12px', color: '#94A3B8' }}>Segment</span>
+                      <span style={{ fontSize: '12px', color: '#1E293B', textTransform: 'capitalize' }}>
                         {customer.segment === 'smb' ? 'SMB' : customer.segment === 'mid-market' ? 'Mid-Market' : customer.segment}
                       </span>
                     </div>
@@ -567,8 +567,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               </div>
 
               {/* Internal notes */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Interne noter</div>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Interne noter</div>
                 {editing ? (
                   <textarea
                     value={editData.notes || ''}
@@ -577,14 +577,14 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                     style={{ ...inputStyle, minHeight: '80px', resize: 'vertical', marginBottom: 0 }}
                   />
                 ) : (
-                  <p style={{ margin: 0, fontSize: '12px', color: '#AAB8C2', lineHeight: 1.6 }}>
-                    {customer.notes || <span style={{ color: '#667788' }}>Ingen noter endnu</span>}
+                  <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.6 }}>
+                    {customer.notes || <span style={{ color: '#94A3B8' }}>Ingen noter endnu</span>}
                   </p>
                 )}
               </div>
 
               {editing && (
-                <button onClick={handleSave} style={{ background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
+                <button onClick={handleSave} style={{ background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
                   Gem ændringer
                 </button>
               )}
@@ -596,12 +596,12 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
               {/* Active products */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShoppingBag size={12} /> Aktive produkter
                 </div>
                 {allProducts.length === 0 ? (
-                  <div style={{ fontSize: '12px', color: '#667788', textAlign: 'center', padding: '20px 0' }}>Ingen produkter oprettet endnu</div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', textAlign: 'center', padding: '20px 0' }}>Ingen produkter oprettet endnu</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {allProducts.map(product => {
@@ -611,36 +611,36 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                       const effType  = active ? (active.effective_type  ?? active.type)  : product.type;
                       const isOverridden = active && (active.custom_price != null || active.custom_type != null);
                       return (
-                        <div key={product.id} style={{ borderRadius: '6px', overflow: 'hidden', border: `1px solid ${active ? 'rgba(24,95,165,0.5)' : 'rgba(255,255,255,0.07)'}` }}>
+                        <div key={product.id} style={{ borderRadius: '6px', overflow: 'hidden', border: `1px solid ${active ? 'rgba(24,95,165,0.5)' : 'rgba(0,0,0,0.08)'}` }}>
                           {/* Row */}
                           <div
                             style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                               padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
-                              background: active ? 'rgba(24,95,165,0.12)' : 'rgba(255,255,255,0.03)',
+                              background: active ? 'rgba(24,95,165,0.12)' : 'rgba(0,0,0,0.03)',
                             }}
                             onClick={() => { if (!isEditing) toggleProduct(product); }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <div style={{
                                 width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
-                                background: active ? '#185FA5' : 'rgba(255,255,255,0.08)',
-                                border: `1px solid ${active ? '#185FA5' : 'rgba(255,255,255,0.15)'}`,
+                                background: active ? '#185FA5' : 'rgba(0,0,0,0.08)',
+                                border: `1px solid ${active ? '#185FA5' : 'rgba(0,0,0,0.12)'}`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                               }}>
                                 {active && <span style={{ color: '#fff', fontSize: '10px' }}>✓</span>}
                               </div>
                               <div>
-                                <div style={{ fontSize: '12px', fontWeight: 500, color: active ? '#ECF0F1' : '#AAB8C2' }}>{product.name}</div>
-                                {product.description && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{product.description}</div>}
+                                <div style={{ fontSize: '12px', fontWeight: 500, color: active ? '#1E293B' : '#475569' }}>{product.name}</div>
+                                {product.description && <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>{product.description}</div>}
                               </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '8px' }}>
                               <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 600, color: isOverridden ? '#F39C12' : (active ? '#185FA5' : '#667788') }}>
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: isOverridden ? '#F39C12' : (active ? '#185FA5' : '#94A3B8') }}>
                                   {effPrice.toLocaleString('da-DK')} {product.currency}
                                 </span>
-                                <span style={{ fontSize: '10px', color: '#667788', display: 'block' }}>
+                                <span style={{ fontSize: '10px', color: '#94A3B8', display: 'block' }}>
                                   {effType === 'mrr' ? '/md' : 'engangsbetaling'}
                                   {isOverridden && <span style={{ color: '#F39C12' }}> *</span>}
                                 </span>
@@ -649,7 +649,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                                 <button
                                   onClick={e => { e.stopPropagation(); if (isEditing) { setEditingProductId(null); } else { openPriceEdit(active); } }}
                                   title="Tilpas pris"
-                                  style={{ background: isEditing ? 'rgba(243,156,18,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isEditing ? 'rgba(243,156,18,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', color: isEditing ? '#F39C12' : '#667788', fontSize: '11px' }}
+                                  style={{ background: isEditing ? 'rgba(243,156,18,0.2)' : 'rgba(0,0,0,0.06)', border: `1px solid ${isEditing ? 'rgba(243,156,18,0.4)' : 'rgba(0,0,0,0.08)'}`, borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', color: isEditing ? '#F39C12' : '#94A3B8', fontSize: '11px' }}
                                 >
                                   <Pencil size={10} />
                                 </button>
@@ -669,13 +669,13 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                                   style={{ ...inputStyle, width: '100px', marginBottom: 0 }}
                                   placeholder="Pris"
                                 />
-                                <span style={{ fontSize: '11px', color: '#667788' }}>{product.currency}</span>
+                                <span style={{ fontSize: '11px', color: '#94A3B8' }}>{product.currency}</span>
                                 <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
                                   {(['mrr', 'onetime'] as const).map(t => (
                                     <button
                                       key={t}
                                       onClick={() => setTypeInput(t)}
-                                      style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px', border: `1px solid ${typeInput === t ? 'rgba(243,156,18,0.5)' : 'rgba(255,255,255,0.1)'}`, background: typeInput === t ? 'rgba(243,156,18,0.15)' : 'transparent', color: typeInput === t ? '#F39C12' : '#667788', cursor: 'pointer' }}
+                                      style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px', border: `1px solid ${typeInput === t ? 'rgba(243,156,18,0.5)' : 'rgba(0,0,0,0.08)'}`, background: typeInput === t ? 'rgba(243,156,18,0.15)' : 'transparent', color: typeInput === t ? '#F39C12' : '#94A3B8', cursor: 'pointer' }}
                                     >
                                       {t === 'mrr' ? 'MRR' : 'Engangsbetaling'}
                                     </button>
@@ -686,16 +686,16 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                                 <button onClick={() => savePrice(product.id)} disabled={priceSaving} style={{ fontSize: '11px', padding: '5px 12px', borderRadius: '5px', border: 'none', background: '#F39C12', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
                                   {priceSaving ? 'Gemmer...' : 'Gem'}
                                 </button>
-                                <button onClick={() => setEditingProductId(null)} style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#667788', cursor: 'pointer' }}>
+                                <button onClick={() => setEditingProductId(null)} style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '5px', border: '1px solid rgba(0,0,0,0.08)', background: 'transparent', color: '#94A3B8', cursor: 'pointer' }}>
                                   Annuller
                                 </button>
                                 {isOverridden && (
-                                  <button onClick={() => resetPrice(product.id)} style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#445566', cursor: 'pointer', marginLeft: 'auto' }}>
+                                  <button onClick={() => resetPrice(product.id)} style={{ fontSize: '11px', padding: '5px 10px', borderRadius: '5px', border: '1px solid rgba(0,0,0,0.08)', background: 'transparent', color: '#94A3B8', cursor: 'pointer', marginLeft: 'auto' }}>
                                     Nulstil til standard ({(product.price).toLocaleString('da-DK')} {product.currency})
                                   </button>
                                 )}
                               </div>
-                              <div style={{ fontSize: '10px', color: '#445566' }}>
+                              <div style={{ fontSize: '10px', color: '#94A3B8' }}>
                                 Standardpris: {product.price.toLocaleString('da-DK')} {product.currency}{product.type === 'mrr' ? '/md' : ' engangsbetaling'}
                               </div>
                             </div>
@@ -706,19 +706,19 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                   </div>
                 )}
                 {customerProducts.length > 0 && (
-                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {totalMrr > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: '#667788' }}>MRR (månedlig betaling)</span>
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>MRR (månedlig betaling)</span>
                         <div style={{ textAlign: 'right' }}>
                           <span style={{ fontSize: '13px', fontWeight: 700, color: '#2ECC71' }}>{totalMrr.toLocaleString('da-DK')} DKK/md</span>
-                          <span style={{ fontSize: '10px', color: '#667788', display: 'block' }}>{(totalMrr * 12).toLocaleString('da-DK')} DKK/år</span>
+                          <span style={{ fontSize: '10px', color: '#94A3B8', display: 'block' }}>{(totalMrr * 12).toLocaleString('da-DK')} DKK/år</span>
                         </div>
                       </div>
                     )}
                     {totalOnetime > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: '#667788' }}>Engangsbetalinger</span>
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>Engangsbetalinger</span>
                         <span style={{ fontSize: '13px', fontWeight: 700, color: '#F39C12' }}>{totalOnetime.toLocaleString('da-DK')} DKK</span>
                       </div>
                     )}
@@ -733,10 +733,10 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                     <ExternalLink size={11} /> Upsell muligheder
                   </div>
                   {upsellProducts.map(p => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <span style={{ fontSize: '12px', color: '#AAB8C2' }}>{p.name}</span>
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      <span style={{ fontSize: '12px', color: '#475569' }}>{p.name}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '11px', color: '#667788' }}>+{p.price.toLocaleString('da-DK')} {p.currency}{p.type === 'mrr' ? '/md' : ''}</span>
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>+{p.price.toLocaleString('da-DK')} {p.currency}{p.type === 'mrr' ? '/md' : ''}</span>
                         <button
                           onClick={() => toggleProduct(p)}
                           style={{ fontSize: '11px', color: '#185FA5', background: 'rgba(24,95,165,0.15)', border: '1px solid rgba(24,95,165,0.3)', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer' }}
@@ -754,29 +754,29 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
           {/* ===== MEDLEMMER ===== */}
           {tab === 'Medlemmer' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ fontSize: '12px', color: '#556677', lineHeight: 1.5 }}>
+              <div style={{ fontSize: '12px', color: '#94A3B8', lineHeight: 1.5 }}>
                 Medarbejdere herunder har adgang til kundens messenger-tråd og projekt-board.
               </div>
 
               {/* Current members */}
               <div>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Nuværende ({members.length})
                 </div>
                 {members.length === 0 ? (
-                  <div style={{ fontSize: '12px', color: '#445566', fontStyle: 'italic' }}>Ingen tilknyttede medarbejdere endnu</div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic' }}>Ingen tilknyttede medarbejdere endnu</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {members.map(m => (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: '#1A2A38', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)' }}>
                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#E84025', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                           {m.name[0].toUpperCase()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '13px', color: '#ECF0F1', fontWeight: 500 }}>{m.name}</div>
-                          <div style={{ fontSize: '10px', color: '#445566' }}>{m.email}</div>
+                          <div style={{ fontSize: '13px', color: '#1E293B', fontWeight: 500 }}>{m.name}</div>
+                          <div style={{ fontSize: '10px', color: '#94A3B8' }}>{m.email}</div>
                         </div>
-                        <span style={{ fontSize: '10px', color: m.role === 'admin' ? '#E84025' : '#445566', textTransform: 'uppercase', fontWeight: 600 }}>
+                        <span style={{ fontSize: '10px', color: m.role === 'admin' ? '#E84025' : '#94A3B8', textTransform: 'uppercase', fontWeight: 600 }}>
                           {m.role === 'admin' ? 'Admin' : 'Sælger'}
                         </span>
                         <button
@@ -788,7 +788,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                             setMemberSaving(null);
                             toast.success(`${m.name} fjernet`);
                           }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#445566', padding: 4, display: 'flex', borderRadius: 4 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, display: 'flex', borderRadius: 4 }}
                           title="Fjern"
                         >
                           <Minus size={13} />
@@ -802,16 +802,16 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               {/* Add members */}
               {allUsers.filter(u => !members.some(m => m.id === u.id)).length > 0 && (
                 <div>
-                  <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                     Tilføj medarbejder
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {allUsers.filter(u => !members.some(m => m.id === u.id)).map(u => (
-                      <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#334455', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#AAB8C2', flexShrink: 0 }}>
+                      <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#475569', flexShrink: 0 }}>
                           {u.name[0].toUpperCase()}
                         </div>
-                        <span style={{ flex: 1, fontSize: '13px', color: '#AAB8C2' }}>{u.name}</span>
+                        <span style={{ flex: 1, fontSize: '13px', color: '#475569' }}>{u.name}</span>
                         <button
                           disabled={memberSaving === u.id}
                           onClick={async () => {
@@ -843,18 +843,18 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
 
               {/* Status banner */}
               <div style={{
-                background: portalEnabled ? 'rgba(46,204,113,0.08)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${portalEnabled ? 'rgba(46,204,113,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                background: portalEnabled ? 'rgba(46,204,113,0.08)' : 'rgba(0,0,0,0.03)',
+                border: `1px solid ${portalEnabled ? 'rgba(46,204,113,0.25)' : 'rgba(0,0,0,0.08)'}`,
                 borderRadius: '8px', padding: '14px 16px',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Globe size={16} color={portalEnabled ? '#2ECC71' : '#667788'} />
+                  <Globe size={16} color={portalEnabled ? '#2ECC71' : '#94A3B8'} />
                   <div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: portalEnabled ? '#2ECC71' : '#AAB8C2' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: portalEnabled ? '#2ECC71' : '#475569' }}>
                       {portalEnabled ? 'Portaladgang aktiv' : 'Ingen portaladgang'}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#445566', marginTop: 1 }}>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: 1 }}>
                       {portalEnabled ? portalEmail : 'Kunden kan ikke logge ind endnu'}
                     </div>
                   </div>
@@ -879,12 +879,12 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
 
               {/* Portal link */}
               {portalEnabled && (
-                <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                  <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                     Portal-link til kunden
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <code style={{ flex: 1, fontSize: '11px', color: '#AAB8C2', background: '#0F1923', padding: '7px 10px', borderRadius: '5px', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <code style={{ flex: 1, fontSize: '11px', color: '#475569', background: '#F1F5F9', padding: '7px 10px', borderRadius: '5px', border: '1px solid rgba(0,0,0,0.08)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {typeof window !== 'undefined' ? `${window.location.origin}/portal` : '/portal'}
                     </code>
                     <button
@@ -895,7 +895,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                           setTimeout(() => setPortalCopied(false), 2000);
                         });
                       }}
-                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '5px', padding: '6px 10px', cursor: 'pointer', color: portalCopied ? '#2ECC71' : '#667788', flexShrink: 0 }}
+                      style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '5px', padding: '6px 10px', cursor: 'pointer', color: portalCopied ? '#2ECC71' : '#94A3B8', flexShrink: 0 }}
                       title="Kopiér link"
                     >
                       {portalCopied ? <Check size={13} /> : <Copy size={13} />}
@@ -914,12 +914,12 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
               )}
 
               {/* Setup form */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                   {portalEnabled ? 'Opdater login-oplysninger' : 'Aktiver portaladgang'}
                 </div>
 
-                <div style={{ fontSize: '11px', color: '#556677', marginBottom: '5px' }}>Email (bruges til login)</div>
+                <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '5px' }}>Email (bruges til login)</div>
                 <input
                   type="email"
                   value={portalEmail}
@@ -928,7 +928,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                   style={{ ...inputStyle, marginBottom: '10px' }}
                 />
 
-                <div style={{ fontSize: '11px', color: '#556677', marginBottom: '5px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '5px' }}>
                   {portalEnabled ? 'Ny adgangskode (lad stå blank for at beholde)' : 'Adgangskode'}
                 </div>
                 <div style={{ position: 'relative', marginBottom: '12px' }}>
@@ -942,7 +942,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                   <button
                     type="button"
                     onClick={() => setShowPortalPw(p => !p)}
-                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#3A4A5A', padding: 2 }}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 2 }}
                   >
                     {showPortalPw ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
@@ -978,8 +978,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                   }}
                   disabled={portalSaving || !portalEmail.trim()}
                   style={{
-                    width: '100%', background: !portalSaving && portalEmail.trim() ? '#185FA5' : 'rgba(255,255,255,0.06)',
-                    border: 'none', borderRadius: '6px', padding: '9px', color: !portalSaving && portalEmail.trim() ? '#fff' : '#3A4A5A',
+                    width: '100%', background: !portalSaving && portalEmail.trim() ? '#185FA5' : 'rgba(0,0,0,0.06)',
+                    border: 'none', borderRadius: '6px', padding: '9px', color: !portalSaving && portalEmail.trim() ? '#fff' : '#94A3B8',
                     fontSize: '13px', fontWeight: 500, cursor: !portalSaving && portalEmail.trim() ? 'pointer' : 'not-allowed',
                   }}
                 >
@@ -987,7 +987,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                 </button>
               </div>
 
-              <div style={{ fontSize: '11px', color: '#2D3748', lineHeight: 1.6, padding: '0 2px' }}>
+              <div style={{ fontSize: '11px', color: '#E2E8F0', lineHeight: 1.6, padding: '0 2px' }}>
                 Kunden kan logge ind på portalen med sin email og adgangskode og se kontraktoplysninger, produkter og tilknyttede projekter.
               </div>
             </div>
@@ -997,8 +997,8 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
           {tab === 'Noter' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* Add note */}
-              <div style={{ background: '#1A2A38', borderRadius: '8px', padding: '14px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Tilføj note</div>
+              <div style={{ background: '#FFFFFF', borderRadius: '8px', padding: '14px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Tilføj note</div>
                 <textarea
                   value={noteText}
                   onChange={e => setNoteText(e.target.value)}
@@ -1016,18 +1016,18 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
 
               {/* Notes list */}
               {notes.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#667788', padding: '32px', fontSize: '13px' }}>
+                <div style={{ textAlign: 'center', color: '#94A3B8', padding: '32px', fontSize: '13px' }}>
                   Ingen noter endnu — log aktiviteter her
                 </div>
               ) : (
                 notes.map(note => (
-                  <div key={note.id} style={{ display: 'flex', gap: '10px', padding: '12px', background: '#1A2A38', borderRadius: '8px' }}>
+                  <div key={note.id} style={{ display: 'flex', gap: '10px', padding: '12px', background: '#FFFFFF', borderRadius: '8px' }}>
                     <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(24,95,165,0.15)', color: '#185FA5', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <FileText size={12} />
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', color: '#ECF0F1', lineHeight: 1.5, wordBreak: 'break-word' }}>{note.content}</div>
-                      <div style={{ fontSize: '10px', color: '#667788', marginTop: '4px' }}>
+                      <div style={{ fontSize: '12px', color: '#1E293B', lineHeight: 1.5, wordBreak: 'break-word' }}>{note.content}</div>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '4px' }}>
                         {note.created_by === 'human' ? '👤' : '🤖'} {timeAgo(note.created_at)}
                       </div>
                     </div>

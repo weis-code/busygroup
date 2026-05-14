@@ -33,8 +33,8 @@ function ProductsSection() {
   const [saving, setSaving] = useState(false);
 
   const inputStyle: React.CSSProperties = {
-    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+    background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
+    borderRadius: '6px', padding: '7px 10px', color: '#1E293B',
     fontSize: '12px', outline: 'none', boxSizing: 'border-box',
   };
 
@@ -119,14 +119,14 @@ function ProductsSection() {
     <div>
       {/* Product list */}
       {products.length === 0 && !showForm && (
-        <div style={{ padding: '32px 20px', textAlign: 'center', color: '#667788', fontSize: '13px' }}>
+        <div style={{ padding: '32px 20px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
           Ingen produkter endnu. Opret dit første produkt.
         </div>
       )}
 
       {/* MRR */}
       {mrr.length > 0 && (
-        <div style={{ padding: '10px 20px 4px', fontSize: '10px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div style={{ padding: '10px 20px 4px', fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Månedlig betaling (MRR)
         </div>
       )}
@@ -136,7 +136,7 @@ function ProductsSection() {
 
       {/* One-time */}
       {onetime.length > 0 && (
-        <div style={{ padding: '10px 20px 4px', fontSize: '10px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', borderTop: mrr.length > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined }}>
+        <div style={{ padding: '10px 20px 4px', fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', borderTop: mrr.length > 0 ? '1px solid rgba(0,0,0,0.04)' : undefined }}>
           Engangsbetalinger
         </div>
       )}
@@ -146,7 +146,7 @@ function ProductsSection() {
 
       {/* Inactive */}
       {inactive.length > 0 && (
-        <div style={{ padding: '10px 20px 4px', fontSize: '10px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ padding: '10px 20px 4px', fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', borderTop: '1px solid rgba(0,0,0,0.04)' }}>
           Inaktive
         </div>
       )}
@@ -156,13 +156,13 @@ function ProductsSection() {
 
       {/* Inline create/edit form */}
       {showForm && (
-        <div style={{ margin: '0', borderTop: products.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined, padding: '16px 20px', background: 'rgba(232,64,37,0.05)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#ECF0F1', marginBottom: '12px' }}>
+        <div style={{ margin: '0', borderTop: products.length > 0 ? '1px solid rgba(0,0,0,0.08)' : undefined, padding: '16px 20px', background: 'rgba(232,64,37,0.05)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#1E293B', marginBottom: '12px' }}>
             {editingId ? 'Rediger produkt' : 'Nyt produkt'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
             <div>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Navn *</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Navn *</label>
               <input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -172,7 +172,7 @@ function ProductsSection() {
               />
             </div>
             <div>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Type *</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Type *</label>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {(['mrr', 'onetime'] as ProductType[]).map(t => (
                   <button
@@ -180,8 +180,8 @@ function ProductsSection() {
                     onClick={() => setForm(f => ({ ...f, type: t }))}
                     style={{
                       flex: 1, padding: '7px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px',
-                      background: form.type === t ? '#E84025' : '#1A2A38',
-                      color: form.type === t ? '#ECF0F1' : '#667788',
+                      background: form.type === t ? '#E84025' : '#FFFFFF',
+                      color: form.type === t ? '#1E293B' : '#94A3B8',
                       fontWeight: form.type === t ? 600 : 400,
                     }}
                   >
@@ -193,7 +193,7 @@ function ProductsSection() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '10px', marginBottom: '10px' }}>
             <div>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Pris *</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Pris *</label>
               <input
                 type="number"
                 min="0"
@@ -204,7 +204,7 @@ function ProductsSection() {
               />
             </div>
             <div>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Valuta</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Valuta</label>
               <select
                 value={form.currency}
                 onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
@@ -215,7 +215,7 @@ function ProductsSection() {
             </div>
           </div>
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Beskrivelse</label>
+            <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Beskrivelse</label>
             <input
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -231,7 +231,7 @@ function ProductsSection() {
                 display: 'flex', alignItems: 'center', gap: '5px',
                 background: saving || !form.name.trim() ? 'rgba(232,64,37,0.4)' : '#E84025',
                 border: 'none', borderRadius: '6px', padding: '7px 14px',
-                color: '#ECF0F1', fontSize: '12px', fontWeight: 500,
+                color: '#1E293B', fontSize: '12px', fontWeight: 500,
                 cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer',
               }}
             >
@@ -239,7 +239,7 @@ function ProductsSection() {
             </button>
             <button
               onClick={() => { setShowForm(false); setEditingId(null); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '7px 12px', color: '#667788', fontSize: '12px', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '7px 12px', color: '#94A3B8', fontSize: '12px', cursor: 'pointer' }}
             >
               <X size={13} /> Annuller
             </button>
@@ -249,7 +249,7 @@ function ProductsSection() {
 
       {/* Add button */}
       {!showForm && (
-        <div style={{ padding: '12px 20px', borderTop: products.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined }}>
+        <div style={{ padding: '12px 20px', borderTop: products.length > 0 ? '1px solid rgba(0,0,0,0.08)' : undefined }}>
           <button
             onClick={openCreate}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.12)', border: '1px solid rgba(232,64,37,0.25)', borderRadius: '6px', padding: '7px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}
@@ -272,12 +272,12 @@ function ProductRow({ product, isLast, onEdit, onDelete, onToggle }: {
   return (
     <div style={{
       padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      borderBottom: !isLast ? '1px solid rgba(255,255,255,0.04)' : 'none',
+      borderBottom: !isLast ? '1px solid rgba(0,0,0,0.04)' : 'none',
       opacity: product.active ? 1 : 0.5,
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 500, color: '#ECF0F1' }}>{product.name}</span>
+          <span style={{ fontSize: '13px', fontWeight: 500, color: '#1E293B' }}>{product.name}</span>
           <span style={{
             fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '4px',
             background: product.type === 'mrr' ? 'rgba(232,64,37,0.2)' : 'rgba(15,110,86,0.2)',
@@ -288,21 +288,21 @@ function ProductRow({ product, isLast, onEdit, onDelete, onToggle }: {
           </span>
         </div>
         {product.description && (
-          <div style={{ fontSize: '11px', color: '#667788', marginTop: '2px' }}>{product.description}</div>
+          <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{product.description}</div>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B', whiteSpace: 'nowrap' }}>
           {formatPrice(product.price, product.currency, product.type)}
         </span>
         <div style={{ display: 'flex', gap: '4px' }}>
-          <button onClick={() => onToggle(product)} title={product.active ? 'Deaktivér' : 'Aktivér'} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: product.active ? '#2ECC71' : '#667788', fontSize: '11px' }}>
+          <button onClick={() => onToggle(product)} title={product.active ? 'Deaktivér' : 'Aktivér'} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: product.active ? '#2ECC71' : '#94A3B8', fontSize: '11px' }}>
             {product.active ? 'Aktiv' : 'Inaktiv'}
           </button>
-          <button onClick={() => onEdit(product)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#667788' }}>
+          <button onClick={() => onEdit(product)} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#94A3B8' }}>
             <Pencil size={12} />
           </button>
-          <button onClick={() => onDelete(product.id, product.name)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#667788' }}>
+          <button onClick={() => onDelete(product.id, product.name)} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#94A3B8' }}>
             <Trash2 size={12} />
           </button>
         </div>
@@ -333,8 +333,8 @@ function UsersSection() {
   const { user: me } = useUser();
 
   const inputStyle: React.CSSProperties = {
-    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+    background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
+    borderRadius: '6px', padding: '7px 10px', color: '#1E293B',
     fontSize: '12px', outline: 'none', boxSizing: 'border-box',
   };
 
@@ -422,7 +422,7 @@ function UsersSection() {
       {users.map((u, i) => (
         <div key={u.id} style={{
           padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px',
-          borderBottom: i < users.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+          borderBottom: i < users.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
           opacity: u.active ? 1 : 0.5,
         }}>
           {/* Avatar */}
@@ -436,9 +436,9 @@ function UsersSection() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#ECF0F1' }}>{u.name}</span>
+              <span style={{ fontSize: '13px', fontWeight: 500, color: '#1E293B' }}>{u.name}</span>
               {u.id === me?.id && (
-                <span style={{ fontSize: '10px', color: '#667788', background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: '3px' }}>dig</span>
+                <span style={{ fontSize: '10px', color: '#94A3B8', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '3px' }}>dig</span>
               )}
               <span style={{
                 fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '4px',
@@ -449,22 +449,22 @@ function UsersSection() {
                 {u.role === 'admin' ? 'Admin' : 'Sælger'}
               </span>
               {!u.active && (
-                <span style={{ fontSize: '10px', color: '#667788', background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: '3px' }}>Inaktiv</span>
+                <span style={{ fontSize: '10px', color: '#94A3B8', background: 'rgba(0,0,0,0.06)', padding: '1px 5px', borderRadius: '3px' }}>Inaktiv</span>
               )}
             </div>
-            <div style={{ fontSize: '11px', color: '#667788', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
               {u.email} · Sidst logget ind: {u.last_login ? new Date(u.last_login).toLocaleDateString('da-DK') : 'Aldrig'}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-            <button onClick={() => handleToggleActive(u)} title={u.active ? 'Deaktivér' : 'Aktivér'} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: u.active ? '#2ECC71' : '#667788', fontSize: '11px' }}>
+            <button onClick={() => handleToggleActive(u)} title={u.active ? 'Deaktivér' : 'Aktivér'} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: u.active ? '#2ECC71' : '#94A3B8', fontSize: '11px' }}>
               {u.active ? 'Aktiv' : 'Inaktiv'}
             </button>
-            <button onClick={() => openEdit(u)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#667788' }}>
+            <button onClick={() => openEdit(u)} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#94A3B8' }}>
               <Pencil size={12} />
             </button>
             {u.id !== me?.id && (
-              <button onClick={() => handleDelete(u)} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#667788' }}>
+              <button onClick={() => handleDelete(u)} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '4px', padding: '4px 6px', cursor: 'pointer', color: '#94A3B8' }}>
                 <Trash2 size={12} />
               </button>
             )}
@@ -474,20 +474,20 @@ function UsersSection() {
 
       {/* Create/Edit form */}
       {showForm && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '16px 20px', background: 'rgba(232,64,37,0.05)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#ECF0F1', marginBottom: '12px' }}>
+        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '16px 20px', background: 'rgba(232,64,37,0.05)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#1E293B', marginBottom: '12px' }}>
             {editingId ? 'Rediger bruger' : 'Ny bruger'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
             <div>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Navn *</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Navn *</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Fulde navn" style={{ ...inputStyle, width: '100%' }} autoFocus />
             </div>
             <div>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Rolle *</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Rolle *</label>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {(['seller', 'admin'] as const).map(r => (
-                  <button key={r} onClick={() => setForm(f => ({ ...f, role: r }))} style={{ flex: 1, padding: '7px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', background: form.role === r ? (r === 'admin' ? 'rgba(231,76,60,0.2)' : '#E84025') : '#1A2A38', color: form.role === r ? (r === 'admin' ? '#E74C3C' : '#ECF0F1') : '#667788', fontWeight: form.role === r ? 600 : 400 }}>
+                  <button key={r} onClick={() => setForm(f => ({ ...f, role: r }))} style={{ flex: 1, padding: '7px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '12px', background: form.role === r ? (r === 'admin' ? 'rgba(231,76,60,0.2)' : '#E84025') : '#FFFFFF', color: form.role === r ? (r === 'admin' ? '#E74C3C' : '#1E293B') : '#94A3B8', fontWeight: form.role === r ? 600 : 400 }}>
                     {r === 'admin' ? 'Admin' : 'Sælger'}
                   </button>
                 ))}
@@ -496,26 +496,26 @@ function UsersSection() {
           </div>
           {!editingId && (
             <div style={{ marginBottom: '10px' }}>
-              <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>Email *</label>
+              <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Email *</label>
               <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="navn@busyconsulting.dk" style={{ ...inputStyle, width: '100%' }} />
             </div>
           )}
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '11px', color: '#667788', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
               {editingId ? 'Nyt password (lad stå tomt for at beholde)' : 'Password *'}
             </label>
             <div style={{ position: 'relative' }}>
               <input type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editingId ? 'Lad stå tomt for at beholde...' : 'Min. 8 tegn'} style={{ ...inputStyle, width: '100%', paddingRight: '36px' }} />
-              <button onClick={() => setShowPw(s => !s)} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#667788', padding: '2px' }}>
+              <button onClick={() => setShowPw(s => !s)} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}>
                 {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={handleCreateOrEdit} disabled={saving || !form.name.trim()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: saving || !form.name.trim() ? 'rgba(232,64,37,0.4)' : '#E84025', border: 'none', borderRadius: '6px', padding: '7px 14px', color: '#ECF0F1', fontSize: '12px', fontWeight: 500, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer' }}>
+            <button onClick={handleCreateOrEdit} disabled={saving || !form.name.trim()} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: saving || !form.name.trim() ? 'rgba(232,64,37,0.4)' : '#E84025', border: 'none', borderRadius: '6px', padding: '7px 14px', color: '#1E293B', fontSize: '12px', fontWeight: 500, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer' }}>
               <Check size={13} /> {saving ? 'Gemmer...' : editingId ? 'Gem ændringer' : 'Opret bruger'}
             </button>
-            <button onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyUserForm); }} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '7px 12px', color: '#667788', fontSize: '12px', cursor: 'pointer' }}>
+            <button onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyUserForm); }} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '7px 12px', color: '#94A3B8', fontSize: '12px', cursor: 'pointer' }}>
               <X size={13} /> Annuller
             </button>
           </div>
@@ -524,7 +524,7 @@ function UsersSection() {
 
       {/* Add button */}
       {!showForm && (
-        <div style={{ padding: '12px 20px', borderTop: users.length > 0 ? '1px solid rgba(255,255,255,0.07)' : undefined }}>
+        <div style={{ padding: '12px 20px', borderTop: users.length > 0 ? '1px solid rgba(0,0,0,0.08)' : undefined }}>
           <button onClick={() => { setEditingId(null); setForm(emptyUserForm); setShowForm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(232,64,37,0.12)', border: '1px solid rgba(232,64,37,0.25)', borderRadius: '6px', padding: '7px 14px', color: '#E84025', fontSize: '12px', cursor: 'pointer', fontWeight: 500 }}>
             <Plus size={13} /> Tilføj bruger
           </button>
@@ -539,17 +539,17 @@ export default function SettingsPage() {
   const { user } = useUser();
 
   const sectionStyle: React.CSSProperties = {
-    background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)',
+    background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
     borderRadius: '10px', marginBottom: '16px', overflow: 'hidden',
   };
   const sectionHeaderStyle: React.CSSProperties = {
-    padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)',
-    fontSize: '13px', fontWeight: 600, color: '#ECF0F1',
+    padding: '14px 20px', borderBottom: '1px solid rgba(0,0,0,0.08)',
+    fontSize: '13px', fontWeight: 600, color: '#1E293B',
   };
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 600, color: '#ECF0F1' }}>Indstillinger</h1>
+      <h1 style={{ margin: '0 0 20px', fontSize: '16px', fontWeight: 600, color: '#1E293B' }}>Indstillinger</h1>
 
       {/* Users — admin only */}
       {user?.role === 'admin' && (
@@ -566,7 +566,7 @@ export default function SettingsPage() {
       <div style={sectionStyle}>
         <div style={{ ...sectionHeaderStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Produkter</span>
-          <span style={{ fontSize: '11px', color: '#667788', fontWeight: 400 }}>Vises i kundeportalen og på kundeoversigten</span>
+          <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 400 }}>Vises i kundeportalen og på kundeoversigten</span>
         </div>
         <ProductsSection />
       </div>

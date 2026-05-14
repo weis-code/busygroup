@@ -56,7 +56,7 @@ function HealthDot({ score }: { score: number }) {
   const color = score >= 80 ? '#2ECC71' : score >= 50 ? '#F39C12' : '#E74C3C';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-      <div style={{ width: '32px', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
+      <div style={{ width: '32px', height: '4px', background: 'rgba(0,0,0,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
         <div style={{ width: `${score}%`, height: '100%', background: color }} />
       </div>
       <span style={{ fontSize: '11px', color, fontWeight: 600 }}>{score}</span>
@@ -64,15 +64,15 @@ function HealthDot({ score }: { score: number }) {
   );
 }
 
-function StatCard({ label, value, sub, color = '#ECF0F1', icon }: { label: string; value: string; sub?: string; color?: string; icon: React.ReactNode }) {
+function StatCard({ label, value, sub, color = '#1E293B', icon }: { label: string; value: string; sub?: string; color?: string; icon: React.ReactNode }) {
   return (
-    <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <div style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '12px', color: '#667788' }}>{label}</span>
-        <span style={{ color: '#667788' }}>{icon}</span>
+        <span style={{ fontSize: '12px', color: '#94A3B8' }}>{label}</span>
+        <span style={{ color: '#94A3B8' }}>{icon}</span>
       </div>
       <div style={{ fontSize: '22px', fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontSize: '11px', color: '#667788' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '11px', color: '#94A3B8' }}>{sub}</div>}
     </div>
   );
 }
@@ -212,15 +212,15 @@ export default function KunderPage() {
   };
 
   const inputStyle: React.CSSProperties = {
-    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '6px', padding: '7px 10px', color: '#ECF0F1',
+    background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)',
+    borderRadius: '6px', padding: '7px 10px', color: '#1E293B',
     fontSize: '12px', width: '100%', outline: 'none', boxSizing: 'border-box',
     marginBottom: '8px',
   };
   const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' };
 
   const thStyle: React.CSSProperties = {
-    textAlign: 'left', fontSize: '11px', color: '#667788',
+    textAlign: 'left', fontSize: '11px', color: '#94A3B8',
     fontWeight: 500, padding: '10px 12px', textTransform: 'uppercase', letterSpacing: '0.04em',
     cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
   };
@@ -231,14 +231,14 @@ export default function KunderPage() {
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#ECF0F1' }}>Kunder</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#667788' }}>Account management — {customers.length} aktive kunder</p>
+          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#1E293B' }}>Kunder</h1>
+          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#94A3B8' }}>Account management — {customers.length} aktive kunder</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={load} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '8px 12px', color: '#667788', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+          <button onClick={load} style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '8px 12px', color: '#94A3B8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
             <RefreshCw size={13} /> Opdater
           </button>
-          <button onClick={() => setShowCreate(true)} style={{ background: '#E84025', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#ECF0F1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 500 }}>
+          <button onClick={() => setShowCreate(true)} style={{ background: '#E84025', border: 'none', borderRadius: '6px', padding: '8px 16px', color: '#1E293B', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 500 }}>
             <Plus size={14} /> Ny kunde
           </button>
         </div>
@@ -255,30 +255,30 @@ export default function KunderPage() {
       {/* Filters */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#667788' }} />
+          <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Søg på firma eller kontakt..."
-            style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '6px', padding: '8px 10px 8px 30px', color: '#ECF0F1', fontSize: '12px', width: '100%', outline: 'none', boxSizing: 'border-box' }}
+            style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '8px 10px 8px 30px', color: '#1E293B', fontSize: '12px', width: '100%', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
         <div style={{ position: 'relative' }}>
-          <select value={filterMarket} onChange={e => setFilterMarket(e.target.value)} style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '6px', padding: '8px 28px 8px 10px', color: '#ECF0F1', fontSize: '12px', outline: 'none', cursor: 'pointer', appearance: 'none' }}>
+          <select value={filterMarket} onChange={e => setFilterMarket(e.target.value)} style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '8px 28px 8px 10px', color: '#1E293B', fontSize: '12px', outline: 'none', cursor: 'pointer', appearance: 'none' }}>
             <option value="all">Alle markeder</option>
             <option value="denmark">🇩🇰 Danmark</option>
             <option value="sweden">🇸🇪 Sverige</option>
           </select>
-          <ChevronDown size={11} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#667788', pointerEvents: 'none' }} />
+          <ChevronDown size={11} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
         </div>
         <div style={{ position: 'relative' }}>
-          <select value={filterRisk} onChange={e => setFilterRisk(e.target.value)} style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '6px', padding: '8px 28px 8px 10px', color: '#ECF0F1', fontSize: '12px', outline: 'none', cursor: 'pointer', appearance: 'none' }}>
+          <select value={filterRisk} onChange={e => setFilterRisk(e.target.value)} style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '8px 28px 8px 10px', color: '#1E293B', fontSize: '12px', outline: 'none', cursor: 'pointer', appearance: 'none' }}>
             <option value="all">Alle risici</option>
             <option value="high">🔴 Høj</option>
             <option value="medium">🟡 Medium</option>
             <option value="low">🟢 Lav</option>
           </select>
-          <ChevronDown size={11} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#667788', pointerEvents: 'none' }} />
+          <ChevronDown size={11} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
         </div>
         {(search || filterMarket !== 'all' || filterRisk !== 'all') && (
           <button onClick={() => { setSearch(''); setFilterMarket('all'); setFilterRisk('all'); }} style={{ background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.2)', borderRadius: '6px', padding: '8px 10px', color: '#E74C3C', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -288,10 +288,10 @@ export default function KunderPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
               <th style={thStyle} onClick={() => toggleSort('company')}>
                 Firma {sortBy === 'company' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
               </th>
@@ -316,13 +316,13 @@ export default function KunderPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#667788', fontSize: '13px' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#94A3B8', fontSize: '13px' }}>
                   Henter kunder...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#667788', fontSize: '13px' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: '#94A3B8', fontSize: '13px' }}>
                   Ingen kunder matcher dit filter
                 </td>
               </tr>
@@ -338,11 +338,11 @@ export default function KunderPage() {
                     <tr key={`divider-${c.id}`}>
                       <td colSpan={8} style={{ padding: '8px 12px 4px', background: 'transparent' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
-                          <span style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.06)' }} />
+                          <span style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, whiteSpace: 'nowrap' }}>
                             Inaktive kunder ({inactiveCustomers.length})
                           </span>
-                          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+                          <div style={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.06)' }} />
                         </div>
                       </td>
                     </tr>
@@ -351,25 +351,25 @@ export default function KunderPage() {
                     key={c.id}
                     onClick={() => setSelected(c)}
                     style={{
-                      borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      borderBottom: i < filtered.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
                       cursor: 'pointer',
                       transition: 'background 0.1s',
                       opacity: isInactive ? 0.45 : 1,
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.03)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
                   <td style={{ padding: '12px 12px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{c.company}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B' }}>{c.company}</div>
                     {c.segment && (
-                      <div style={{ fontSize: '10px', color: '#667788', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         {c.segment === 'smb' ? 'SMB' : c.segment === 'mid-market' ? 'Mid-Market' : c.segment}
                       </div>
                     )}
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <div style={{ fontSize: '12px', color: '#AAB8C2' }}>{c.contact_name || '—'}</div>
-                    {c.contact_title && <div style={{ fontSize: '10px', color: '#667788', marginTop: '1px' }}>{c.contact_title}</div>}
+                    <div style={{ fontSize: '12px', color: '#475569' }}>{c.contact_name || '—'}</div>
+                    {c.contact_title && <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '1px' }}>{c.contact_title}</div>}
                   </td>
                   <td style={{ padding: '12px' }}>
                     {c.assigned_user_name ? (
@@ -377,14 +377,14 @@ export default function KunderPage() {
                         <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(232,64,37,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#E84025', flexShrink: 0 }}>
                           {c.assigned_user_name.charAt(0).toUpperCase()}
                         </div>
-                        <span style={{ fontSize: '12px', color: '#AAB8C2' }}>{c.assigned_user_name.split(' ')[0]}</span>
+                        <span style={{ fontSize: '12px', color: '#475569' }}>{c.assigned_user_name.split(' ')[0]}</span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '11px', color: '#445566' }}>—</span>
+                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <span style={{ fontSize: '12px', color: '#AAB8C2' }}>
+                    <span style={{ fontSize: '12px', color: '#475569' }}>
                       {c.market === 'denmark' ? '🇩🇰 DK' : '🇸🇪 SE'}
                     </span>
                   </td>
@@ -400,14 +400,14 @@ export default function KunderPage() {
                         ))}
                       </div>
                     ) : (
-                      <span style={{ fontSize: '11px', color: '#667788' }}>—</span>
+                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '12px' }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#2ECC71' }}>
                       {(c.mrr || 0).toLocaleString('da-DK')}
                     </span>
-                    <span style={{ fontSize: '10px', color: '#667788' }}> DKK/md</span>
+                    <span style={{ fontSize: '10px', color: '#94A3B8' }}> DKK/md</span>
                   </td>
                   <td style={{ padding: '12px' }}>
                     <HealthDot score={c.health_score || 0} />
@@ -423,7 +423,7 @@ export default function KunderPage() {
                     </span>
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <span style={{ fontSize: '11px', color: expired ? '#E74C3C' : renewWarning ? '#F39C12' : '#667788' }}>
+                    <span style={{ fontSize: '11px', color: expired ? '#E74C3C' : renewWarning ? '#F39C12' : '#94A3B8' }}>
                       {expired ? '⚠ Udløbet' : formatDate(c.contract_end)}
                     </span>
                     {!expired && renewWarning && (
@@ -438,7 +438,7 @@ export default function KunderPage() {
         </table>
       </div>
 
-      <div style={{ marginTop: '8px', fontSize: '11px', color: '#667788', textAlign: 'right' }}>
+      <div style={{ marginTop: '8px', fontSize: '11px', color: '#94A3B8', textAlign: 'right' }}>
         {filtered.length} af {customers.length} kunder vist
       </div>
 
@@ -448,40 +448,40 @@ export default function KunderPage() {
           <div onClick={() => setShowCreate(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300 }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 301,
-            background: '#111E2A', borderRadius: '12px', padding: '24px',
+            background: '#F1F5F9', borderRadius: '12px', padding: '24px',
             width: '480px', maxWidth: 'calc(100vw - 32px)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            border: '1px solid rgba(0,0,0,0.08)',
             maxHeight: '90vh', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#ECF0F1' }}>Opret ny kunde</h3>
-              <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667788' }}><X size={18} /></button>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>Opret ny kunde</h3>
+              <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8' }}><X size={18} /></button>
             </div>
 
-            <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>Firma</div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>Firma</div>
             <input placeholder="Firmanavn *" value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} style={inputStyle} />
 
-            <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Kontakt</div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Kontakt</div>
             <input placeholder="Kontaktperson" value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} style={inputStyle} />
             <input placeholder="Titel" value={form.contact_title} onChange={e => setForm(p => ({ ...p, contact_title: e.target.value }))} style={inputStyle} />
             <input placeholder="Email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} style={inputStyle} />
             <input placeholder="Telefon" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} style={inputStyle} />
 
-            <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Kontrakt</div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Kontrakt</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>Startdato</div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '4px' }}>Startdato</div>
                 <input type="date" value={form.contract_start} onChange={e => setForm(p => ({ ...p, contract_start: e.target.value }))} style={{ ...inputStyle, colorScheme: 'dark' }} />
               </div>
               <div>
-                <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>Slutdato</div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '4px' }}>Slutdato</div>
                 <input type="date" value={form.contract_end} onChange={e => setForm(p => ({ ...p, contract_end: e.target.value }))} style={{ ...inputStyle, colorScheme: 'dark' }} />
               </div>
             </div>
 
             {allProducts.length > 0 && (
               <div>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Produkter</div>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px', marginTop: '4px' }}>Produkter</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '8px' }}>
                   {allProducts.map(p => {
                     const selected = selectedProductIds.includes(p.id);
@@ -489,16 +489,16 @@ export default function KunderPage() {
                       <button key={p.id} onClick={() => setSelectedProductIds(prev => selected ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '8px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left',
-                        background: selected ? 'rgba(232,64,37,0.15)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${selected ? 'rgba(232,64,37,0.5)' : 'rgba(255,255,255,0.07)'}`,
+                        background: selected ? 'rgba(232,64,37,0.15)' : 'rgba(0,0,0,0.03)',
+                        border: `1px solid ${selected ? 'rgba(232,64,37,0.5)' : 'rgba(0,0,0,0.08)'}`,
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: selected ? '#E84025' : 'transparent', border: `1px solid ${selected ? '#E84025' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: selected ? '#E84025' : 'transparent', border: `1px solid ${selected ? '#E84025' : 'rgba(0,0,0,0.15)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {selected && <span style={{ color: '#fff', fontSize: '9px' }}>✓</span>}
                           </div>
-                          <span style={{ fontSize: '12px', color: selected ? '#ECF0F1' : '#AAB8C2' }}>{p.name}</span>
+                          <span style={{ fontSize: '12px', color: selected ? '#1E293B' : '#475569' }}>{p.name}</span>
                         </div>
-                        <span style={{ fontSize: '11px', color: selected ? '#E84025' : '#667788', fontWeight: 600 }}>
+                        <span style={{ fontSize: '11px', color: selected ? '#E84025' : '#94A3B8', fontWeight: 600 }}>
                           {p.price.toLocaleString('da-DK')} {p.currency}{p.type === 'mrr' ? '/md' : ''}
                         </span>
                       </button>
@@ -510,7 +510,7 @@ export default function KunderPage() {
                   const onetimeTotal = allProducts.filter(p => selectedProductIds.includes(p.id) && p.type === 'onetime').reduce((s, p) => s + p.price, 0);
                   return (
                     <div style={{ background: 'rgba(46,204,113,0.08)', border: '1px solid rgba(46,204,113,0.2)', borderRadius: '6px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11px', color: '#667788' }}>
+                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>
                         {mrrTotal > 0 && `MRR: ${mrrTotal.toLocaleString('da-DK')} DKK/md`}
                         {mrrTotal > 0 && onetimeTotal > 0 && ' · '}
                         {onetimeTotal > 0 && `Engangs: ${onetimeTotal.toLocaleString('da-DK')} DKK`}
@@ -524,7 +524,7 @@ export default function KunderPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>Marked</div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '4px' }}>Marked</div>
                 <select value={form.market} onChange={e => setForm(p => ({ ...p, market: e.target.value }))} style={selectStyle}>
                   <option value="denmark">🇩🇰 Danmark</option>
                   <option value="sweden">🇸🇪 Sverige</option>
@@ -534,7 +534,7 @@ export default function KunderPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>Churn-risiko</div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '4px' }}>Churn-risiko</div>
                 <select value={form.churn_risk} onChange={e => setForm(p => ({ ...p, churn_risk: e.target.value }))} style={selectStyle}>
                   <option value="low">Lav</option>
                   <option value="medium">Medium</option>
@@ -542,7 +542,7 @@ export default function KunderPage() {
                 </select>
               </div>
               <div>
-                <div style={{ fontSize: '10px', color: '#667788', marginBottom: '4px' }}>Segment</div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '4px' }}>Segment</div>
                 <select value={form.segment} onChange={e => setForm(p => ({ ...p, segment: e.target.value }))} style={selectStyle}>
                   <option value="smb">SMB</option>
                   <option value="mid-market">Mid-Market</option>
@@ -555,10 +555,10 @@ export default function KunderPage() {
 
             {allUsers.length > 0 && (
               <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
                   Tilknyttede medarbejdere
                 </div>
-                <div style={{ fontSize: '11px', color: '#445566', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '8px' }}>
                   Tilføjes til messenger-tråd og projekt automatisk
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -568,14 +568,14 @@ export default function KunderPage() {
                       <button key={u.id} onClick={() => setSelectedMemberIds(prev => isSel ? prev.filter(id => id !== u.id) : [...prev, u.id])}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '8px',
-                          padding: '7px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left', border: `1px solid ${isSel ? 'rgba(232,64,37,0.5)' : 'rgba(255,255,255,0.07)'}`,
-                          background: isSel ? 'rgba(232,64,37,0.12)' : 'rgba(255,255,255,0.03)',
+                          padding: '7px 10px', borderRadius: '6px', cursor: 'pointer', textAlign: 'left', border: `1px solid ${isSel ? 'rgba(232,64,37,0.5)' : 'rgba(0,0,0,0.08)'}`,
+                          background: isSel ? 'rgba(232,64,37,0.12)' : 'rgba(0,0,0,0.03)',
                         }}>
-                        <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: isSel ? '#E84025' : 'transparent', border: `1px solid ${isSel ? '#E84025' : 'rgba(255,255,255,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: '14px', height: '14px', borderRadius: '3px', background: isSel ? '#E84025' : 'transparent', border: `1px solid ${isSel ? '#E84025' : 'rgba(0,0,0,0.15)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {isSel && <span style={{ color: '#fff', fontSize: '9px' }}>✓</span>}
                         </div>
-                        <span style={{ fontSize: '12px', color: isSel ? '#ECF0F1' : '#AAB8C2', flex: 1 }}>{u.name}</span>
-                        <span style={{ fontSize: '10px', color: '#445566', textTransform: 'uppercase' }}>{u.role === 'admin' ? 'Admin' : 'Sælger'}</span>
+                        <span style={{ fontSize: '12px', color: isSel ? '#1E293B' : '#475569', flex: 1 }}>{u.name}</span>
+                        <span style={{ fontSize: '10px', color: '#94A3B8', textTransform: 'uppercase' }}>{u.role === 'admin' ? 'Admin' : 'Sælger'}</span>
                       </button>
                     );
                   })}
@@ -584,10 +584,10 @@ export default function KunderPage() {
             )}
 
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer' }}>
+              <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', cursor: 'pointer' }}>
                 Annuller
               </button>
-              <button onClick={handleCreate} disabled={creating} style={{ flex: 2, background: '#E84025', border: 'none', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
+              <button onClick={handleCreate} disabled={creating} style={{ flex: 2, background: '#E84025', border: 'none', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', cursor: 'pointer', fontWeight: 500 }}>
                 {creating ? 'Opretter...' : 'Opret kunde'}
               </button>
             </div>

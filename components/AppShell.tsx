@@ -12,8 +12,8 @@ import TopBar from '@/components/TopBar';
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const PRIMARY   = '#E84025';          // Orange accent (fra design)
 const P_ALPHA   = 'rgba(232,64,37,';  // Orange med alpha-kanal
-const BG_SIDE   = '#0C0F14';          // Sidebar baggrund
-const BG_BORDER = 'rgba(255,255,255,0.07)';
+const BG_SIDE   = '#FFFFFF';          // Sidebar baggrund
+const BG_BORDER = 'rgba(0,0,0,0.08)';
 
 const NAV_ITEMS = [
   { label: 'Kunder',        href: '/kunder',    icon: Building2    },
@@ -48,7 +48,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isLogin || isPortal) return <>{children}</>;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0C1118' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#F1F5F9' }}>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <aside style={{
@@ -84,10 +84,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {!collapsed && (
             <div style={{ flex: 1, paddingLeft: 10 }}>
-              <div style={{ fontWeight: 700, color: '#ECF0F1', fontSize: '14px', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
+              <div style={{ fontWeight: 700, color: '#1E293B', fontSize: '14px', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
                 BusyConsulting
               </div>
-              <div style={{ fontSize: '10px', color: '#445566', letterSpacing: '0.02em' }}>
+              <div style={{ fontSize: '10px', color: '#94A3B8', letterSpacing: '0.02em' }}>
                 Client Platform
               </div>
             </div>
@@ -99,12 +99,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               title="Skjul sidebar"
               style={{
                 width: 26, height: 26, borderRadius: 6, border: 'none',
-                background: 'rgba(255,255,255,0.04)', cursor: 'pointer',
-                color: '#556677', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(0,0,0,0.04)', cursor: 'pointer',
+                color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0, transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.09)'; b.style.color = '#AAB8C2'; }}
-              onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.04)'; b.style.color = '#556677'; }}
+              onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(0,0,0,0.08)'; b.style.color = '#475569'; }}
+              onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(0,0,0,0.04)'; b.style.color = '#94A3B8'; }}
             >
               <ChevronLeft size={13} />
             </button>
@@ -117,12 +117,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               style={{
                 position: 'absolute', bottom: 88, left: 0, right: 0,
                 margin: '0 auto', width: 26, height: 26, borderRadius: 6, border: 'none',
-                background: 'rgba(255,255,255,0.04)', cursor: 'pointer',
-                color: '#556677', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(0,0,0,0.04)', cursor: 'pointer',
+                color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.09)'; b.style.color = '#AAB8C2'; }}
-              onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(255,255,255,0.04)'; b.style.color = '#556677'; }}
+              onMouseEnter={e => { const b = e.currentTarget; b.style.background = 'rgba(0,0,0,0.08)'; b.style.color = '#475569'; }}
+              onMouseLeave={e => { const b = e.currentTarget; b.style.background = 'rgba(0,0,0,0.04)'; b.style.color = '#94A3B8'; }}
             >
               <ChevronRight size={13} />
             </button>
@@ -150,7 +150,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   padding: collapsed ? '9px 0' : '7px 10px',
                   borderRadius: 8,
                   background: active ? `${P_ALPHA}0.14)` : 'transparent',
-                  color: active ? '#ECF0F1' : '#556677',
+                  color: active ? '#1E293B' : '#94A3B8',
                   fontSize: 13, fontWeight: active ? 600 : 400,
                   textDecoration: 'none',
                   transition: 'background 0.12s, color 0.12s',
@@ -160,14 +160,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 }}
                 onMouseEnter={e => {
                   if (!active) {
-                    (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.05)';
-                    (e.currentTarget as HTMLAnchorElement).style.color = '#AAB8C2';
+                    (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(0,0,0,0.05)';
+                    (e.currentTarget as HTMLAnchorElement).style.color = '#475569';
                   }
                 }}
                 onMouseLeave={e => {
                   if (!active) {
                     (e.currentTarget as HTMLAnchorElement).style.background = 'transparent';
-                    (e.currentTarget as HTMLAnchorElement).style.color = '#556677';
+                    (e.currentTarget as HTMLAnchorElement).style.color = '#94A3B8';
                   }
                 }}
               >
@@ -224,12 +224,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               {!collapsed && (
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12, color: '#ECF0F1', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 12, color: '#1E293B', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.name}
                   </div>
                   <div style={{
                     fontSize: 10, fontWeight: 700,
-                    color: user.role === 'admin' ? PRIMARY : '#445566',
+                    color: user.role === 'admin' ? PRIMARY : '#94A3B8',
                     textTransform: 'uppercase', letterSpacing: '0.06em',
                   }}>
                     {user.role === 'admin' ? 'Admin' : 'Bruger'}
@@ -247,7 +247,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 gap: collapsed ? 0 : 8,
                 padding: collapsed ? '7px 0' : '6px 8px',
                 borderRadius: 7, border: 'none',
-                background: 'transparent', color: '#445566',
+                background: 'transparent', color: '#94A3B8',
                 fontSize: 12, cursor: 'pointer', width: '100%',
                 transition: 'all 0.12s',
               }}
@@ -259,7 +259,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onMouseLeave={e => {
                 const b = e.currentTarget;
                 b.style.background = 'transparent';
-                b.style.color = '#445566';
+                b.style.color = '#94A3B8';
               }}
             >
               <LogOut size={collapsed ? 15 : 13} style={{ flexShrink: 0 }} />
@@ -277,7 +277,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         transition: 'margin-left 0.2s ease',
         display: 'flex',
         flexDirection: 'column',
-        background: '#0C1118',
+        background: '#F1F5F9',
       }}>
         <TopBar />
         <div style={{ flex: 1 }}>

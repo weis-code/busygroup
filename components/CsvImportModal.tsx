@@ -144,8 +144,8 @@ export default function CsvImportModal({ onClose, onDone }: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
   };
   const modalStyle: React.CSSProperties = {
-    background: '#111E2A', borderRadius: '12px', padding: '28px',
-    width: '560px', maxWidth: '100%', border: '1px solid rgba(255,255,255,0.08)',
+    background: '#F1F5F9', borderRadius: '12px', padding: '28px',
+    width: '560px', maxWidth: '100%', border: '1px solid rgba(0,0,0,0.08)',
     boxShadow: '0 24px 64px rgba(0,0,0,0.6)', position: 'relative',
   };
 
@@ -155,14 +155,14 @@ export default function CsvImportModal({ onClose, onDone }: {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#ECF0F1' }}>
+            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#1E293B' }}>
               Importer emner fra CSV
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#667788' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94A3B8' }}>
               AI-agenten researcher og vurderer hvert emne automatisk
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#667788', padding: '4px' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '4px' }}>
             <X size={18} />
           </button>
         </div>
@@ -176,29 +176,29 @@ export default function CsvImportModal({ onClose, onDone }: {
               onDragLeave={() => setDragging(false)}
               onClick={() => fileInputRef.current?.click()}
               style={{
-                border: `2px dashed ${dragging ? '#185FA5' : 'rgba(255,255,255,0.12)'}`,
+                border: `2px dashed ${dragging ? '#185FA5' : 'rgba(0,0,0,0.10)'}`,
                 borderRadius: '10px', padding: '40px 20px', textAlign: 'center', cursor: 'pointer',
                 background: dragging ? 'rgba(24,95,165,0.06)' : 'rgba(255,255,255,0.02)',
                 transition: 'all 0.15s', marginBottom: '16px',
               }}
             >
-              <Upload size={28} style={{ color: dragging ? '#185FA5' : '#667788', marginBottom: '10px' }} />
-              <div style={{ fontSize: '14px', fontWeight: 600, color: '#ECF0F1', marginBottom: '4px' }}>
+              <Upload size={28} style={{ color: dragging ? '#185FA5' : '#94A3B8', marginBottom: '10px' }} />
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#1E293B', marginBottom: '4px' }}>
                 Træk CSV-fil hertil eller klik for at vælge
               </div>
-              <div style={{ fontSize: '12px', color: '#667788' }}>Understøtter komma- og semikolonseparerede filer · Max 5 MB</div>
+              <div style={{ fontSize: '12px', color: '#94A3B8' }}>Understøtter komma- og semikolonseparerede filer · Max 5 MB</div>
               <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
             </div>
 
             {/* Supported columns */}
-            <button onClick={() => setShowExample(!showExample)} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', color: '#667788', fontSize: '12px', cursor: 'pointer', marginBottom: '8px' }}>
+            <button onClick={() => setShowExample(!showExample)} style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', color: '#94A3B8', fontSize: '12px', cursor: 'pointer', marginBottom: '8px' }}>
               {showExample ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               Hvilke kolonner understøttes?
             </button>
 
             {showExample && (
-              <div style={{ background: '#0F1923', borderRadius: '8px', padding: '14px', fontSize: '11px', lineHeight: '1.8' }}>
-                <div style={{ color: '#ECF0F1', fontWeight: 600, marginBottom: '8px' }}>Understøttede kolonnenavne (vælg dem du har):</div>
+              <div style={{ background: '#F1F5F9', borderRadius: '8px', padding: '14px', fontSize: '11px', lineHeight: '1.8' }}>
+                <div style={{ color: '#1E293B', fontWeight: 600, marginBottom: '8px' }}>Understøttede kolonnenavne (vælg dem du har):</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
                   {[
                     ['Firma *', 'Firma, Company, Firmanavn, Navn'],
@@ -213,12 +213,12 @@ export default function CsvImportModal({ onClose, onDone }: {
                     ['Noter', 'Noter, Notes, Kommentar'],
                   ].map(([label, aliases]) => (
                     <div key={label}>
-                      <span style={{ color: '#AAB8C2', fontWeight: 600 }}>{label}:</span>{' '}
-                      <span style={{ color: '#667788' }}>{aliases}</span>
+                      <span style={{ color: '#475569', fontWeight: 600 }}>{label}:</span>{' '}
+                      <span style={{ color: '#94A3B8' }}>{aliases}</span>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: '10px', color: '#667788', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                <div style={{ marginTop: '10px', color: '#94A3B8', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '10px' }}>
                   * Påkrævet · Brug enten komma (,) eller semikolon (;) som separator · Encoding: UTF-8
                 </div>
               </div>
@@ -229,35 +229,35 @@ export default function CsvImportModal({ onClose, onDone }: {
         {/* ── STEP: PREVIEW ── */}
         {step === 'preview' && file && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1A2A38', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#FFFFFF', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
               <FileText size={18} style={{ color: '#185FA5', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#ECF0F1' }}>{file.name}</div>
-                <div style={{ fontSize: '11px', color: '#667788' }}>{totalRows} rækker · {(file.size / 1024).toFixed(1)} KB</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B' }}>{file.name}</div>
+                <div style={{ fontSize: '11px', color: '#94A3B8' }}>{totalRows} rækker · {(file.size / 1024).toFixed(1)} KB</div>
               </div>
             </div>
 
             {preview.length > 0 && (
               <>
-                <div style={{ fontSize: '11px', color: '#667788', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Forhåndsvisning (de første {preview.length} rækker)
                 </div>
-                <div style={{ background: '#0F1923', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px' }}>
+                <div style={{ background: '#F1F5F9', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                      <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
                         {['Firma', 'Kontakt', 'Email', 'Branche'].map(h => (
-                          <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#667788', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#94A3B8', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {preview.map((row, i) => (
-                        <tr key={i} style={{ borderBottom: i < preview.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                          <td style={{ padding: '7px 10px', color: '#ECF0F1', fontWeight: 500 }}>{row.company || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: '#AAB8C2' }}>{row.contact_name || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: '#667788' }}>{row.email || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: '#667788' }}>{row.industry || '—'}</td>
+                        <tr key={i} style={{ borderBottom: i < preview.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none' }}>
+                          <td style={{ padding: '7px 10px', color: '#1E293B', fontWeight: 500 }}>{row.company || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: '#475569' }}>{row.contact_name || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: '#94A3B8' }}>{row.email || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: '#94A3B8' }}>{row.industry || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -268,16 +268,16 @@ export default function CsvImportModal({ onClose, onDone }: {
 
             <div style={{ background: 'rgba(24,95,165,0.08)', border: '1px solid rgba(24,95,165,0.2)', borderRadius: '8px', padding: '12px', marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
               <Bot size={14} style={{ color: '#185FA5', flexShrink: 0, marginTop: '1px' }} />
-              <div style={{ fontSize: '12px', color: '#AAB8C2', lineHeight: 1.5 }}>
+              <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
                 AI-agenten vil analysere hvert emne, estimere fit med BusyConsultings produkter, sætte prioritet og skrive &quot;Hvorfor de passer&quot;. Duplikater springes over automatisk.
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setStep('upload'); setFile(null); setPreview([]); }} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer' }}>
+              <button onClick={() => { setStep('upload'); setFile(null); setPreview([]); }} style={{ flex: 1, background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', cursor: 'pointer' }}>
                 Skift fil
               </button>
-              <button onClick={startImport} style={{ flex: 2, background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <button onClick={startImport} style={{ flex: 2, background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                 <Bot size={14} /> Start AI-research af {totalRows} emner
               </button>
             </div>
@@ -290,34 +290,34 @@ export default function CsvImportModal({ onClose, onDone }: {
             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(24,95,165,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Loader2 size={24} style={{ color: '#185FA5', animation: 'spin 1s linear infinite' }} />
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#ECF0F1', marginBottom: '4px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#1E293B', marginBottom: '4px' }}>
               AI researcher dine emner...
             </div>
-            <div style={{ fontSize: '12px', color: '#667788', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '20px' }}>
               {session.processed_rows} af {session.total_rows} behandlet
             </div>
 
             {/* Progress bar */}
-            <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '16px' }}>
+            <div style={{ background: 'rgba(0,0,0,0.06)', borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '16px' }}>
               <div style={{ width: `${progress}%`, height: '100%', background: '#185FA5', borderRadius: '4px', transition: 'width 0.5s ease' }} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '12px' }}>
               <div>
                 <div style={{ color: '#2ECC71', fontWeight: 700, fontSize: '18px' }}>{session.created_leads}</div>
-                <div style={{ color: '#667788' }}>Oprettet</div>
+                <div style={{ color: '#94A3B8' }}>Oprettet</div>
               </div>
               <div>
-                <div style={{ color: '#667788', fontWeight: 700, fontSize: '18px' }}>{session.skipped_rows}</div>
-                <div style={{ color: '#667788' }}>Sprunget over</div>
+                <div style={{ color: '#94A3B8', fontWeight: 700, fontSize: '18px' }}>{session.skipped_rows}</div>
+                <div style={{ color: '#94A3B8' }}>Sprunget over</div>
               </div>
               <div>
-                <div style={{ color: '#ECF0F1', fontWeight: 700, fontSize: '18px' }}>{session.total_rows - session.processed_rows}</div>
-                <div style={{ color: '#667788' }}>Tilbage</div>
+                <div style={{ color: '#1E293B', fontWeight: 700, fontSize: '18px' }}>{session.total_rows - session.processed_rows}</div>
+                <div style={{ color: '#94A3B8' }}>Tilbage</div>
               </div>
             </div>
 
-            <div style={{ marginTop: '16px', fontSize: '11px', color: '#445566' }}>
+            <div style={{ marginTop: '16px', fontSize: '11px', color: '#94A3B8' }}>
               Dette kan tage op til {Math.ceil(session.total_rows * 3)}s · Du kan lukke vinduet
             </div>
           </div>
@@ -332,10 +332,10 @@ export default function CsvImportModal({ onClose, onDone }: {
               <CheckCircle size={40} style={{ color: '#2ECC71', marginBottom: '12px' }} />
             )}
 
-            <div style={{ fontSize: '16px', fontWeight: 700, color: '#ECF0F1', marginBottom: '4px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#1E293B', marginBottom: '4px' }}>
               {session.status === 'error' ? 'Import fejlede' : 'Import fuldført!'}
             </div>
-            <div style={{ fontSize: '12px', color: '#667788', marginBottom: '24px' }}>
+            <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '24px' }}>
               {session.status === 'error' ? session.error : `AI-agenten har researched og oprettet ${session.created_leads} nye leads`}
             </div>
 
@@ -343,24 +343,24 @@ export default function CsvImportModal({ onClose, onDone }: {
               <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '24px' }}>
                 <div>
                   <div style={{ color: '#2ECC71', fontWeight: 700, fontSize: '24px' }}>{session.created_leads}</div>
-                  <div style={{ color: '#667788', fontSize: '12px' }}>Leads oprettet</div>
+                  <div style={{ color: '#94A3B8', fontSize: '12px' }}>Leads oprettet</div>
                 </div>
                 <div>
-                  <div style={{ color: '#667788', fontWeight: 700, fontSize: '24px' }}>{session.skipped_rows}</div>
-                  <div style={{ color: '#667788', fontSize: '12px' }}>Duplikater sprunget over</div>
+                  <div style={{ color: '#94A3B8', fontWeight: 700, fontSize: '24px' }}>{session.skipped_rows}</div>
+                  <div style={{ color: '#94A3B8', fontSize: '12px' }}>Duplikater sprunget over</div>
                 </div>
                 <div>
-                  <div style={{ color: '#ECF0F1', fontWeight: 700, fontSize: '24px' }}>{session.total_rows}</div>
-                  <div style={{ color: '#667788', fontSize: '12px' }}>Rækker i alt</div>
+                  <div style={{ color: '#1E293B', fontWeight: 700, fontSize: '24px' }}>{session.total_rows}</div>
+                  <div style={{ color: '#94A3B8', fontSize: '12px' }}>Rækker i alt</div>
                 </div>
               </div>
             )}
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={onClose} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', cursor: 'pointer' }}>
+              <button onClick={onClose} style={{ flex: 1, background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', cursor: 'pointer' }}>
                 Luk
               </button>
-              <button onClick={() => { onDone(); onClose(); }} style={{ flex: 2, background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#ECF0F1', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => { onDone(); onClose(); }} style={{ flex: 2, background: '#185FA5', border: 'none', borderRadius: '6px', padding: '10px', color: '#1E293B', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                 Se nye leads i CRM →
               </button>
             </div>

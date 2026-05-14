@@ -5,17 +5,13 @@ import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import { useSidebar } from '@/lib/SidebarContext';
 import {
-  LayoutDashboard, TrendingUp, MessageSquare,
-  Settings, LogOut, Building2, ChevronLeft, ChevronRight, Bot,
+  MessageSquare, Settings, LogOut, Building2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { label: 'Oversigt',      href: '/',          icon: LayoutDashboard },
-  { label: 'Messenger',     href: '/messenger',  icon: MessageSquare   },
-  { label: 'CRM',           href: '/crm',        icon: TrendingUp      },
-  { label: 'Agenter',       href: '/agenter',    icon: Bot             },
-  { label: 'Kunder',        href: '/kunder',     icon: Building2       },
-  { label: 'Indstillinger', href: '/settings',   icon: Settings        },
+  { label: 'Kunder',        href: '/kunder',    icon: Building2    },
+  { label: 'Messenger',     href: '/messenger', icon: MessageSquare },
+  { label: 'Indstillinger', href: '/settings',  icon: Settings     },
 ];
 
 export default function Sidebar() {
@@ -51,7 +47,7 @@ export default function Sidebar() {
             <div style={{ fontWeight: 700, color: '#ECF0F1', fontSize: '15px', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
               BusyGroup
             </div>
-            <div style={{ fontSize: '10px', color: '#445566' }}>Agent Dashboard</div>
+            <div style={{ fontSize: '10px', color: '#445566' }}>Client Platform</div>
           </div>
         )}
         <button
@@ -146,7 +142,7 @@ export default function Sidebar() {
                   color: user.role === 'admin' ? '#E74C3C' : '#185FA5',
                   textTransform: 'uppercase', letterSpacing: '0.05em',
                 }}>
-                  {user.role === 'admin' ? 'Admin' : 'Sælger'}
+                  {user.role === 'admin' ? 'Admin' : 'Bruger'}
                 </div>
               </div>
             )}
