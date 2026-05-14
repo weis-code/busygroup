@@ -71,8 +71,8 @@ export default function ProjectsPage() {
   };
 
   const input: React.CSSProperties = {
-    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7,
-    padding: '8px 12px', color: '#ECF0F1', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box',
+    background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 7,
+    padding: '8px 12px', color: '#1E293B', fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box',
   };
 
   return (
@@ -81,7 +81,7 @@ export default function ProjectsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#ECF0F1' }}>Projekter</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1E293B' }}>Projekter</h1>
           <div style={{ fontSize: 12, color: '#4A5568', marginTop: 4 }}>
             {boards.length} {boards.length === 1 ? 'projekt' : 'projekter'}
           </div>
@@ -98,7 +98,7 @@ export default function ProjectsPage() {
       {boards.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 20px', color: '#4A5568' }}>
           <LayoutGrid size={48} style={{ opacity: 0.15, display: 'block', margin: '0 auto 16px' }} />
-          <div style={{ fontSize: 16, color: '#556677', marginBottom: 8 }}>Ingen projekter endnu</div>
+          <div style={{ fontSize: 16, color: '#94A3B8', marginBottom: 8 }}>Ingen projekter endnu</div>
           <div style={{ fontSize: 13, marginBottom: 20 }}>Opret dit første projekt for at komme i gang</div>
           <button onClick={() => setShowCreate(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(232,64,37,0.12)', border: '1px solid rgba(232,64,37,0.25)', borderRadius: 8, padding: '9px 18px', color: '#E84025', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Plus size={14} /> Nyt projekt
@@ -110,16 +110,16 @@ export default function ProjectsPage() {
             <div
               key={board.id}
               onClick={() => router.push(`/projects/${board.id}`)}
-              style={{ background: '#111820', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.06)', transition: 'border-color 0.15s, transform 0.15s' }}
+              style={{ background: '#F8FAFC', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.06)', transition: 'border-color 0.15s, transform 0.15s' }}
               onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = board.color + '66'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLDivElement).style.transform = ''; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(0,0,0,0.06)'; (e.currentTarget as HTMLDivElement).style.transform = ''; }}
             >
               {/* Color stripe */}
               <div style={{ height: 4, background: board.color }} />
 
               <div style={{ padding: '16px 18px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#ECF0F1', lineHeight: 1.3 }}>{board.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1E293B', lineHeight: 1.3 }}>{board.name}</div>
                   <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                     {board.visibility === 'private'
                       ? <Lock size={12} style={{ color: '#4A5568' }} />
@@ -140,16 +140,16 @@ export default function ProjectsPage() {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                   <div style={{ display: 'flex', gap: 14 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#556677' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94A3B8' }}>
                       <CheckSquare size={11} /> {board.task_count} opgaver
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#556677' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94A3B8' }}>
                       <Users size={11} /> {board.member_count}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#2D3748' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#E2E8F0' }}>
                     <Calendar size={10} /> {timeAgo(board.updated_at)}
                   </div>
                 </div>
@@ -172,29 +172,29 @@ export default function ProjectsPage() {
       {/* Create modal */}
       {showCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div style={{ background: '#111820', borderRadius: 14, width: '100%', maxWidth: 480, border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+          <div style={{ background: '#F8FAFC', borderRadius: 14, width: '100%', maxWidth: 480, border: '1px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
             {/* Modal header */}
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 600, fontSize: 15, color: '#ECF0F1' }}>Nyt projekt</span>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 600, fontSize: 15, color: '#1E293B' }}>Nyt projekt</span>
               <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A5568', padding: 2 }}><X size={16} /></button>
             </div>
 
             <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Name */}
               <div>
-                <label style={{ fontSize: 11, color: '#667788', display: 'block', marginBottom: 5 }}>Projektnavn *</label>
+                <label style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginBottom: 5 }}>Projektnavn *</label>
                 <input autoFocus value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="f.eks. Q2 Kampagne" style={input} onKeyDown={e => { if (e.key === 'Enter') handleCreate(); }} />
               </div>
 
               {/* Description */}
               <div>
-                <label style={{ fontSize: 11, color: '#667788', display: 'block', marginBottom: 5 }}>Beskrivelse</label>
+                <label style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginBottom: 5 }}>Beskrivelse</label>
                 <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Kort beskrivelse..." style={input} />
               </div>
 
               {/* Color */}
               <div>
-                <label style={{ fontSize: 11, color: '#667788', display: 'block', marginBottom: 7 }}>Farve</label>
+                <label style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginBottom: 7 }}>Farve</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {BOARD_COLORS.map(c => (
                     <button key={c} onClick={() => setForm(p => ({ ...p, color: c }))} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: form.color === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -206,7 +206,7 @@ export default function ProjectsPage() {
 
               {/* Visibility */}
               <div>
-                <label style={{ fontSize: 11, color: '#667788', display: 'block', marginBottom: 7 }}>Synlighed</label>
+                <label style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginBottom: 7 }}>Synlighed</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
                     { val: 'private', label: 'Privat', icon: Lock, hint: 'Kun dig og inviterede' },
@@ -215,11 +215,11 @@ export default function ProjectsPage() {
                     <button
                       key={opt.val}
                       onClick={() => setForm(p => ({ ...p, visibility: opt.val as 'private' | 'team' }))}
-                      style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: `1px solid ${form.visibility === opt.val ? form.color : 'rgba(255,255,255,0.08)'}`, background: form.visibility === opt.val ? form.color + '20' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                      style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: `1px solid ${form.visibility === opt.val ? form.color : 'rgba(0,0,0,0.08)'}`, background: form.visibility === opt.val ? form.color + '20' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                         <opt.icon size={12} style={{ color: form.visibility === opt.val ? form.color : '#4A5568' }} />
-                        <span style={{ fontSize: 12, fontWeight: 600, color: form.visibility === opt.val ? '#ECF0F1' : '#667788' }}>{opt.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: form.visibility === opt.val ? '#1E293B' : '#94A3B8' }}>{opt.label}</span>
                       </div>
                       <div style={{ fontSize: 10, color: '#4A5568' }}>{opt.hint}</div>
                     </button>
@@ -230,7 +230,7 @@ export default function ProjectsPage() {
               {/* Members (if private) */}
               {form.visibility === 'private' && users.length > 1 && (
                 <div>
-                  <label style={{ fontSize: 11, color: '#667788', display: 'block', marginBottom: 7 }}>Del med</label>
+                  <label style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginBottom: 7 }}>Del med</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 140, overflowY: 'auto' }}>
                     {users.map(u => (
                       <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', background: form.members.includes(u.id) ? 'rgba(232,64,37,0.08)' : 'transparent' }}>
@@ -253,7 +253,7 @@ export default function ProjectsPage() {
               {/* Customer link */}
               {customers.length > 0 && (
                 <div>
-                  <label style={{ fontSize: 11, color: '#667788', display: 'block', marginBottom: 5 }}>Link til kunde (valgfrit)</label>
+                  <label style={{ fontSize: 11, color: '#94A3B8', display: 'block', marginBottom: 5 }}>Link til kunde (valgfrit)</label>
                   <select value={form.customer_id} onChange={e => setForm(p => ({ ...p, customer_id: e.target.value }))} style={{ ...input, cursor: 'pointer' }}>
                     <option value="">Ingen kunde</option>
                     {customers.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
@@ -262,10 +262,10 @@ export default function ProjectsPage() {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button onClick={handleCreate} disabled={saving || !form.name.trim()} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: form.name.trim() && !saving ? '#E84025' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '10px', color: form.name.trim() && !saving ? '#fff' : '#4A5568', fontSize: 13, fontWeight: 600, cursor: form.name.trim() && !saving ? 'pointer' : 'not-allowed' }}>
+                <button onClick={handleCreate} disabled={saving || !form.name.trim()} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: form.name.trim() && !saving ? '#E84025' : 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 8, padding: '10px', color: form.name.trim() && !saving ? '#fff' : '#4A5568', fontSize: 13, fontWeight: 600, cursor: form.name.trim() && !saving ? 'pointer' : 'not-allowed' }}>
                   <ChevronRight size={14} /> {saving ? 'Opretter...' : 'Opret projekt'}
                 </button>
-                <button onClick={() => setShowCreate(false)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#667788', fontSize: 13, cursor: 'pointer' }}>Annuller</button>
+                <button onClick={() => setShowCreate(false)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', background: 'transparent', color: '#94A3B8', fontSize: 13, cursor: 'pointer' }}>Annuller</button>
               </div>
             </div>
           </div>

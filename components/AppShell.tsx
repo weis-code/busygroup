@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  MessageSquare, Settings, LogOut, Building2, ChevronLeft, ChevronRight,
+  MessageSquare, Settings, LogOut, Building2, ChevronLeft, ChevronRight, LayoutGrid,
 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 
@@ -17,6 +17,7 @@ const BG_BORDER = 'rgba(0,0,0,0.08)';
 
 const NAV_ITEMS = [
   { label: 'Kunder',        href: '/kunder',    icon: Building2    },
+  { label: 'Projekter',     href: '/projects',  icon: LayoutGrid   },
   { label: 'Messenger',     href: '/messenger', icon: MessageSquare },
   { label: 'Indstillinger', href: '/settings',  icon: Settings     },
 ];

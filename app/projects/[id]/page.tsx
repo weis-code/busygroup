@@ -53,7 +53,7 @@ function dueDateStyle(due: string): { color: string; bg: string } {
   const diff = new Date(due).getTime() - Date.now();
   if (diff < 0) return { color: '#E84025', bg: 'rgba(232,64,37,0.12)' };
   if (diff < 86400000 * 2) return { color: '#E67E22', bg: 'rgba(230,126,34,0.12)' };
-  return { color: '#4A5568', bg: 'rgba(255,255,255,0.05)' };
+  return { color: '#4A5568', bg: 'rgba(0,0,0,0.05)' };
 }
 
 export default function BoardPage() {
@@ -242,22 +242,22 @@ export default function BoardPage() {
   }
 
   const inp: React.CSSProperties = {
-    background: '#0F1923', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7,
-    padding: '7px 10px', color: '#ECF0F1', fontSize: 13, outline: 'none', boxSizing: 'border-box',
+    background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 7,
+    padding: '7px 10px', color: '#1E293B', fontSize: 13, outline: 'none', boxSizing: 'border-box',
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0C0F14', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#FFFFFF', overflow: 'hidden' }}>
 
       {/* ── Top bar ────────────────────────────────────────────────────────── */}
-      <div style={{ height: 54, flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px', background: '#0A0D12' }}>
+      <div style={{ height: 54, flexShrink: 0, borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px', background: '#0A0D12' }}>
         <button onClick={() => router.push('/projects')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A5568', display: 'flex', alignItems: 'center', gap: 5, padding: '4px 6px', borderRadius: 6 }}>
           <ArrowLeft size={14} /> <span style={{ fontSize: 12 }}>Projekter</span>
         </button>
-        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
+        <div style={{ width: 1, height: 16, background: 'rgba(0,0,0,0.08)' }} />
 
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: board.color, flexShrink: 0 }} />
-        <span style={{ fontWeight: 600, fontSize: 15, color: '#ECF0F1' }}>{board.name}</span>
+        <span style={{ fontWeight: 600, fontSize: 15, color: '#1E293B' }}>{board.name}</span>
 
         {board.visibility === 'private'
           ? <Lock size={12} style={{ color: '#4A5568' }} />
@@ -277,12 +277,12 @@ export default function BoardPage() {
           {members.slice(0, 5).map(m => (
             <div key={m.id} title={m.name} style={{ marginLeft: -6 }}><Avatar name={m.name} size={26} /></div>
           ))}
-          {members.length > 5 && <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#667788', marginLeft: -6 }}>+{members.length - 5}</div>}
+          {members.length > 5 && <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94A3B8', marginLeft: -6 }}>+{members.length - 5}</div>}
         </div>
 
         <button
           onClick={() => setShowSettings(s => !s)}
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, padding: '5px 10px', color: '#667788', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+          style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 7, padding: '5px 10px', color: '#94A3B8', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
         >
           <MoreHorizontal size={14} />
         </button>
@@ -298,10 +298,10 @@ export default function BoardPage() {
               key={col.id}
               onDragOver={e => onDragOver(e, col.id)}
               onDrop={e => onDrop(e, col.id)}
-              style={{ width: 272, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, background: '#111820', borderRadius: 12, padding: '0 0 8px', border: '1px solid rgba(255,255,255,0.06)', maxHeight: 'calc(100vh - 130px)', overflow: 'hidden' }}
+              style={{ width: 272, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, background: '#F8FAFC', borderRadius: 12, padding: '0 0 8px', border: '1px solid rgba(0,0,0,0.06)', maxHeight: 'calc(100vh - 130px)', overflow: 'hidden' }}
             >
               {/* Column header */}
-              <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
 
                 {editingColId === col.id ? (
@@ -323,19 +323,19 @@ export default function BoardPage() {
                   </span>
                 )}
 
-                <span style={{ fontSize: 10, color: '#2D3748', background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '1px 7px', fontWeight: 600 }}>{colTasks.length}</span>
+                <span style={{ fontSize: 10, color: '#E2E8F0', background: 'rgba(0,0,0,0.04)', borderRadius: 10, padding: '1px 7px', fontWeight: 600 }}>{colTasks.length}</span>
 
                 <div style={{ position: 'relative' }}>
                   <button
                     onClick={() => { setEditingColId(col.id); setEditColName(col.name); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2D3748', padding: 2, display: 'flex', borderRadius: 4 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E2E8F0', padding: 2, display: 'flex', borderRadius: 4 }}
                     title="Omdøb"
                   ><Pencil size={11} /></button>
                 </div>
 
                 <button
                   onClick={() => deleteColumn(col.id)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2D3748', padding: 2, display: 'flex', borderRadius: 4 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E2E8F0', padding: 2, display: 'flex', borderRadius: 4 }}
                   title="Slet kolonne"
                 ><X size={11} /></button>
               </div>
@@ -353,9 +353,9 @@ export default function BoardPage() {
                       draggable
                       onDragStart={() => onDragStart(task.id)}
                       onClick={() => openTask(task)}
-                      style={{ background: '#0C0F14', borderRadius: 9, padding: '10px 11px', cursor: 'pointer', border: `1px solid ${task.done ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)'}`, transition: 'border-color 0.12s', userSelect: 'none', opacity: task.done ? 0.65 : 1 }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = task.done ? 'rgba(46,204,113,0.3)' : 'rgba(255,255,255,0.12)')}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor = task.done ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)')}
+                      style={{ background: '#FFFFFF', borderRadius: 9, padding: '10px 11px', cursor: 'pointer', border: `1px solid ${task.done ? 'rgba(46,204,113,0.15)' : 'rgba(0,0,0,0.05)'}`, transition: 'border-color 0.12s', userSelect: 'none', opacity: task.done ? 0.65 : 1 }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = task.done ? 'rgba(46,204,113,0.3)' : 'rgba(0,0,0,0.10)')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = task.done ? 'rgba(46,204,113,0.15)' : 'rgba(0,0,0,0.05)')}
                     >
                       {/* Labels */}
                       {labels.length > 0 && (
@@ -373,7 +373,7 @@ export default function BoardPage() {
                           title={task.done ? 'Marker som ikke færdig' : 'Marker som færdig'}
                           style={{
                             flexShrink: 0, marginTop: 1,
-                            width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${task.done ? '#2ECC71' : 'rgba(255,255,255,0.2)'}`,
+                            width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${task.done ? '#2ECC71' : 'rgba(0,0,0,0.15)'}`,
                             background: task.done ? '#2ECC71' : 'transparent',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             transition: 'all 0.15s',
@@ -427,16 +427,16 @@ export default function BoardPage() {
                   />
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => addTask(col.id)} style={{ flex: 1, background: '#E84025', border: 'none', borderRadius: 6, padding: '6px', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><Check size={11} /> Tilføj</button>
-                    <button onClick={() => { setAddingToCol(null); setNewTaskTitle(''); }} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '6px 10px', color: '#4A5568', fontSize: 12, cursor: 'pointer' }}><X size={11} /></button>
+                    <button onClick={() => { setAddingToCol(null); setNewTaskTitle(''); }} style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '6px 10px', color: '#4A5568', fontSize: 12, cursor: 'pointer' }}><X size={11} /></button>
                   </div>
                 </div>
               ) : (
                 <div style={{ padding: '2px 8px 0', flexShrink: 0 }}>
                   <button
                     onClick={() => { setAddingToCol(col.id); setNewTaskTitle(''); }}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: '#2D3748', fontSize: 12, cursor: 'pointer', transition: 'color 0.12s' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#667788')}
-                    onMouseLeave={e => (e.currentTarget.style.color = '#2D3748')}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: '#E2E8F0', fontSize: 12, cursor: 'pointer', transition: 'color 0.12s' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#94A3B8')}
+                    onMouseLeave={e => (e.currentTarget.style.color = '#E2E8F0')}
                   >
                     <Plus size={13} /> Tilføj opgave
                   </button>
@@ -448,7 +448,7 @@ export default function BoardPage() {
 
         {/* Add column */}
         {addingCol ? (
-          <div style={{ width: 240, flexShrink: 0, background: '#111820', borderRadius: 12, padding: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ width: 240, flexShrink: 0, background: '#F8FAFC', borderRadius: 12, padding: 12, border: '1px solid rgba(0,0,0,0.08)' }}>
             <input
               autoFocus
               value={newColName}
@@ -459,15 +459,15 @@ export default function BoardPage() {
             />
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={addColumn} style={{ flex: 1, background: '#E84025', border: 'none', borderRadius: 6, padding: '7px', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Tilføj</button>
-              <button onClick={() => setAddingCol(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '7px 10px', color: '#4A5568', fontSize: 12, cursor: 'pointer' }}><X size={11} /></button>
+              <button onClick={() => setAddingCol(false)} style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '7px 10px', color: '#4A5568', fontSize: 12, cursor: 'pointer' }}><X size={11} /></button>
             </div>
           </div>
         ) : (
           <button
             onClick={() => setAddingCol(true)}
-            style={{ width: 200, flexShrink: 0, height: 44, background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: 12, color: '#3A4A5A', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'border-color 0.15s, color 0.15s' }}
-            onMouseEnter={e => { (e.currentTarget).style.borderColor = 'rgba(255,255,255,0.2)'; (e.currentTarget).style.color = '#667788'; }}
-            onMouseLeave={e => { (e.currentTarget).style.borderColor = 'rgba(255,255,255,0.1)'; (e.currentTarget).style.color = '#3A4A5A'; }}
+            style={{ width: 200, flexShrink: 0, height: 44, background: 'rgba(0,0,0,0.03)', border: '1px dashed rgba(0,0,0,0.08)', borderRadius: 12, color: '#94A3B8', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'border-color 0.15s, color 0.15s' }}
+            onMouseEnter={e => { (e.currentTarget).style.borderColor = 'rgba(0,0,0,0.15)'; (e.currentTarget).style.color = '#94A3B8'; }}
+            onMouseLeave={e => { (e.currentTarget).style.borderColor = 'rgba(0,0,0,0.08)'; (e.currentTarget).style.color = '#94A3B8'; }}
           >
             <Plus size={14} /> Tilføj kolonne
           </button>
@@ -478,10 +478,10 @@ export default function BoardPage() {
       {activeTask && (
         <>
           <div onClick={() => setActiveTask(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200 }} />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 460, background: '#0F1420', borderLeft: '1px solid rgba(255,255,255,0.08)', zIndex: 201, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 460, background: '#0F1420', borderLeft: '1px solid rgba(0,0,0,0.08)', zIndex: 201, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
             {/* Detail header */}
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
               <div style={{ flex: 1 }}>
                 {editingTask ? (
                   <input
@@ -491,21 +491,21 @@ export default function BoardPage() {
                     autoFocus
                   />
                 ) : (
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#ECF0F1', lineHeight: 1.3 }}>{activeTask.title}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#1E293B', lineHeight: 1.3 }}>{activeTask.title}</div>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {editingTask ? (
                   <>
                     <button onClick={saveTask} style={{ background: '#E84025', border: 'none', borderRadius: 6, padding: '6px 12px', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Check size={12} /> Gem</button>
-                    <button onClick={() => setEditingTask(false)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '6px 10px', color: '#4A5568', fontSize: 12, cursor: 'pointer' }}><X size={12} /></button>
+                    <button onClick={() => setEditingTask(false)} style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '6px 10px', color: '#4A5568', fontSize: 12, cursor: 'pointer' }}><X size={12} /></button>
                   </>
                 ) : (
-                  <button onClick={() => setEditingTask(true)} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '6px 10px', color: '#667788', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Rediger</button>
+                  <button onClick={() => setEditingTask(true)} style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 6, padding: '6px 10px', color: '#94A3B8', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}><Pencil size={12} /> Rediger</button>
                 )}
                 <button
                   onClick={e => toggleDone(e, activeTask)}
-                  style={{ background: activeTask.done ? 'rgba(46,204,113,0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${activeTask.done ? 'rgba(46,204,113,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 6, padding: '6px 10px', color: activeTask.done ? '#2ECC71' : '#667788', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  style={{ background: activeTask.done ? 'rgba(46,204,113,0.15)' : 'rgba(0,0,0,0.05)', border: `1px solid ${activeTask.done ? 'rgba(46,204,113,0.4)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 6, padding: '6px 10px', color: activeTask.done ? '#2ECC71' : '#94A3B8', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   <Check size={12} /> {activeTask.done ? 'Færdig' : 'Marker færdig'}
                 </button>
@@ -539,7 +539,7 @@ export default function BoardPage() {
                   {editingTask ? (
                     <input type="date" value={taskForm.due_date || ''} onChange={e => setTaskForm(p => ({ ...p, due_date: e.target.value || null }))} style={{ ...inp, width: '100%', colorScheme: 'dark' }} />
                   ) : (
-                    <span style={{ fontSize: 12, color: activeTask.due_date ? (dueDateStyle(activeTask.due_date).color) : '#3A4A5A' }}>
+                    <span style={{ fontSize: 12, color: activeTask.due_date ? (dueDateStyle(activeTask.due_date).color) : '#94A3B8' }}>
                       {activeTask.due_date ? new Date(activeTask.due_date).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Ingen deadline'}
                     </span>
                   )}
@@ -558,7 +558,7 @@ export default function BoardPage() {
                       {activeTask.assigned_name ? (
                         <><Avatar name={activeTask.assigned_name} size={20} /><span style={{ fontSize: 12, color: '#B0C0D0' }}>{activeTask.assigned_name}</span></>
                       ) : (
-                        <span style={{ fontSize: 12, color: '#3A4A5A' }}>Ikke tildelt</span>
+                        <span style={{ fontSize: 12, color: '#94A3B8' }}>Ikke tildelt</span>
                       )}
                     </div>
                   )}
@@ -586,7 +586,7 @@ export default function BoardPage() {
                     {customers.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
                   </select>
                 ) : (
-                  <span style={{ fontSize: 12, color: activeTask.customer_company ? '#E84025' : '#3A4A5A' }}>
+                  <span style={{ fontSize: 12, color: activeTask.customer_company ? '#E84025' : '#94A3B8' }}>
                     {activeTask.customer_company || 'Ingen kunde'}
                   </span>
                 )}
@@ -618,7 +618,7 @@ export default function BoardPage() {
                 {editingTask ? (
                   <textarea value={taskForm.description || ''} onChange={e => setTaskForm(p => ({ ...p, description: e.target.value }))} placeholder="Tilføj en beskrivelse..." rows={4} style={{ ...inp, width: '100%', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }} />
                 ) : (
-                  <div style={{ fontSize: 13, color: activeTask.description ? '#8899AA' : '#3A4A5A', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  <div style={{ fontSize: 13, color: activeTask.description ? '#64748B' : '#94A3B8', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                     {activeTask.description || 'Ingen beskrivelse'}
                   </div>
                 )}
@@ -631,15 +631,15 @@ export default function BoardPage() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                   {comments.map(c => (
-                    <div key={c.id} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '9px 11px' }}>
+                    <div key={c.id} style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 8, padding: '9px 11px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
                         <Avatar name={c.user_name} size={20} />
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#B0C0D0' }}>{c.user_name}</span>
-                        <span style={{ fontSize: 10, color: '#2D3748', marginLeft: 'auto' }}>
+                        <span style={{ fontSize: 10, color: '#E2E8F0', marginLeft: 'auto' }}>
                           {new Date(c.created_at).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <div style={{ fontSize: 13, color: '#8899AA', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.content}</div>
+                      <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.content}</div>
                     </div>
                   ))}
                 </div>
@@ -653,7 +653,7 @@ export default function BoardPage() {
                     rows={2}
                     style={{ ...inp, flex: 1, resize: 'none', fontFamily: 'inherit', fontSize: 12 }}
                   />
-                  <button onClick={postComment} disabled={!newComment.trim()} style={{ background: newComment.trim() ? '#E84025' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 7, padding: '0 14px', color: newComment.trim() ? '#fff' : '#3A4A5A', cursor: newComment.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center' }}>
+                  <button onClick={postComment} disabled={!newComment.trim()} style={{ background: newComment.trim() ? '#E84025' : 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 7, padding: '0 14px', color: newComment.trim() ? '#fff' : '#94A3B8', cursor: newComment.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center' }}>
                     <Check size={14} />
                   </button>
                 </div>
@@ -667,7 +667,7 @@ export default function BoardPage() {
       {showSettings && (
         <>
           <div onClick={() => setShowSettings(false)} style={{ position: 'fixed', inset: 0, zIndex: 198 }} />
-          <div style={{ position: 'fixed', top: 54, right: 16, width: 260, background: '#111820', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, zIndex: 199, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ position: 'fixed', top: 54, right: 16, width: 260, background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 10, zIndex: 199, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontSize: 11, color: '#4A5568', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Board indstillinger</div>
             <button
               onClick={async () => {
