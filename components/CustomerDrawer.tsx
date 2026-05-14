@@ -182,7 +182,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
         }
       })
       .catch(() => {});
-  }, [customer.id]);
+  }, [customer.id, customer.contact_email]);
 
   const loadMembers = useCallback(() => {
     fetch(`/api/customers/${customer.id}/members`)

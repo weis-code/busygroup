@@ -495,7 +495,6 @@ export default function MessengerPage() {
             ) : (
               <>
                 {messages.map((msg, i) => {
-                  const isMe = me && msg.sender_id === me.id;
                   const prevMsg = messages[i - 1];
                   const nextMsg = messages[i + 1];
                   const showDate = !prevMsg || !isSameDay(prevMsg.created_at, msg.created_at);
