@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  LayoutDashboard, TrendingUp, MessageSquare,
-  Settings, LogOut, Bot, Building2, ChevronLeft, ChevronRight, LayoutGrid,
+  MessageSquare, Settings, LogOut, Building2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 
@@ -17,13 +16,9 @@ const BG_SIDE   = '#0C0F14';          // Sidebar baggrund
 const BG_BORDER = 'rgba(255,255,255,0.07)';
 
 const NAV_ITEMS = [
-  { label: 'Oversigt',      href: '/',           icon: LayoutDashboard },
-  { label: 'Messenger',     href: '/messenger',   icon: MessageSquare   },
-  { label: 'Projekter',     href: '/projects',    icon: LayoutGrid      },
-  { label: 'CRM',           href: '/crm',         icon: TrendingUp      },
-  { label: 'Kunder',        href: '/kunder',      icon: Building2       },
-  { label: 'Agenter',       href: '/pipeline',    icon: Bot             },
-  { label: 'Indstillinger', href: '/settings',    icon: Settings        },
+  { label: 'Kunder',        href: '/kunder',    icon: Building2    },
+  { label: 'Messenger',     href: '/messenger', icon: MessageSquare },
+  { label: 'Indstillinger', href: '/settings',  icon: Settings     },
 ];
 
 const W_OPEN   = 220;
@@ -93,7 +88,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 BusyGroup
               </div>
               <div style={{ fontSize: '10px', color: '#445566', letterSpacing: '0.02em' }}>
-                Agent Dashboard
+                Client Platform
               </div>
             </div>
           )}
@@ -237,7 +232,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     color: user.role === 'admin' ? PRIMARY : '#445566',
                     textTransform: 'uppercase', letterSpacing: '0.06em',
                   }}>
-                    {user.role === 'admin' ? 'Admin' : 'Sælger'}
+                    {user.role === 'admin' ? 'Admin' : 'Bruger'}
                   </div>
                 </div>
               )}
