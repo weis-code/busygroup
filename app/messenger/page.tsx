@@ -527,11 +527,11 @@ export default function MessengerPage() {
                         <div style={{
                           display: 'flex', gap: '10px', alignItems: 'flex-start',
                           marginBottom: isLastInGroup ? '12px' : '2px',
-                          paddingTop: showAvatar ? '4px' : '0',
+                          paddingTop: showAvatar ? '8px' : '1px',
                         }}>
-                          {/* Avatar */}
-                          <div style={{ width: '36px', flexShrink: 0 }}>
-                            {showAvatar && (
+                          {/* Avatar — kun på første besked i en gruppe */}
+                          <div style={{ width: '36px', flexShrink: 0, paddingTop: showAvatar ? 0 : 2 }}>
+                            {showAvatar ? (
                               <div style={{
                                 width: '36px', height: '36px', borderRadius: '8px',
                                 background: avatarBg,
@@ -544,21 +544,23 @@ export default function MessengerPage() {
                                   <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#E84025', border: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 6 }}>P</div>
                                 )}
                               </div>
+                            ) : (
+                              <span style={{ fontSize: '10px', color: '#CBD5E1', display: 'block', textAlign: 'right', paddingRight: 4, paddingTop: 3 }}>
+                                {formatMsgTime(msg.created_at)}
+                              </span>
                             )}
                           </div>
 
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {showAvatar && (
-                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
-                                <span style={{ fontSize: '14px', fontWeight: 700, color: isPortalMsg ? '#E84025' : color }}>
-                                  {displayName}
-                                </span>
-                                {isPortalMsg && (
-                                  <span style={{ fontSize: '9px', color: '#E84025', background: 'rgba(232,64,37,0.12)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase' }}>Kunde</span>
-                                )}
-                                <span style={{ fontSize: '11px', color: '#94A3B8' }}>{formatMsgTime(msg.created_at)}</span>
-                              </div>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '3px' }}>
+                              <span style={{ fontSize: showAvatar ? '14px' : '11px', fontWeight: showAvatar ? 700 : 500, color: isPortalMsg ? '#E84025' : color }}>
+                                {displayName}
+                              </span>
+                              {isPortalMsg && showAvatar && (
+                                <span style={{ fontSize: '9px', color: '#E84025', background: 'rgba(232,64,37,0.12)', padding: '1px 5px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase' }}>Kunde</span>
+                              )}
+                              {showAvatar && <span style={{ fontSize: '11px', color: '#94A3B8' }}>{formatMsgTime(msg.created_at)}</span>}
+                            </div>
 
                             {/* Fil-vedhæftning */}
                             {msg.file_data && (
