@@ -647,7 +647,7 @@ export default function CustomerDrawer({ customer, onClose, onUpdate, onDelete }
                               </div>
                               {active && (
                                 <button
-                                  onClick={e => { e.stopPropagation(); isEditing ? setEditingProductId(null) : openPriceEdit(active); }}
+                                  onClick={e => { e.stopPropagation(); if (isEditing) { setEditingProductId(null); } else { openPriceEdit(active); } }}
                                   title="Tilpas pris"
                                   style={{ background: isEditing ? 'rgba(243,156,18,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isEditing ? 'rgba(243,156,18,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '4px', padding: '3px 6px', cursor: 'pointer', color: isEditing ? '#F39C12' : '#667788', fontSize: '11px' }}
                                 >

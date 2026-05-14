@@ -565,6 +565,7 @@ export default function MessengerPage() {
                             {msg.file_data && (
                               <div style={{ marginBottom: msg.content ? '6px' : 0 }}>
                                 {msg.file_type?.startsWith('image/') ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
                                   <img
                                     src={`data:${msg.file_type};base64,${msg.file_data}`}
                                     alt={msg.file_name || 'Billede'}

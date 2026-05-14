@@ -300,6 +300,7 @@ export default function PortalPage() {
                       {msg.file_data && (
                         <div style={{ maxWidth: '70%', marginBottom: msg.content ? 4 : 0 }}>
                           {msg.file_type?.startsWith('image/') ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={`data:${msg.file_type};base64,${msg.file_data}`} alt={msg.file_name || 'Billede'} style={{ maxWidth: 280, maxHeight: 200, borderRadius: 8, display: 'block', border: '1px solid rgba(255,255,255,0.08)' }} />
                           ) : (
                             <a href={`data:${msg.file_type};base64,${msg.file_data}`} download={msg.file_name || 'fil'} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#3498DB', background: 'rgba(52,152,219,0.1)', border: '1px solid rgba(52,152,219,0.2)', borderRadius: 6, padding: '5px 10px', textDecoration: 'none' }}>
