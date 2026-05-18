@@ -550,6 +550,21 @@ export async function initSchema(): Promise<void> {
   `;
   await sql`ALTER TABLE sc_deals ADD COLUMN IF NOT EXISTS task_type_id TEXT REFERENCES sc_task_types(id)`.catch(() => {});
 
+  // ── Salgsmodul: sælgertildeling, omsætningsmodel, aktiv-flag ─────────────
+  await sql`ALTER TABLE sc_clients ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true`.catch(() => {});
+  await sql`ALTER TABLE sc_clients ADD COLUMN IF NOT EXISTS revenue_model TEXT NOT NULL DEFAULT 'none'`.catch(() => {});
+  await sql`ALTER TABLE sc_clients ADD COLUMN IF NOT EXISTS revenue_fixed INTEGER NOT NULL DEFAULT 0`.catch(() => {});
+  await sql`ALTER TABLE sc_clients ADD COLUMN IF NOT EXISTS revenue_pct NUMERIC NOT NULL DEFAULT 0`.catch(() => {});
+  await sql`
+    CREATE TABLE IF NOT EXISTS sc_client_sellers (
+      id         TEXT PRIMARY KEY,
+      client_id  TEXT NOT NULL REFERENCES sc_clients(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL REFERENCES users(id)      ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      UNIQUE(client_id, user_id)
+    )
+  `;
+
   // ── Eksternt salgsmodul (sc = sales clients) ─────────────────────────────
   await sql`
     CREATE TABLE IF NOT EXISTS sc_clients (

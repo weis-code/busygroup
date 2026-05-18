@@ -10,21 +10,22 @@ import {
 
 interface SellerStat {
   id: string; name: string;
-  deals_count: number; revenue: number;
+  deals_count: number; revenue: number; house_revenue: number;
   revenue_goal: number; deals_goal: number;
 }
-interface MonthStat { period: string; label: string; count: number; revenue: number; }
-interface OpgaveStat { id: string; name: string; color: string; deals_count: number; revenue: number; }
+interface MonthStat { period: string; label: string; count: number; revenue: number; house_revenue: number; }
+interface OpgaveStat { id: string; name: string; color: string; deals_count: number; revenue: number; house_revenue: number; }
 interface RecentDeal {
-  id: string; company_name: string; deal_value: number; closed_at: string; created_at: string;
+  id: string; company_name: string; deal_value: number; house_revenue: number; closed_at: string; created_at: string;
   salesperson_name: string | null; product_name: string | null;
   client_name: string | null; client_color: string | null;
 }
 interface DashData {
-  today: { count: number; revenue: number };
-  week:  { count: number; revenue: number };
-  month: { count: number; revenue: number };
-  year:  { count: number; revenue: number };
+  isAdmin: boolean;
+  today: { count: number; revenue: number; house_revenue: number };
+  week:  { count: number; revenue: number; house_revenue: number };
+  month: { count: number; revenue: number; house_revenue: number };
+  year:  { count: number; revenue: number; house_revenue: number };
   monthly: MonthStat[];
   byOpgave: OpgaveStat[];
   sellers: SellerStat[];
@@ -92,8 +93,7 @@ const CustomTooltip = ({ active, payload, label, isAdmin }: { active?: boolean; 
 
 export default function SalesDashboard() {
   const router = useRouter();
-  const { user } = useUser();
-  const isAdmin = user?.role === 'admin';
+  useUser();
 
   const [data, setData] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,7 +123,7 @@ export default function SalesDashboard() {
 
   const chartData = data.monthly.map(m => ({
     name: m.label,
-    value: isAdmin ? m.revenue : m.count,
+    value: data.isAdmin ? m.house_revenue : m.count,
     period: m.period,
     isCurrent: m.period === data.period,
   }));
@@ -145,7 +145,7 @@ export default function SalesDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #E84025, #C4331B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>B</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#F1F5F9', letterSpacing: '-0.2px' }}>Salgsdashboard</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#F1F5F9', letterSpacing: '-0.2px' }}>{data.isAdmin ? 'Salgsdashboard' : 'Mine salg'}</div>
               <div style={{ fontSize: 11, color: '#334155' }}>{periodLabel(data.period)}</div>
             </div>
           </div>
@@ -168,10 +168,10 @@ export default function SalesDashboard() {
         {/* ── Row 1: KPI cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           {[
-            { label: 'I dag',       icon: Zap,      color: '#10B981', count: data.today.count, revenue: data.today.revenue },
-            { label: 'Denne uge',   icon: Calendar, color: '#3B82F6', count: data.week.count,  revenue: data.week.revenue  },
-            { label: 'Denne måned', icon: TrendingUp, color: '#E84025', count: data.month.count, revenue: data.month.revenue },
-            { label: 'År til dato', icon: BarChart3, color: '#8B5CF6', count: data.year.count,  revenue: data.year.revenue  },
+            { label: 'I dag',       icon: Zap,        color: '#10B981', count: data.today.count, revenue: data.today.revenue, house: data.today.house_revenue },
+            { label: 'Denne uge',   icon: Calendar,   color: '#3B82F6', count: data.week.count,  revenue: data.week.revenue,  house: data.week.house_revenue  },
+            { label: 'Denne måned', icon: TrendingUp, color: '#E84025', count: data.month.count, revenue: data.month.revenue, house: data.month.house_revenue },
+            { label: 'År til dato', icon: BarChart3,  color: '#8B5CF6', count: data.year.count,  revenue: data.year.revenue,  house: data.year.house_revenue  },
           ].map(kpi => (
             <div key={kpi.label} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '20px 22px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: -10, right: -10, width: 70, height: 70, borderRadius: '50%', background: `${kpi.color}0F` }} />
@@ -182,13 +182,23 @@ export default function SalesDashboard() {
                 </div>
               </div>
               <div style={{ fontSize: 44, fontWeight: 800, color: kpi.color, lineHeight: 1, marginBottom: 4 }}>{kpi.count}</div>
-              <div style={{ fontSize: 11, color: '#334155', marginBottom: isAdmin ? 14 : 0 }}>lukkede salg</div>
-              {isAdmin && (
-                <div style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#E2E8F0' }}>{formatDKK(kpi.revenue, true)}</div>
-                  <div style={{ fontSize: 10, color: '#334155', marginTop: 1 }}>omsætning</div>
-                </div>
-              )}
+              <div style={{ fontSize: 11, color: '#334155', marginBottom: 14 }}>lukkede salg</div>
+              <div style={{ paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                {data.isAdmin ? (
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#E2E8F0' }}>{formatDKK(kpi.house, true)}</div>
+                    <div style={{ fontSize: 10, color: '#334155', marginTop: 1 }}>husets omsætning</div>
+                    {kpi.house !== kpi.revenue && (
+                      <div style={{ fontSize: 10, color: '#1E3A5F', marginTop: 2 }}>{formatDKK(kpi.revenue, true)} solgt for</div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#E2E8F0' }}>{formatDKK(kpi.revenue, true)}</div>
+                    <div style={{ fontSize: 10, color: '#334155', marginTop: 1 }}>solgt for</div>
+                  </>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -202,11 +212,11 @@ export default function SalesDashboard() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <BarChart3 size={15} color="#E84025" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#E2E8F0' }}>
-                  {isAdmin ? 'Månedlig omsætning' : 'Månedlige salg'} — seneste 6 mdr.
+                  {data.isAdmin ? 'Månedlig omsætning (huset)' : 'Månedlige salg'} — seneste 6 mdr.
                 </span>
               </div>
               <span style={{ fontSize: 11, background: 'rgba(232,64,37,0.1)', color: '#E84025', padding: '3px 9px', borderRadius: 20, fontWeight: 600 }}>
-                {isAdmin ? formatDKK(data.month.revenue, true) : `${data.month.count} salg`} denne md.
+                {data.isAdmin ? formatDKK(data.month.house_revenue, true) : `${data.month.count} salg`} denne md.
               </span>
             </div>
             <ResponsiveContainer width="100%" height={180}>
@@ -216,10 +226,10 @@ export default function SalesDashboard() {
                 <YAxis
                   tick={{ fill: '#334155', fontSize: 10 }}
                   axisLine={false} tickLine={false}
-                  tickFormatter={v => isAdmin ? formatDKK(v, true) : String(v)}
-                  width={isAdmin ? 52 : 28}
+                  tickFormatter={v => data.isAdmin ? formatDKK(v, true) : String(v)}
+                  width={data.isAdmin ? 52 : 28}
                 />
-                <Tooltip content={<CustomTooltip isAdmin={isAdmin} />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Tooltip content={<CustomTooltip isAdmin={data.isAdmin} />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                 <Bar dataKey="value" radius={[5, 5, 0, 0]}>
                   {chartData.map((entry, i) => (
                     <Cell key={i} fill={entry.isCurrent ? '#E84025' : '#1E3A5F'} />
@@ -251,7 +261,7 @@ export default function SalesDashboard() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontSize: 11, color: '#475569' }}>{o.deals_count} salg</span>
-                          {isAdmin && <span style={{ fontSize: 12, fontWeight: 700, color: '#94A3B8' }}>{formatDKK(o.revenue, true)}</span>}
+                          {data.isAdmin && <span style={{ fontSize: 12, fontWeight: 700, color: '#94A3B8' }}>{formatDKK(o.house_revenue, true)}</span>}
                           <span style={{ fontSize: 10, color: color, fontWeight: 700, minWidth: 28, textAlign: 'right' }}>{pct}%</span>
                         </div>
                       </div>
@@ -283,7 +293,7 @@ export default function SalesDashboard() {
                   const color = ACCENT_COLORS[i % ACCENT_COLORS.length];
                   const revPct   = s.revenue_goal > 0 ? Math.min(100, Math.round((s.revenue / s.revenue_goal) * 100)) : null;
                   const dealsPct = s.deals_goal > 0 ? Math.min(100, Math.round((s.deals_count / s.deals_goal) * 100)) : null;
-                  const mainPct  = isAdmin ? revPct : dealsPct;
+                  const mainPct  = data.isAdmin ? revPct : dealsPct;
                   return (
                     <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       {/* Rank */}
@@ -319,15 +329,15 @@ export default function SalesDashboard() {
                               <div style={{ height: '100%', width: `${mainPct}%`, background: `linear-gradient(90deg, ${color}99, ${color})`, borderRadius: 3, transition: 'width 0.6s ease' }} />
                             </div>
                             <div style={{ fontSize: 10, color: '#334155', marginTop: 3 }}>
-                              {isAdmin
-                                ? `${formatDKK(s.revenue, true)} / ${formatDKK(s.revenue_goal, true)}`
+                              {data.isAdmin
+                                ? `${formatDKK(s.house_revenue, true)} / ${formatDKK(s.revenue_goal, true)}`
                                 : `${s.deals_count} / ${s.deals_goal} salg`
                               }
                             </div>
                           </div>
                         )}
-                        {mainPct === null && isAdmin && s.revenue > 0 && (
-                          <div style={{ fontSize: 12, color: '#334155' }}>{formatDKK(s.revenue, true)} omsætning</div>
+                        {mainPct === null && data.isAdmin && s.house_revenue > 0 && (
+                          <div style={{ fontSize: 12, color: '#334155' }}>{formatDKK(s.house_revenue, true)} husets omsætning</div>
                         )}
                       </div>
                     </div>
@@ -359,7 +369,7 @@ export default function SalesDashboard() {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      {isAdmin && <div style={{ fontSize: 12, fontWeight: 700, color: '#10B981' }}>{formatDKK(Number(deal.deal_value), true)}</div>}
+                      {data.isAdmin && <div style={{ fontSize: 12, fontWeight: 700, color: '#10B981' }}>{formatDKK(Number(deal.house_revenue ?? deal.deal_value), true)}</div>}
                       <div style={{ fontSize: 10, color: '#1E3A5F', marginTop: 1 }}>{timeSince(deal.created_at || deal.closed_at)}</div>
                     </div>
                   </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, TrendingUp, Users, DollarSign, X, BarChart2, Monitor, Target } from 'lucide-react';
+import { Plus, TrendingUp, Users, DollarSign, X, BarChart2, Monitor, Target, EyeOff, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUser } from '@/lib/UserContext';
 
@@ -12,10 +12,13 @@ interface SalesClient {
   description: string | null;
   type: 'sales' | 'booking';
   color: string;
+  active: boolean;
   created_at: string;
   deal_count: number;
   total_revenue: number;
   month_revenue: number;
+  total_house_revenue: number;
+  month_house_revenue: number;
 }
 
 interface SellerUser { id: string; name: string; }
@@ -55,6 +58,7 @@ export default function SalgPage() {
   const isAdmin = user?.role === 'admin';
   const [clients, setClients] = useState<SalesClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', type: 'sales' as 'sales' | 'booking', color: '#3498DB' });
@@ -67,11 +71,12 @@ export default function SalgPage() {
   const [goalForms, setGoalForms] = useState<Record<string, { revenue_goal: string; deals_goal: string }>>({});
 
   useEffect(() => {
-    fetch('/api/salg/clients')
+    const url = isAdmin && showInactive ? '/api/salg/clients?include_inactive=1' : '/api/salg/clients';
+    fetch(url)
       .then(r => r.json())
       .then(d => { setClients(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [showInactive, isAdmin]);
 
   const loadGoals = useCallback(() => {
     if (!isAdmin) return;
@@ -150,6 +155,14 @@ export default function SalgPage() {
           </button>
           {isAdmin && (
             <button
+              onClick={() => setShowInactive(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, background: showInactive ? 'rgba(148,163,184,0.12)' : '#F8FAFC', color: showInactive ? '#64748B' : '#94A3B8', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              {showInactive ? <Eye size={15} /> : <EyeOff size={15} />} {showInactive ? 'Vis aktive' : 'Vis inaktive'}
+            </button>
+          )}
+          {isAdmin && (
+            <button
               onClick={() => setShowGoals(true)}
               style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#F8FAFC', color: '#475569', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             >
@@ -208,14 +221,19 @@ export default function SalgPage() {
             >
               {/* Client header */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: client.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: client.active !== false ? client.color : '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
                   {client.name[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
-                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 5, background: client.type === 'booking' ? 'rgba(52,152,219,0.12)' : 'rgba(46,204,113,0.12)', color: client.type === 'booking' ? '#3498DB' : '#27AE60' }}>
-                    {client.type === 'booking' ? 'Mødebooking' : 'Salg'}
-                  </span>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: client.active !== false ? '#1E293B' : '#94A3B8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 5, background: client.type === 'booking' ? 'rgba(52,152,219,0.12)' : 'rgba(46,204,113,0.12)', color: client.type === 'booking' ? '#3498DB' : '#27AE60' }}>
+                      {client.type === 'booking' ? 'Mødebooking' : 'Salg'}
+                    </span>
+                    {client.active === false && (
+                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: 5, background: 'rgba(148,163,184,0.15)', color: '#94A3B8' }}>Inaktiv</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
