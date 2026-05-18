@@ -542,9 +542,23 @@ export default function SalesClientPage() {
                 </div>
                 <div>
                   <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>Produkt</label>
-                  <select style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }} value={dealForm.product_id} onChange={e => setDealForm(p => ({ ...p, product_id: e.target.value }))}>
+                  <select
+                    style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
+                    value={dealForm.product_id}
+                    onChange={e => {
+                      const pid = e.target.value;
+                      const prod = products.find(p => p.id === pid);
+                      setDealForm(prev => ({
+                        ...prev,
+                        product_id: pid,
+                        deal_value: prod && prod.price > 0 ? String(prod.price) : prev.deal_value,
+                      }));
+                    }}
+                  >
                     <option value="">— Vælg produkt</option>
-                    {products.filter(p => p.active).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {products.filter(p => p.active).map(p => (
+                      <option key={p.id} value={p.id}>{p.name}{p.price > 0 ? ` (${formatDKK(p.price)})` : ''}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -560,7 +574,10 @@ export default function SalesClientPage() {
               )}
 
               <div>
-                <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>Deal-værdi (DKK)</label>
+                <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>
+                  Pris (DKK)
+                  <span style={{ color: '#CBD5E1', fontWeight: 400, marginLeft: 4 }}>— variabel, kan ændres</span>
+                </label>
                 <input style={inputStyle} type="number" placeholder="0" value={dealForm.deal_value} onChange={e => setDealForm(p => ({ ...p, deal_value: e.target.value }))} />
               </div>
 
@@ -612,8 +629,11 @@ export default function SalesClientPage() {
                 <input style={inputStyle} placeholder="Kort beskrivelse" value={productForm.description} onChange={e => setProductForm(p => ({ ...p, description: e.target.value }))} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>Pris (DKK)</label>
-                <input style={inputStyle} type="number" placeholder="0" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
+                <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>
+                  Vejledende pris (DKK)
+                  <span style={{ color: '#CBD5E1', fontWeight: 400, marginLeft: 4 }}>— valgfrit</span>
+                </label>
+                <input style={inputStyle} type="number" placeholder="0 = variabel pris" value={productForm.price} onChange={e => setProductForm(p => ({ ...p, price: e.target.value }))} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
