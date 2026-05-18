@@ -205,7 +205,7 @@ export default function SalesDashboard() {
                   {isAdmin ? 'Månedlig omsætning' : 'Månedlige salg'} — seneste 6 mdr.
                 </span>
               </div>
-              <span style={{ fontSize: 11, color: '#1E293B', background: 'rgba(232,64,37,0.1)', color: '#E84025', padding: '3px 9px', borderRadius: 20, fontWeight: 600 }}>
+              <span style={{ fontSize: 11, background: 'rgba(232,64,37,0.1)', color: '#E84025', padding: '3px 9px', borderRadius: 20, fontWeight: 600 }}>
                 {isAdmin ? formatDKK(data.month.revenue, true) : `${data.month.count} salg`} denne md.
               </span>
             </div>
