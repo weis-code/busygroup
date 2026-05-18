@@ -20,6 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       contact_phone  = COALESCE(${body.contact_phone  ?? null}, contact_phone),
       salesperson_id = COALESCE(${body.salesperson_id ?? null}, salesperson_id),
       product_id     = COALESCE(${body.product_id     ?? null}, product_id),
+      task_type_id   = COALESCE(${body.task_type_id   ?? null}, task_type_id),
       deal_value     = COALESCE(${body.deal_value     ?? null}, deal_value),
       type           = COALESCE(${body.type           ?? null}, type),
       status         = COALESCE(${body.status         ?? null}, status),

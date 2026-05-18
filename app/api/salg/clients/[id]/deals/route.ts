@@ -35,11 +35,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const id = randomUUID();
   await sql`
     INSERT INTO sc_deals (
-      id, client_id, product_id, company_name, cvr, contact_name,
+      id, client_id, product_id, task_type_id, company_name, cvr, contact_name,
       contact_email, contact_phone, salesperson_id, deal_value,
       type, status, notes, closed_at, created_at, updated_at
     ) VALUES (
-      ${id}, ${params.id}, ${body.product_id || null}, ${body.company_name.trim()},
+      ${id}, ${params.id}, ${body.product_id || null}, ${body.task_type_id || null},
+      ${body.company_name.trim()},
       ${body.cvr || null}, ${body.contact_name || null}, ${body.contact_email || null},
       ${body.contact_phone || null}, ${body.salesperson_id || null},
       ${Number(body.deal_value) || 0}, ${body.type || 'sales'},

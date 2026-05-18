@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, TrendingUp, Users, DollarSign, X, BarChart2 } from 'lucide-react';
+import { Plus, TrendingUp, Users, DollarSign, X, BarChart2, Monitor, Target } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUser } from '@/lib/UserContext';
 
 interface SalesClient {
   id: string;
@@ -15,6 +16,17 @@ interface SalesClient {
   deal_count: number;
   total_revenue: number;
   month_revenue: number;
+}
+
+interface SellerUser { id: string; name: string; }
+
+interface Goal {
+  id: string;
+  user_id: string;
+  user_name: string;
+  period: string;
+  revenue_goal: number;
+  deals_goal: number;
 }
 
 const CLIENT_COLORS = ['#3498DB','#E84025','#2ECC71','#9B59B6','#E67E22','#1ABC9C','#E91E63','#F39C12'];
@@ -39,11 +51,20 @@ const inputStyle: React.CSSProperties = {
 
 export default function SalgPage() {
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.role === 'admin';
   const [clients, setClients] = useState<SalesClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', type: 'sales' as 'sales' | 'booking', color: '#3498DB' });
+
+  // Goals (admin only)
+  const [showGoals, setShowGoals] = useState(false);
+  const [sellers, setSellers] = useState<SellerUser[]>([]);
+  const [goalPeriod, setGoalPeriod] = useState(() => new Date().toISOString().slice(0, 7));
+  const [savingGoal, setSavingGoal] = useState<string | null>(null);
+  const [goalForms, setGoalForms] = useState<Record<string, { revenue_goal: string; deals_goal: string }>>({});
 
   useEffect(() => {
     fetch('/api/salg/clients')
@@ -51,6 +72,40 @@ export default function SalgPage() {
       .then(d => { setClients(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  const loadGoals = useCallback(() => {
+    if (!isAdmin) return;
+    Promise.all([
+      fetch('/api/users').then(r => r.ok ? r.json() : []),
+      fetch(`/api/salg/goals?period=${goalPeriod}`).then(r => r.ok ? r.json() : []),
+    ]).then(([u, g]) => {
+      setSellers(Array.isArray(u) ? u : []);
+      const forms: Record<string, { revenue_goal: string; deals_goal: string }> = {};
+      (Array.isArray(u) ? u : []).forEach((seller: SellerUser) => {
+        const existing = (Array.isArray(g) ? g : []).find((gx: Goal) => gx.user_id === seller.id);
+        forms[seller.id] = {
+          revenue_goal: existing ? String(existing.revenue_goal) : '',
+          deals_goal:   existing ? String(existing.deals_goal) : '',
+        };
+      });
+      setGoalForms(forms);
+    });
+  }, [goalPeriod, isAdmin]);
+
+  useEffect(() => { if (showGoals) loadGoals(); }, [showGoals, loadGoals]);
+
+  const saveGoal = async (userId: string) => {
+    setSavingGoal(userId);
+    try {
+      const f = goalForms[userId] || { revenue_goal: '0', deals_goal: '0' };
+      await fetch('/api/salg/goals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, period: goalPeriod, revenue_goal: Number(f.revenue_goal) || 0, deals_goal: Number(f.deals_goal) || 0 }),
+      });
+      toast.success('Mål gemt');
+    } catch { toast.error('Noget gik galt'); }
+    finally { setSavingGoal(null); }
+  };
 
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error('Navn er påkrævet'); return; }
@@ -86,21 +141,39 @@ export default function SalgPage() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1E293B' }}>Eksternt Salg</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94A3B8' }}>Administrer klienter og registrér lukkede salg</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#E84025', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-        >
-          <Plus size={15} /> Ny klient
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => router.push('/salg/dashboard')}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1E293B', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          >
+            <Monitor size={15} /> Dashboard
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowGoals(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#F8FAFC', color: '#475569', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <Target size={15} /> Sæt mål
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreate(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#E84025', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <Plus size={15} /> Ny klient
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Stats ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {[
-          { label: 'Klienter',           value: clients.length,       icon: Users,       color: '#3498DB' },
-          { label: 'Lukkede salg i alt', value: totalDeals,           icon: TrendingUp,  color: '#2ECC71' },
-          { label: 'Omsætning denne md.', value: formatDKK(monthRevenue), icon: BarChart2, color: '#E84025' },
-          { label: 'Total omsætning',    value: formatDKK(totalRevenue),  icon: DollarSign, color: '#9B59B6' },
+          { label: 'Klienter',            value: clients.length,                              icon: Users,       color: '#3498DB' },
+          { label: 'Lukkede salg i alt',  value: totalDeals,                                  icon: TrendingUp,  color: '#2ECC71' },
+          { label: 'Omsætning denne md.', value: isAdmin ? formatDKK(monthRevenue) : '—',     icon: BarChart2,   color: '#E84025' },
+          { label: 'Total omsætning',     value: isAdmin ? formatDKK(totalRevenue) : '—',     icon: DollarSign,  color: '#9B59B6' },
         ].map(stat => (
           <div key={stat.label} style={{ background: '#FFFFFF', borderRadius: 10, padding: '16px 20px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: `${stat.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -159,7 +232,7 @@ export default function SalgPage() {
                   <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 1 }}>Lukkede salg</div>
                 </div>
                 <div style={{ background: '#F8FAFC', borderRadius: 8, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{formatDKK(Number(client.month_revenue))}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>{isAdmin ? formatDKK(Number(client.month_revenue)) : '—'}</div>
                   <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 1 }}>Denne måned</div>
                 </div>
               </div>
@@ -232,6 +305,77 @@ export default function SalgPage() {
                 {saving ? 'Opretter...' : 'Opret klient'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sæt mål modal (admin) ─────────────────────────────────────────── */}
+      {showGoals && isAdmin && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowGoals(false); }}
+        >
+          <div style={{ background: '#FFFFFF', borderRadius: 14, padding: 28, width: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1E293B' }}>Sæt sælgermål</h3>
+              <button onClick={() => setShowGoals(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4 }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Periode</div>
+              <input
+                style={{ ...inputStyle, width: 180 }}
+                type="month"
+                value={goalPeriod}
+                onChange={e => setGoalPeriod(e.target.value)}
+              />
+            </div>
+
+            {sellers.length === 0 ? (
+              <div style={{ color: '#94A3B8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Ingen sælgere fundet</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {sellers.map(seller => {
+                  const f = goalForms[seller.id] || { revenue_goal: '', deals_goal: '' };
+                  return (
+                    <div key={seller.id} style={{ background: '#F8FAFC', borderRadius: 10, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1E293B', marginBottom: 10 }}>{seller.name}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'flex-end' }}>
+                        <div>
+                          <div style={{ fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Omsætningsmål (DKK)</div>
+                          <input
+                            style={inputStyle}
+                            type="number"
+                            placeholder="0"
+                            value={f.revenue_goal}
+                            onChange={e => setGoalForms(prev => ({ ...prev, [seller.id]: { ...prev[seller.id], revenue_goal: e.target.value } }))}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: '#64748B', marginBottom: 4, fontWeight: 500 }}>Salgs-mål (antal)</div>
+                          <input
+                            style={inputStyle}
+                            type="number"
+                            placeholder="0"
+                            value={f.deals_goal}
+                            onChange={e => setGoalForms(prev => ({ ...prev, [seller.id]: { ...prev[seller.id], deals_goal: e.target.value } }))}
+                          />
+                        </div>
+                        <button
+                          onClick={() => saveGoal(seller.id)}
+                          disabled={savingGoal === seller.id}
+                          style={{ padding: '8px 14px', borderRadius: 7, border: 'none', background: '#E84025', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          {savingGoal === seller.id ? '...' : 'Gem'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

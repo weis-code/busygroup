@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, X, Pencil, Trash2, TrendingUp, DollarSign, BarChart2, Package, Check } from 'lucide-react';
+import { ArrowLeft, Plus, X, Pencil, Trash2, TrendingUp, DollarSign, BarChart2, Package, Check, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
+import { useUser } from '@/lib/UserContext';
 
 interface Deal {
   id: string;
@@ -16,6 +17,7 @@ interface Deal {
   salesperson_name: string | null;
   product_id: string | null;
   product_name: string | null;
+  task_type_id: string | null;
   deal_value: number;
   type: 'sales' | 'booking';
   status: 'won' | 'pending' | 'lost';
@@ -30,6 +32,12 @@ interface Product {
   price: number;
   currency: string;
   active: boolean;
+}
+
+interface TaskType {
+  id: string;
+  name: string;
+  client_id: string;
 }
 
 interface User { id: string; name: string; }
@@ -58,21 +66,25 @@ const inputStyle: React.CSSProperties = {
 
 const emptyDeal = {
   company_name: '', cvr: '', contact_name: '', contact_email: '',
-  contact_phone: '', salesperson_id: '', product_id: '', deal_value: '',
-  type: 'sales' as 'sales' | 'booking', status: 'won' as 'won' | 'pending' | 'lost',
+  contact_phone: '', salesperson_id: '', product_id: '', task_type_id: '',
+  deal_value: '', type: 'sales' as 'sales' | 'booking',
+  status: 'won' as 'won' | 'pending' | 'lost',
   notes: '', closed_at: new Date().toISOString().slice(0, 10),
 };
 
 export default function SalesClientPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useUser();
+  const isAdmin = user?.role === 'admin';
 
-  const [client, setClient]   = useState<Client | null>(null);
-  const [deals, setDeals]     = useState<Deal[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [users, setUsers]     = useState<User[]>([]);
-  const [tab, setTab]         = useState<'deals' | 'products'>('deals');
-  const [loading, setLoading] = useState(true);
+  const [client, setClient]       = useState<Client | null>(null);
+  const [deals, setDeals]         = useState<Deal[]>([]);
+  const [products, setProducts]   = useState<Product[]>([]);
+  const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
+  const [users, setUsers]         = useState<User[]>([]);
+  const [tab, setTab]             = useState<'deals' | 'products' | 'task-types'>('deals');
+  const [loading, setLoading]     = useState(true);
 
   // Deal form
   const [showDealForm, setShowDealForm] = useState(false);
@@ -86,18 +98,24 @@ export default function SalesClientPage() {
   const [savingProduct, setSavingProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
 
+  // Task type form
+  const [newTaskTypeName, setNewTaskTypeName] = useState('');
+  const [savingTaskType, setSavingTaskType]   = useState(false);
+
   const load = useCallback(async () => {
-    const [clientRes, dealsRes, productsRes, usersRes] = await Promise.all([
+    const [clientRes, dealsRes, productsRes, usersRes, ttRes] = await Promise.all([
       fetch(`/api/salg/clients/${id}`),
       fetch(`/api/salg/clients/${id}/deals`),
       fetch(`/api/salg/clients/${id}/products`),
       fetch('/api/users'),
+      fetch(`/api/salg/clients/${id}/task-types`),
     ]);
     if (!clientRes.ok) { router.push('/salg'); return; }
     setClient(await clientRes.json());
     setDeals(dealsRes.ok ? await dealsRes.json() : []);
     setProducts(productsRes.ok ? await productsRes.json() : []);
     setUsers(usersRes.ok ? await usersRes.json() : []);
+    setTaskTypes(ttRes.ok ? await ttRes.json() : []);
     setLoading(false);
   }, [id, router]);
 
@@ -111,7 +129,8 @@ export default function SalesClientPage() {
       company_name: deal.company_name, cvr: deal.cvr || '',
       contact_name: deal.contact_name || '', contact_email: deal.contact_email || '',
       contact_phone: deal.contact_phone || '', salesperson_id: deal.salesperson_id || '',
-      product_id: deal.product_id || '', deal_value: String(deal.deal_value),
+      product_id: deal.product_id || '', task_type_id: deal.task_type_id || '',
+      deal_value: String(deal.deal_value),
       type: deal.type, status: deal.status, notes: deal.notes || '',
       closed_at: deal.closed_at.slice(0, 10),
     });
@@ -124,16 +143,19 @@ export default function SalesClientPage() {
     try {
       const payload = {
         ...dealForm,
-        deal_value: Number(dealForm.deal_value) || 0,
+        deal_value:     Number(dealForm.deal_value) || 0,
         salesperson_id: dealForm.salesperson_id || null,
-        product_id: dealForm.product_id || null,
-        cvr: dealForm.cvr || null,
-        contact_name: dealForm.contact_name || null,
-        contact_email: dealForm.contact_email || null,
-        contact_phone: dealForm.contact_phone || null,
-        notes: dealForm.notes || null,
+        product_id:     dealForm.product_id || null,
+        task_type_id:   dealForm.task_type_id || null,
+        cvr:            dealForm.cvr || null,
+        contact_name:   dealForm.contact_name || null,
+        contact_email:  dealForm.contact_email || null,
+        contact_phone:  dealForm.contact_phone || null,
+        notes:          dealForm.notes || null,
       };
-      const url = editingDeal ? `/api/salg/clients/${id}/deals/${editingDeal}` : `/api/salg/clients/${id}/deals`;
+      const url = editingDeal
+        ? `/api/salg/clients/${id}/deals/${editingDeal}`
+        : `/api/salg/clients/${id}/deals`;
       const res = await fetch(url, { method: editingDeal ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error();
       const saved = await res.json();
@@ -169,7 +191,9 @@ export default function SalesClientPage() {
     setSavingProduct(true);
     try {
       const payload = { ...productForm, price: Number(productForm.price) || 0 };
-      const url = editingProduct ? `/api/salg/clients/${id}/products/${editingProduct}` : `/api/salg/clients/${id}/products`;
+      const url = editingProduct
+        ? `/api/salg/clients/${id}/products/${editingProduct}`
+        : `/api/salg/clients/${id}/products`;
       const res = await fetch(url, { method: editingProduct ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) throw new Error();
       const saved = await res.json();
@@ -192,18 +216,49 @@ export default function SalesClientPage() {
     toast.success('Produkt slettet');
   };
 
+  // ── Task type handlers ─────────────────────────────────────────────────
+  const addTaskType = async () => {
+    if (!newTaskTypeName.trim()) return;
+    setSavingTaskType(true);
+    try {
+      const res = await fetch(`/api/salg/clients/${id}/task-types`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTaskTypeName.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      const tt = await res.json();
+      setTaskTypes(prev => [...prev, tt]);
+      setNewTaskTypeName('');
+      toast.success('Opgavetype oprettet');
+    } catch { toast.error('Noget gik galt'); }
+    finally { setSavingTaskType(false); }
+  };
+
+  const deleteTaskType = async (ttId: string) => {
+    if (!confirm('Slet denne opgavetype?')) return;
+    await fetch(`/api/salg/clients/${id}/task-types/${ttId}`, { method: 'DELETE' });
+    setTaskTypes(prev => prev.filter(t => t.id !== ttId));
+    toast.success('Opgavetype slettet');
+  };
+
   // ── Stats ──────────────────────────────────────────────────────────────
-  const wonDeals      = deals.filter(d => d.status === 'won');
-  const totalRevenue  = wonDeals.reduce((s, d) => s + Number(d.deal_value), 0);
-  const now           = new Date();
-  const monthDeals    = wonDeals.filter(d => {
+  const wonDeals     = deals.filter(d => d.status === 'won');
+  const totalRevenue = wonDeals.reduce((s, d) => s + Number(d.deal_value), 0);
+  const now          = new Date();
+  const monthDeals   = wonDeals.filter(d => {
     const dd = new Date(d.closed_at);
     return dd.getFullYear() === now.getFullYear() && dd.getMonth() === now.getMonth();
   });
-  const avgDeal       = wonDeals.length ? Math.round(totalRevenue / wonDeals.length) : 0;
+  const avgDeal      = wonDeals.length ? Math.round(totalRevenue / wonDeals.length) : 0;
 
   if (loading) return <div style={{ padding: 32, color: '#94A3B8', fontSize: 13 }}>Indlæser...</div>;
   if (!client) return null;
+
+  const tabs: { key: 'deals' | 'products' | 'task-types'; label: string; icon: React.ReactNode }[] = [
+    { key: 'deals',      label: `Salg (${deals.length})`,         icon: <TrendingUp size={13} /> },
+    { key: 'products',   label: `Produkter (${products.length})`, icon: <Package size={13} /> },
+    ...(isAdmin ? [{ key: 'task-types' as const, label: `Opgavetyper (${taskTypes.length})`, icon: <ListChecks size={13} /> }] : []),
+  ];
 
   return (
     <div style={{ minHeight: '100vh', background: '#F1F5F9' }}>
@@ -233,10 +288,10 @@ export default function SalesClientPage() {
         {/* ── Dashboard stats ───────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
           {[
-            { label: 'Lukkede salg i alt', value: wonDeals.length,          icon: Check,      color: '#2ECC71' },
-            { label: 'Denne måneds salg',  value: monthDeals.length,        icon: TrendingUp,  color: '#3498DB' },
-            { label: 'Omsætning i alt',    value: formatDKK(totalRevenue),  icon: DollarSign,  color: '#E84025' },
-            { label: 'Gns. deal-størrelse',value: formatDKK(avgDeal),       icon: BarChart2,   color: '#9B59B6' },
+            { label: 'Lukkede salg i alt', value: wonDeals.length,                             icon: Check,       color: '#2ECC71' },
+            { label: 'Denne måneds salg',  value: monthDeals.length,                           icon: TrendingUp,  color: '#3498DB' },
+            { label: 'Omsætning i alt',    value: isAdmin ? formatDKK(totalRevenue) : `${wonDeals.length} salg`, icon: DollarSign, color: '#E84025' },
+            { label: 'Gns. deal-størrelse',value: isAdmin ? formatDKK(avgDeal) : '—',          icon: BarChart2,   color: '#9B59B6' },
           ].map(stat => (
             <div key={stat.label} style={{ background: '#FFFFFF', borderRadius: 10, padding: '16px 20px', border: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 38, height: 38, borderRadius: 9, background: `${stat.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -252,13 +307,13 @@ export default function SalesClientPage() {
 
         {/* ── Tabs ──────────────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(0,0,0,0.08)', marginBottom: 20 }}>
-          {(['deals', 'products'] as const).map(t => (
+          {tabs.map(t => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{ padding: '10px 18px', border: 'none', background: 'transparent', fontSize: 13, fontWeight: tab === t ? 600 : 400, color: tab === t ? '#1E293B' : '#94A3B8', borderBottom: `2px solid ${tab === t ? '#E84025' : 'transparent'}`, cursor: 'pointer', marginBottom: -1, display: 'flex', alignItems: 'center', gap: 6 }}
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              style={{ padding: '10px 18px', border: 'none', background: 'transparent', fontSize: 13, fontWeight: tab === t.key ? 600 : 400, color: tab === t.key ? '#1E293B' : '#94A3B8', borderBottom: `2px solid ${tab === t.key ? '#E84025' : 'transparent'}`, cursor: 'pointer', marginBottom: -1, display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              {t === 'deals' ? <><TrendingUp size={13} /> Salg ({deals.length})</> : <><Package size={13} /> Produkter ({products.length})</>}
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
@@ -283,47 +338,57 @@ export default function SalesClientPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: '#F8FAFC' }}>
-                      {['Firma', 'CVR', 'Kontakt', 'Sælger', 'Produkt', 'Værdi', 'Dato', ''].map(h => (
+                      {['Firma', 'CVR', 'Kontakt', 'Sælger', 'Produkt', 'Opgavetype', ...(isAdmin ? ['Værdi'] : []), 'Dato', ''].map(h => (
                         <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {deals.map((deal, i) => (
-                      <tr key={deal.id} style={{ borderBottom: i < deals.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#1E293B' }}>{deal.company_name}</div>
-                          {deal.contact_email && <div style={{ fontSize: 11, color: '#94A3B8' }}>{deal.contact_email}</div>}
-                        </td>
-                        <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748B' }}>{deal.cvr || '—'}</td>
-                        <td style={{ padding: '12px 14px' }}>
-                          {deal.contact_name ? (
-                            <>
-                              <div style={{ fontSize: 12, color: '#475569' }}>{deal.contact_name}</div>
-                              {deal.contact_phone && <div style={{ fontSize: 11, color: '#94A3B8' }}>{deal.contact_phone}</div>}
-                            </>
-                          ) : <span style={{ color: '#CBD5E1', fontSize: 12 }}>—</span>}
-                        </td>
-                        <td style={{ padding: '12px 14px', fontSize: 12, color: '#475569' }}>{deal.salesperson_name || '—'}</td>
-                        <td style={{ padding: '12px 14px', fontSize: 12, color: '#475569' }}>{deal.product_name || '—'}</td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: deal.status === 'won' ? '#2ECC71' : deal.status === 'lost' ? '#E74C3C' : '#F39C12' }}>
-                            {formatDKK(Number(deal.deal_value))}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748B', whiteSpace: 'nowrap' }}>{fmtDate(deal.closed_at)}</td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            <button onClick={() => openEditDeal(deal)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, borderRadius: 5 }} title="Rediger">
-                              <Pencil size={13} />
-                            </button>
-                            <button onClick={() => deleteDeal(deal.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, borderRadius: 5 }} title="Slet">
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {deals.map((deal, i) => {
+                      const tt = taskTypes.find(t => t.id === deal.task_type_id);
+                      return (
+                        <tr key={deal.id} style={{ borderBottom: i < deals.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                          <td style={{ padding: '12px 14px' }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#1E293B' }}>{deal.company_name}</div>
+                            {deal.contact_email && <div style={{ fontSize: 11, color: '#94A3B8' }}>{deal.contact_email}</div>}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748B' }}>{deal.cvr || '—'}</td>
+                          <td style={{ padding: '12px 14px' }}>
+                            {deal.contact_name ? (
+                              <>
+                                <div style={{ fontSize: 12, color: '#475569' }}>{deal.contact_name}</div>
+                                {deal.contact_phone && <div style={{ fontSize: 11, color: '#94A3B8' }}>{deal.contact_phone}</div>}
+                              </>
+                            ) : <span style={{ color: '#CBD5E1', fontSize: 12 }}>—</span>}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontSize: 12, color: '#475569' }}>{deal.salesperson_name || '—'}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 12, color: '#475569' }}>{deal.product_name || '—'}</td>
+                          <td style={{ padding: '12px 14px' }}>
+                            {tt ? (
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}>{tt.name}</span>
+                            ) : <span style={{ color: '#CBD5E1', fontSize: 12 }}>—</span>}
+                          </td>
+                          {isAdmin && (
+                            <td style={{ padding: '12px 14px' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: deal.status === 'won' ? '#2ECC71' : deal.status === 'lost' ? '#E74C3C' : '#F39C12' }}>
+                                {formatDKK(Number(deal.deal_value))}
+                              </span>
+                            </td>
+                          )}
+                          <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748B', whiteSpace: 'nowrap' }}>{fmtDate(deal.closed_at)}</td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button onClick={() => openEditDeal(deal)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, borderRadius: 5 }} title="Rediger">
+                                <Pencil size={13} />
+                              </button>
+                              <button onClick={() => deleteDeal(deal.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, borderRadius: 5 }} title="Slet">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -353,9 +418,11 @@ export default function SalesClientPage() {
                       <div style={{ fontSize: 14, fontWeight: 600, color: '#1E293B' }}>{p.name}</div>
                       {p.description && <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{p.description}</div>}
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1E293B', minWidth: 100, textAlign: 'right' }}>
-                      {formatDKK(p.price)}
-                    </div>
+                    {isAdmin && (
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#1E293B', minWidth: 100, textAlign: 'right' }}>
+                        {formatDKK(p.price)}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button onClick={() => openEditProduct(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4 }}>
                         <Pencil size={14} />
@@ -364,6 +431,53 @@ export default function SalesClientPage() {
                         <Trash2 size={14} />
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Task types tab (admin only) ────────────────────────────────────── */}
+        {tab === 'task-types' && isAdmin && (
+          <div>
+            <div style={{ background: '#FFFFFF', borderRadius: 10, border: '1px solid rgba(0,0,0,0.06)', padding: '20px 22px', marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1E293B', marginBottom: 12 }}>Tilføj opgavetype</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  placeholder="f.eks. Mødebooking, Koldt kanvas, Demo..."
+                  value={newTaskTypeName}
+                  onChange={e => setNewTaskTypeName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addTaskType(); }}
+                />
+                <button
+                  onClick={addTaskType}
+                  disabled={savingTaskType || !newTaskTypeName.trim()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 7, border: 'none', background: newTaskTypeName.trim() && !savingTaskType ? '#E84025' : '#F1F5F9', color: newTaskTypeName.trim() && !savingTaskType ? '#fff' : '#94A3B8', fontSize: 13, fontWeight: 600, cursor: newTaskTypeName.trim() && !savingTaskType ? 'pointer' : 'not-allowed' }}
+                >
+                  <Plus size={14} /> Tilføj
+                </button>
+              </div>
+            </div>
+
+            {taskTypes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', background: '#FFFFFF', borderRadius: 10, border: '1px solid rgba(0,0,0,0.06)' }}>
+                <ListChecks size={40} color="#CBD5E1" />
+                <div style={{ color: '#94A3B8', marginTop: 12, fontSize: 14, fontWeight: 600 }}>Ingen opgavetyper endnu</div>
+                <div style={{ color: '#CBD5E1', fontSize: 12, marginTop: 4 }}>Opret opgavetyper sælgerne skal vælge ved registrering</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {taskTypes.map(tt => (
+                  <div key={tt.id} style={{ background: '#FFFFFF', borderRadius: 10, border: '1px solid rgba(0,0,0,0.06)', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
+                      <span style={{ fontSize: 14, fontWeight: 500, color: '#1E293B' }}>{tt.name}</span>
+                    </div>
+                    <button onClick={() => deleteTaskType(tt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, borderRadius: 5 }}>
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -434,6 +548,16 @@ export default function SalesClientPage() {
                   </select>
                 </div>
               </div>
+
+              {taskTypes.length > 0 && (
+                <div>
+                  <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>Opgavetype</label>
+                  <select style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }} value={dealForm.task_type_id} onChange={e => setDealForm(p => ({ ...p, task_type_id: e.target.value }))}>
+                    <option value="">— Vælg opgavetype</option>
+                    {taskTypes.map(tt => <option key={tt.id} value={tt.id}>{tt.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: 11, color: '#64748B', fontWeight: 500, display: 'block', marginBottom: 5 }}>Deal-værdi (DKK)</label>

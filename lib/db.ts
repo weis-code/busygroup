@@ -528,6 +528,28 @@ export async function initSchema(): Promise<void> {
     }
   }
 
+  // ── Eksternt salgsmodul: opgave-typer og mål ─────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS sc_task_types (
+      id        TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL REFERENCES sc_clients(id) ON DELETE CASCADE,
+      name      TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS sc_goals (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      period       TEXT NOT NULL,
+      revenue_goal INTEGER NOT NULL DEFAULT 0,
+      deals_goal   INTEGER NOT NULL DEFAULT 0,
+      created_at   TEXT NOT NULL,
+      UNIQUE(user_id, period)
+    )
+  `;
+  await sql`ALTER TABLE sc_deals ADD COLUMN IF NOT EXISTS task_type_id TEXT REFERENCES sc_task_types(id)`.catch(() => {});
+
   // ── Eksternt salgsmodul (sc = sales clients) ─────────────────────────────
   await sql`
     CREATE TABLE IF NOT EXISTS sc_clients (
