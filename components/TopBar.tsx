@@ -14,6 +14,7 @@ const PAGE_NAMES: Record<string, string> = {
   '/messenger': 'Beskeder',
   '/calendar': 'Kalender',
   '/settings': 'Indstillinger',
+  '/salg': 'Eksternt Salg',
 };
 
 export default function TopBar() {

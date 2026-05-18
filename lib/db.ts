@@ -528,6 +528,52 @@ export async function initSchema(): Promise<void> {
     }
   }
 
+  // ── Eksternt salgsmodul (sc = sales clients) ─────────────────────────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS sc_clients (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      description TEXT,
+      type        TEXT NOT NULL DEFAULT 'sales',
+      color       TEXT NOT NULL DEFAULT '#3498DB',
+      created_by  TEXT REFERENCES users(id),
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS sc_products (
+      id          TEXT PRIMARY KEY,
+      client_id   TEXT NOT NULL REFERENCES sc_clients(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL,
+      description TEXT,
+      price       INTEGER NOT NULL DEFAULT 0,
+      currency    TEXT NOT NULL DEFAULT 'DKK',
+      active      BOOLEAN NOT NULL DEFAULT true,
+      created_at  TEXT NOT NULL
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS sc_deals (
+      id             TEXT PRIMARY KEY,
+      client_id      TEXT NOT NULL REFERENCES sc_clients(id) ON DELETE CASCADE,
+      product_id     TEXT REFERENCES sc_products(id),
+      company_name   TEXT NOT NULL,
+      cvr            TEXT,
+      contact_name   TEXT,
+      contact_email  TEXT,
+      contact_phone  TEXT,
+      salesperson_id TEXT REFERENCES users(id),
+      deal_value     INTEGER NOT NULL DEFAULT 0,
+      type           TEXT NOT NULL DEFAULT 'sales',
+      status         TEXT NOT NULL DEFAULT 'won',
+      notes          TEXT,
+      closed_at      TEXT NOT NULL,
+      created_at     TEXT NOT NULL,
+      updated_at     TEXT NOT NULL
+    )
+  `;
+
   // Seed default admin user if no users exist
   const userCount = await sql`SELECT COUNT(*) as cnt FROM users`;
   if (Number(userCount[0].cnt) === 0) {
