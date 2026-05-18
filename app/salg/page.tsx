@@ -120,7 +120,7 @@ export default function SalgPage() {
       setClients(prev => [{ ...client, deal_count: 0, total_revenue: 0, month_revenue: 0 }, ...prev]);
       setShowCreate(false);
       setForm({ name: '', description: '', type: 'sales', color: '#3498DB' });
-      toast.success('Klient oprettet');
+      toast.success('Opgave oprettet');
     } catch {
       toast.error('Noget gik galt');
     } finally {
@@ -139,7 +139,7 @@ export default function SalgPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1E293B' }}>Eksternt Salg</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94A3B8' }}>Administrer klienter og registrér lukkede salg</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94A3B8' }}>Administrer opgaver og registrér lukkede salg</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button
@@ -161,7 +161,7 @@ export default function SalgPage() {
               onClick={() => setShowCreate(true)}
               style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#E84025', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             >
-              <Plus size={15} /> Ny klient
+              <Plus size={15} /> Ny opgave
             </button>
           )}
         </div>
@@ -170,7 +170,7 @@ export default function SalgPage() {
       {/* ── Stats ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {[
-          { label: 'Klienter',            value: clients.length,                              icon: Users,       color: '#3498DB' },
+          { label: 'Opgaver',              value: clients.length,                              icon: Users,       color: '#3498DB' },
           { label: 'Lukkede salg i alt',  value: totalDeals,                                  icon: TrendingUp,  color: '#2ECC71' },
           { label: 'Omsætning denne md.', value: isAdmin ? formatDKK(monthRevenue) : '—',     icon: BarChart2,   color: '#E84025' },
           { label: 'Total omsætning',     value: isAdmin ? formatDKK(totalRevenue) : '—',     icon: DollarSign,  color: '#9B59B6' },
@@ -193,8 +193,8 @@ export default function SalgPage() {
       ) : clients.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0' }}>
           <TrendingUp size={48} color="#CBD5E1" />
-          <div style={{ color: '#94A3B8', marginTop: 16, fontSize: 15, fontWeight: 600 }}>Ingen klienter endnu</div>
-          <div style={{ color: '#CBD5E1', fontSize: 13, marginTop: 6 }}>Opret din første klient for at komme i gang</div>
+          <div style={{ color: '#94A3B8', marginTop: 16, fontSize: 15, fontWeight: 600 }}>Ingen opgaver endnu</div>
+          <div style={{ color: '#CBD5E1', fontSize: 13, marginTop: 6 }}>Opret din første opgave for at komme i gang</div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
@@ -237,7 +237,7 @@ export default function SalgPage() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 12, fontSize: 11, color: '#CBD5E1' }}>Oprettet {timeAgo(client.created_at)}</div>
+              <div style={{ marginTop: 12, fontSize: 11, color: '#CBD5E1' }}>Opgave oprettet {timeAgo(client.created_at)}</div>
             </div>
           ))}
         </div>
@@ -251,7 +251,7 @@ export default function SalgPage() {
         >
           <div style={{ background: '#FFFFFF', borderRadius: 14, padding: 28, width: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1E293B' }}>Ny salgsklient</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1E293B' }}>Ny opgave</h3>
               <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4 }}>
                 <X size={18} />
               </button>
@@ -259,13 +259,13 @@ export default function SalgPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Klientnavn *</div>
-                <input style={inputStyle} placeholder="f.eks. Acme A/S" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} autoFocus />
+                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Opgavenavn *</div>
+                <input style={inputStyle} placeholder="f.eks. Sport n Charity" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} autoFocus />
               </div>
 
               <div>
                 <div style={{ fontSize: 11, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Beskrivelse</div>
-                <input style={inputStyle} placeholder="Kort beskrivelse af samarbejdet" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
+                <input style={inputStyle} placeholder="Kort beskrivelse af opgaven" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} />
               </div>
 
               <div>
@@ -302,7 +302,7 @@ export default function SalgPage() {
                 Annullér
               </button>
               <button onClick={handleCreate} disabled={saving || !form.name.trim()} style={{ flex: 2, padding: '9px 0', borderRadius: 8, border: 'none', background: form.name.trim() && !saving ? '#E84025' : '#F1F5F9', color: form.name.trim() && !saving ? '#fff' : '#94A3B8', fontSize: 13, fontWeight: 600, cursor: form.name.trim() && !saving ? 'pointer' : 'not-allowed' }}>
-                {saving ? 'Opretter...' : 'Opret klient'}
+                {saving ? 'Opretter...' : 'Opret opgave'}
               </button>
             </div>
           </div>
