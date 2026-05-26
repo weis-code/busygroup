@@ -26,9 +26,6 @@ interface CrmLead {
 interface Product { id: string; name: string; price: number; type: string; }
 interface User { id: string; name: string; }
 
-function formatDKK(n: number) {
-  return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(n);
-}
 
 const inputStyle: React.CSSProperties = {
   background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.1)',
