@@ -5,22 +5,25 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/lib/UserContext';
 import {
-  MessageSquare, Settings, LogOut, Building2, ChevronLeft, ChevronRight, LayoutGrid, TrendingUp,
+  MessageSquare, Settings, LogOut, Building2, ChevronLeft, ChevronRight,
+  LayoutGrid, TrendingUp, LayoutDashboard, Briefcase,
 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 
 // ─── Design tokens ──────────────────────────────────────────────────────────
-const PRIMARY   = '#E84025';          // Orange accent (fra design)
-const P_ALPHA   = 'rgba(232,64,37,';  // Orange med alpha-kanal
-const BG_SIDE   = '#FFFFFF';          // Sidebar baggrund
+const PRIMARY   = '#E84025';
+const P_ALPHA   = 'rgba(232,64,37,';
+const BG_SIDE   = '#FFFFFF';
 const BG_BORDER = 'rgba(0,0,0,0.08)';
 
-const NAV_ITEMS = [
-  { label: 'Kunder',        href: '/kunder',    icon: Building2    },
-  { label: 'Projekter',     href: '/projects',  icon: LayoutGrid   },
-  { label: 'Salg',          href: '/salg',      icon: TrendingUp   },
-  { label: 'Messenger',     href: '/messenger', icon: MessageSquare },
-  { label: 'Indstillinger', href: '/settings',  icon: Settings     },
+const ALL_NAV_ITEMS = [
+  { label: 'Dashboard',     href: '/dashboard', icon: LayoutDashboard, adminOnly: true  },
+  { label: 'CRM',           href: '/crm',       icon: Briefcase,       adminOnly: false },
+  { label: 'Kunder',        href: '/kunder',    icon: Building2,       adminOnly: false },
+  { label: 'Projekter',     href: '/projects',  icon: LayoutGrid,      adminOnly: false },
+  { label: 'Salg',          href: '/salg',      icon: TrendingUp,      adminOnly: false },
+  { label: 'Messenger',     href: '/messenger', icon: MessageSquare,   adminOnly: false },
+  { label: 'Indstillinger', href: '/settings',  icon: Settings,        adminOnly: false },
 ];
 
 const W_OPEN   = 220;
@@ -137,7 +140,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           display: 'flex', flexDirection: 'column', gap: 1,
           overflowY: 'auto', overflowX: 'hidden',
         }}>
-          {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+          {ALL_NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'admin').map(({ label, href, icon: Icon }) => {
             const active = pathname === href || (href !== '/' && pathname.startsWith(href));
             const badge = 0;
             return (

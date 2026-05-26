@@ -611,6 +611,27 @@ export async function initSchema(): Promise<void> {
     )
   `;
 
+  // ── Internt CRM (pipeline for BusyConsultings egne produkter) ───────────
+  await sql`
+    CREATE TABLE IF NOT EXISTS crm_leads (
+      id            TEXT PRIMARY KEY,
+      company       TEXT NOT NULL,
+      contact_name  TEXT,
+      contact_email TEXT,
+      contact_phone TEXT,
+      status        TEXT NOT NULL DEFAULT 'new',
+      product_id    TEXT REFERENCES products(id),
+      deal_value    INTEGER NOT NULL DEFAULT 0,
+      notes         TEXT,
+      assigned_to   TEXT REFERENCES users(id),
+      created_by    TEXT REFERENCES users(id),
+      created_at    TEXT NOT NULL,
+      updated_at    TEXT NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_leads_assigned ON crm_leads(assigned_to)`.catch(() => {});
+  await sql`CREATE INDEX IF NOT EXISTS idx_crm_leads_status ON crm_leads(status)`.catch(() => {});
+
   // Seed default admin user if no users exist
   const userCount = await sql`SELECT COUNT(*) as cnt FROM users`;
   if (Number(userCount[0].cnt) === 0) {
