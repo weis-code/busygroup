@@ -1,53 +1,53 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-function getPayPeriod(now: Date) {
-  const day = now.getDate();
-  let sy = now.getFullYear();
-  let sm = now.getMonth(); // 0-indexed
-  if (day < 21) {
-    if (sm === 0) { sm = 11; sy--; } else sm--;
-  }
-  const ey = sm === 11 ? sy + 1 : sy;
-  const em = (sm + 1) % 12;
+const MONTHS_DA = ['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
+
+function getMonthBounds(key: string) {
+  const [y, m] = key.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
   const pad = (n: number) => String(n).padStart(2, '0');
   return {
-    start: `${sy}-${pad(sm + 1)}-21`,
-    end:   `${ey}-${pad(em + 1)}-20`,
-    key:   `${sy}-${pad(sm + 1)}-21`,
+    key,
+    start: `${y}-${pad(m)}-01`,
+    end:   `${y}-${pad(m)}-${pad(lastDay)}`,
+    label: `${MONTHS_DA[m - 1]} ${y}`,
   };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
 
   const now = new Date();
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const { searchParams } = new URL(req.url);
+  const monthParam = searchParams.get('month') || currentKey;
+  const month = getMonthBounds(monthParam);
+
   const today = now.toISOString().slice(0, 10);
-  const pp = getPayPeriod(now);
+  const isCurrentMonth = monthParam === currentKey;
 
   const [todayRow] = await sql`
     SELECT COUNT(*) AS count
     FROM sc_deals d
-    JOIN sc_clients c ON c.id = d.client_id
     WHERE d.status = 'won' AND d.closed_at = ${today}
   `;
 
   const [periodRow] = await sql`
     SELECT COUNT(*) AS count
     FROM sc_deals d
-    JOIN sc_clients c ON c.id = d.client_id
-    WHERE d.status = 'won' AND d.closed_at >= ${pp.start} AND d.closed_at <= ${pp.end}
+    WHERE d.status = 'won' AND d.closed_at >= ${month.start} AND d.closed_at <= ${month.end}
   `;
 
-  // Per active client: today count + period count
   const byOpgave = await sql`
     SELECT c.id, c.name, c.color,
       COUNT(CASE WHEN d.closed_at = ${today} THEN 1 END) AS today_count,
-      COUNT(CASE WHEN d.closed_at >= ${pp.start} AND d.closed_at <= ${pp.end} THEN 1 END) AS period_count
+      COUNT(CASE WHEN d.closed_at >= ${month.start} AND d.closed_at <= ${month.end} THEN 1 END) AS period_count
     FROM sc_clients c
     LEFT JOIN sc_deals d ON d.client_id = c.id AND d.status = 'won'
     WHERE c.active = true
@@ -55,21 +55,19 @@ export async function GET() {
     ORDER BY period_count DESC, today_count DESC, c.name ASC
   `;
 
-  // Sellers ranked by period deals, with goal for this pay period
   const sellers = await sql`
     SELECT u.id, u.name,
-      COUNT(CASE WHEN d.closed_at >= ${pp.start} AND d.closed_at <= ${pp.end} AND d.status = 'won' THEN 1 END) AS deals_count,
+      COUNT(CASE WHEN d.closed_at >= ${month.start} AND d.closed_at <= ${month.end} AND d.status = 'won' THEN 1 END) AS deals_count,
       COUNT(CASE WHEN d.closed_at = ${today} AND d.status = 'won' THEN 1 END) AS today_count,
       COALESCE(g.deals_goal, 0) AS deals_goal
     FROM users u
     LEFT JOIN sc_deals d ON d.salesperson_id = u.id
-    LEFT JOIN sc_goals g ON g.user_id = u.id AND g.period = ${pp.key}
+    LEFT JOIN sc_goals g ON g.user_id = u.id AND g.period = ${month.key}
     WHERE u.role IN ('admin', 'seller') AND u.active = 1
     GROUP BY u.id, u.name, g.deals_goal
     ORDER BY deals_count DESC, u.name ASC
   `;
 
-  // Recent won deals within current pay period
   const recent = await sql`
     SELECT d.id, d.company_name, d.closed_at, d.created_at,
       u.name AS salesperson_name,
@@ -77,13 +75,14 @@ export async function GET() {
     FROM sc_deals d
     LEFT JOIN users u ON u.id = d.salesperson_id
     LEFT JOIN sc_clients c ON c.id = d.client_id
-    WHERE d.status = 'won' AND d.closed_at >= ${pp.start}
+    WHERE d.status = 'won' AND d.closed_at >= ${month.start} AND d.closed_at <= ${month.end}
     ORDER BY d.closed_at DESC, d.created_at DESC
     LIMIT 20
   `;
 
   return NextResponse.json({
-    payPeriod: pp,
+    month,
+    isCurrentMonth,
     today:  { count: Number(todayRow.count) },
     period: { count: Number(periodRow.count) },
     byOpgave: byOpgave.map(o => ({

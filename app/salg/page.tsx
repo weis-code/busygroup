@@ -34,24 +34,21 @@ interface Goal {
 
 const CLIENT_COLORS = ['#3498DB','#E84025','#2ECC71','#9B59B6','#E67E22','#1ABC9C','#E91E63','#F39C12'];
 
-const MONTHS_DA_SHORT = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+const MONTHS_DA_FULL = ['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
 
-function getPayPeriodOptions(count = 6) {
+function getMonthOptions(count = 13) {
   const now = new Date();
-  let sy = now.getFullYear(), sm = now.getMonth();
-  if (now.getDate() < 21) { if (sm === 0) { sm = 11; sy--; } else sm--; }
   return Array.from({ length: count }, (_, i) => {
-    let y = sy, m = sm - i;
-    while (m < 0) { m += 12; y--; }
-    const ey = m === 11 ? y + 1 : y;
-    const em = (m + 1) % 12;
-    const key = `${y}-${String(m + 1).padStart(2, '0')}-21`;
-    const label = `21. ${MONTHS_DA_SHORT[m]} – 20. ${MONTHS_DA_SHORT[em]}${y !== ey ? ` ${ey}` : ''} ${y}`;
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+    const label = `${MONTHS_DA_FULL[m].charAt(0).toUpperCase() + MONTHS_DA_FULL[m].slice(1)} ${y}`;
     return { key, label };
   });
 }
 
-const PAY_PERIODS = getPayPeriodOptions();
+const MONTH_OPTIONS = getMonthOptions();
 
 function formatDKK(n: number) {
   return new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(n);
@@ -85,7 +82,7 @@ export default function SalgPage() {
   // Goals (admin only)
   const [showGoals, setShowGoals] = useState(false);
   const [sellers, setSellers] = useState<SellerUser[]>([]);
-  const [goalPeriod, setGoalPeriod] = useState(() => getPayPeriodOptions()[0].key);
+  const [goalPeriod, setGoalPeriod] = useState(() => MONTH_OPTIONS[0].key);
   const [savingGoal, setSavingGoal] = useState<string | null>(null);
   const [goalForms, setGoalForms] = useState<Record<string, { deals_goal: string }>>({});
 
@@ -360,13 +357,13 @@ export default function SalgPage() {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Lønperiode</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 5, fontWeight: 500 }}>Måned</div>
               <select
                 style={{ ...inputStyle, width: 260, appearance: 'none', cursor: 'pointer' }}
                 value={goalPeriod}
                 onChange={e => setGoalPeriod(e.target.value)}
               >
-                {PAY_PERIODS.map(p => (
+                {MONTH_OPTIONS.map(p => (
                   <option key={p.key} value={p.key}>{p.label}</option>
                 ))}
               </select>

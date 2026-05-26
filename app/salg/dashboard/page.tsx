@@ -2,18 +2,29 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, RefreshCw, TrendingUp, Target, Zap, Trophy, Clock } from 'lucide-react';
+import { ArrowLeft, RefreshCw, TrendingUp, Target, Zap, Trophy, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const MONTHS_DA = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+const MONTHS_DA_FULL = ['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
 const ACCENT = ['#E84025','#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4','#EC4899','#14B8A6'];
 
-function periodLabel(pp: { start: string; end: string }) {
-  const s = new Date(pp.start + 'T00:00:00');
-  const e = new Date(pp.end + 'T00:00:00');
-  const sy = s.getFullYear(), ey = e.getFullYear();
-  const yearSuffix = sy !== ey ? ` ${ey}` : '';
-  return `21. ${MONTHS_DA[s.getMonth()]} – 20. ${MONTHS_DA[e.getMonth()]}${yearSuffix} ${sy}`;
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
+
+function getMonthOptions(count = 13) {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const key = `${y}-${String(m + 1).padStart(2, '0')}`;
+    const label = `${MONTHS_DA_FULL[m].charAt(0).toUpperCase() + MONTHS_DA_FULL[m].slice(1)} ${y}`;
+    return { key, label };
+  });
+}
+
+const MONTH_OPTIONS = getMonthOptions();
 
 function timeSince(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -42,7 +53,8 @@ interface RecentDeal {
   client_name: string | null; client_color: string | null;
 }
 interface DashData {
-  payPeriod: { start: string; end: string; key: string };
+  month: { key: string; start: string; end: string; label: string };
+  isCurrentMonth: boolean;
   today: { count: number };
   period: { count: number };
   byOpgave: OpgaveStat[];
@@ -52,39 +64,55 @@ interface DashData {
 
 export default function SalesDashboard() {
   const router = useRouter();
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthKey);
   const [data, setData] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const load = useCallback(() => {
-    fetch('/api/salg/dashboard')
+    setLoading(true);
+    fetch(`/api/salg/dashboard?month=${selectedMonth}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) { setData(d); setLastRefresh(new Date()); } setLoading(false); })
       .catch(() => setLoading(false));
-  }, []);
+  }, [selectedMonth]);
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 30_000);
-    return () => clearInterval(t);
-  }, [load]);
+    if (selectedMonth === getCurrentMonthKey()) {
+      const t = setInterval(load, 30_000);
+      return () => clearInterval(t);
+    }
+  }, [load, selectedMonth]);
 
-  if (loading) return (
+  const currentIdx = MONTH_OPTIONS.findIndex(o => o.key === selectedMonth);
+
+  const navigateMonth = (dir: -1 | 1) => {
+    const nextIdx = currentIdx + dir;
+    if (nextIdx >= 0 && nextIdx < MONTH_OPTIONS.length) {
+      setSelectedMonth(MONTH_OPTIONS[nextIdx].key);
+    }
+  };
+
+  if (loading && !data) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#F8FAFC', color: '#94A3B8', fontSize: 14 }}>
       Indlæser dashboard...
     </div>
   );
   if (!data) return null;
 
+  const isCurrentMonth = data.isCurrentMonth;
   const totalGoal  = data.sellers.reduce((s, x) => s + x.deals_goal, 0);
   const periodPct  = totalGoal > 0 ? Math.min(100, Math.round((data.period.count / totalGoal) * 100)) : null;
 
   const kpis = [
-    { label: 'Salg i dag',   value: data.today.count,  sub: 'lukkede salg',                          icon: Zap,      color: '#10B981' },
-    { label: 'Lønperiode',   value: data.period.count, sub: periodLabel(data.payPeriod),              icon: TrendingUp, color: '#E84025' },
+    ...(isCurrentMonth ? [
+      { label: 'Salg i dag', value: data.today.count, sub: 'lukkede salg', icon: Zap, color: '#10B981' },
+    ] : []),
+    { label: 'Måneden i alt', value: data.period.count, sub: data.month.label, icon: TrendingUp, color: '#E84025' },
     ...(totalGoal > 0 ? [
-      { label: 'Team mål',   value: totalGoal,          sub: 'salg at nå i perioden',                icon: Target,   color: '#3B82F6' },
-      { label: 'Fremgang',   value: `${periodPct ?? 0}%`, sub: `${data.period.count} af ${totalGoal} salg`, icon: Trophy, color: '#F59E0B' },
+      { label: 'Team mål',  value: totalGoal,             sub: 'salg at nå i måneden',                   icon: Target, color: '#3B82F6' },
+      { label: 'Fremgang',  value: `${periodPct ?? 0}%`,  sub: `${data.period.count} af ${totalGoal} salg`, icon: Trophy, color: '#F59E0B' },
     ] : []),
   ];
 
@@ -106,13 +134,38 @@ export default function SalesDashboard() {
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#1E293B' }}>Salgsdashboard</div>
-              <div style={{ fontSize: 11, color: '#94A3B8' }}>Lønperiode: {periodLabel(data.payPeriod)}</div>
+              <div style={{ fontSize: 11, color: '#94A3B8' }}>{data.month.label}</div>
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ fontSize: 11, color: '#CBD5E1' }}>
-            Opdateret {lastRefresh.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}
+
+        {/* ── Månedsvælger ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => navigateMonth(1)}
+            disabled={currentIdx >= MONTH_OPTIONS.length - 1}
+            style={{ background: '#F1F5F9', border: 'none', cursor: currentIdx >= MONTH_OPTIONS.length - 1 ? 'default' : 'pointer', color: currentIdx >= MONTH_OPTIONS.length - 1 ? '#CBD5E1' : '#64748B', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center' }}
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <select
+            value={selectedMonth}
+            onChange={e => setSelectedMonth(e.target.value)}
+            style={{ background: '#F1F5F9', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 7, padding: '5px 10px', fontSize: 13, color: '#1E293B', cursor: 'pointer', outline: 'none' }}
+          >
+            {MONTH_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => navigateMonth(-1)}
+            disabled={currentIdx <= 0}
+            style={{ background: '#F1F5F9', border: 'none', cursor: currentIdx <= 0 ? 'default' : 'pointer', color: currentIdx <= 0 ? '#CBD5E1' : '#64748B', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center' }}
+          >
+            <ChevronRight size={14} />
+          </button>
+          <div style={{ fontSize: 11, color: '#CBD5E1', marginLeft: 4 }}>
+            {isCurrentMonth ? `Opdateret ${lastRefresh.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}` : ''}
           </div>
           <button
             onClick={load}
@@ -159,11 +212,13 @@ export default function SalesDashboard() {
                     <th style={{ textAlign: 'left', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 0 12px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                       Opgave
                     </th>
+                    {isCurrentMonth && (
+                      <th style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 0 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', width: 90 }}>
+                        I dag
+                      </th>
+                    )}
                     <th style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 0 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', width: 90 }}>
-                      I dag
-                    </th>
-                    <th style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '0 0 12px', borderBottom: '1px solid rgba(0,0,0,0.06)', width: 90 }}>
-                      Periode
+                      Måneden
                     </th>
                   </tr>
                 </thead>
@@ -176,11 +231,13 @@ export default function SalesDashboard() {
                           <span style={{ fontSize: 13, fontWeight: 500, color: '#1E293B' }}>{o.name}</span>
                         </div>
                       </td>
-                      <td style={{ textAlign: 'center', padding: '13px 0' }}>
-                        <span style={{ fontSize: 22, fontWeight: 800, color: o.today_count > 0 ? '#10B981' : '#E2E8F0', lineHeight: 1 }}>
-                          {o.today_count}
-                        </span>
-                      </td>
+                      {isCurrentMonth && (
+                        <td style={{ textAlign: 'center', padding: '13px 0' }}>
+                          <span style={{ fontSize: 22, fontWeight: 800, color: o.today_count > 0 ? '#10B981' : '#E2E8F0', lineHeight: 1 }}>
+                            {o.today_count}
+                          </span>
+                        </td>
+                      )}
                       <td style={{ textAlign: 'center', padding: '13px 0' }}>
                         <span style={{ fontSize: 22, fontWeight: 800, color: o.period_count > 0 ? '#E84025' : '#E2E8F0', lineHeight: 1 }}>
                           {o.period_count}
@@ -231,11 +288,11 @@ export default function SalesDashboard() {
                             </div>
                             <div style={{ fontSize: 10, color: '#CBD5E1', marginTop: 3 }}>
                               {pct}% af mål
-                              {s.today_count > 0 && <span style={{ marginLeft: 6, color: '#10B981', fontWeight: 600 }}>+{s.today_count} i dag</span>}
+                              {isCurrentMonth && s.today_count > 0 && <span style={{ marginLeft: 6, color: '#10B981', fontWeight: 600 }}>+{s.today_count} i dag</span>}
                             </div>
                           </>
                         ) : (
-                          s.today_count > 0 && (
+                          isCurrentMonth && s.today_count > 0 && (
                             <div style={{ fontSize: 10, color: '#10B981', fontWeight: 600 }}>+{s.today_count} i dag</div>
                           )
                         )}
@@ -251,12 +308,14 @@ export default function SalesDashboard() {
         {/* ── Seneste salg ── */}
         <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: '20px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Seneste salg</span>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', boxShadow: isCurrentMonth ? '0 0 6px #10B981' : 'none' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
+              {isCurrentMonth ? 'Seneste salg' : `Salg i ${data.month.label}`}
+            </span>
           </div>
           {data.recent.length === 0 ? (
             <div style={{ color: '#CBD5E1', fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
-              Ingen salg registreret i lønperioden endnu
+              Ingen salg registreret i {data.month.label}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
@@ -273,7 +332,7 @@ export default function SalesDashboard() {
                   </div>
                   <div style={{ fontSize: 10, color: '#CBD5E1', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3 }}>
                     <Clock size={9} />
-                    {timeSince(deal.created_at || deal.closed_at)}
+                    {isCurrentMonth ? timeSince(deal.created_at || deal.closed_at) : deal.closed_at.slice(8, 10) + '/' + deal.closed_at.slice(5, 7)}
                   </div>
                 </div>
               ))}
