@@ -1,6 +1,11 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  if (!process.env.DATABASE_URL) {
+    console.warn('[NLS] DATABASE_URL not set — skipping schema init');
+    return;
+  }
 
+  try {
   const { default: sql } = await import('./lib/db');
 
   await sql`
@@ -111,5 +116,8 @@ export async function register() {
       ON CONFLICT DO NOTHING
     `;
     console.log('[NLS] Default admin created: admin@busygroup.dk / admin123');
+  }
+  } catch (err) {
+    console.error('[NLS] Schema init failed:', err);
   }
 }
