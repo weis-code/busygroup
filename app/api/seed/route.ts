@@ -30,6 +30,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ step: 'db_connect', error: String(err) }, { status: 500 });
   }
 
+  // Step 2b: check if existing users table has correct id type
+  try {
+    const cols = await sql`
+      SELECT column_name, data_type, udt_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'users'
+      ORDER BY ordinal_position
+    `;
+    if (cols.length > 0) {
+      const idCol = cols.find((c: { column_name: string }) => c.column_name === 'id');
+      if (!idCol || idCol.udt_name !== 'uuid') {
+        // Old schema — drop all tables and start fresh
+        await sql`DROP TABLE IF EXISTS activity_logs, sales, targets, task_sellers, task_packages, tasks, pay_periods, users CASCADE`;
+      }
+    }
+  } catch (err) {
+    return NextResponse.json({ step: 'check_schema', error: String(err) }, { status: 500 });
+  }
+
   // Step 3: create tables
   try {
     await sql`CREATE TABLE IF NOT EXISTS users (
