@@ -5,39 +5,38 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 interface SellerRow {
   id: string; name: string;
   call_goal: number; sales_goal: number;
-  calls_today: number; contacts_today: number; sales_today: number;
+  calls_actual: number; contacts_actual: number;
+  meetings_booked_actual: number; meetings_held_actual: number;
+  sales_today: number;
 }
 
-function MiniBar({ value, goal, color }: { value: number; goal: number; color: string }) {
+function StatusBar({ value, goal, color }: { value: number; goal: number; color: string }) {
   const pct = goal > 0 ? Math.min(100, Math.round(value / goal * 100)) : 0;
+  const done = pct >= 100;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, minWidth: 80 }}>
-        <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pct >= 100 ? '#2ECC71' : color, transition: 'width 0.3s' }} />
+      <div style={{ flex: 1, height: 7, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }}>
+        <div style={{ height: '100%', borderRadius: 4, width: `${pct}%`, background: done ? '#2ECC71' : color, transition: 'width 0.3s' }} />
       </div>
-      <span style={{ fontSize: 12, color: pct >= 100 ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums', fontWeight: 600, minWidth: 48 }}>
-        {value} / {goal}
+      <span style={{ fontSize: 12, color: done ? '#2ECC71' : '#667788', minWidth: 36, fontVariantNumeric: 'tabular-nums' }}>
+        {goal > 0 ? pct + '%' : '—'}
       </span>
-      <span style={{ fontSize: 11, color: '#667788', minWidth: 34 }}>{goal > 0 ? pct + '%' : '—'}</span>
     </div>
   );
 }
 
-function GoalInput({ value, onSave }: { value: number; onSave: (v: number) => void }) {
+function NumInput({ value, onSave }: { value: number; onSave: (v: number) => void }) {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
-
   useEffect(() => { setLocal(String(value)); }, [value]);
-
   return (
     <input
-      ref={ref}
-      type="number" min="0" value={local}
+      ref={ref} type="number" min="0" value={local}
       onChange={e => setLocal(e.target.value)}
       onBlur={() => { const n = parseInt(local); if (!isNaN(n) && n !== value) onSave(n); }}
       onKeyDown={e => { if (e.key === 'Enter') ref.current?.blur(); }}
       style={{
-        width: 70, padding: '6px 10px', borderRadius: 6, textAlign: 'center',
+        width: 72, padding: '6px 10px', borderRadius: 6, textAlign: 'center',
         background: '#0F1923', border: '1px solid rgba(255,255,255,0.12)',
         color: '#ECF0F1', fontSize: 14, fontWeight: 600,
       }}
@@ -45,10 +44,31 @@ function GoalInput({ value, onSave }: { value: number; onSave: (v: number) => vo
   );
 }
 
+function SmallNumInput({ label, value, onSave }: { label: string; value: number; onSave: (v: number) => void }) {
+  const [local, setLocal] = useState(String(value));
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => { setLocal(String(value)); }, [value]);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+      <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.04em' }}>{label}</div>
+      <input
+        ref={ref} type="number" min="0" value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={() => { const n = parseInt(local); if (!isNaN(n) && n !== value) onSave(n); }}
+        onKeyDown={e => { if (e.key === 'Enter') ref.current?.blur(); }}
+        style={{
+          width: 72, padding: '7px 10px', borderRadius: 6, textAlign: 'center',
+          background: '#0F1923', border: '1px solid rgba(255,255,255,0.12)',
+          color: '#ECF0F1', fontSize: 15, fontWeight: 700,
+        }}
+      />
+    </div>
+  );
+}
+
 export default function AdminDailyPage() {
   const [rows, setRows] = useState<SellerRow[]>([]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [saving, setSaving] = useState<string | null>(null);
   const isToday = date === new Date().toISOString().slice(0, 10);
 
   const load = useCallback(async () => {
@@ -63,32 +83,41 @@ export default function AdminDailyPage() {
     return () => clearInterval(iv);
   }, [load, isToday]);
 
-  async function saveGoal(userId: string, field: 'call_goal' | 'sales_goal', value: number) {
-    setSaving(userId + field);
+  async function save(userId: string, field: keyof SellerRow, value: number) {
     const row = rows.find(r => r.id === userId)!;
+    const updated = { ...row, [field]: value };
+    setRows(prev => prev.map(r => r.id === userId ? updated : r));
     await fetch('/api/admin/daily-targets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: userId, date,
-        call_goal: field === 'call_goal' ? value : row.call_goal,
-        sales_goal: field === 'sales_goal' ? value : row.sales_goal,
+        call_goal: updated.call_goal,
+        sales_goal: updated.sales_goal,
+        calls_actual: updated.calls_actual,
+        contacts_actual: updated.contacts_actual,
+        meetings_booked_actual: updated.meetings_booked_actual,
+        meetings_held_actual: updated.meetings_held_actual,
       }),
     });
-    setRows(prev => prev.map(r => r.id === userId ? { ...r, [field]: value } : r));
-    setSaving(null);
   }
 
   const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 1000 }}>
+    <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>Daglige mål</h1>
           <p style={{ fontSize: 13, color: '#667788', textTransform: 'capitalize' }}>{dateLabel}</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {isToday && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#667788' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ECC71', display: 'inline-block', animation: 'pulse-dot 2s infinite' }} />
+              Live — 30 sek.
+            </div>
+          )}
           {!isToday && (
             <button onClick={() => setDate(new Date().toISOString().slice(0, 10))}
               style={{ background: 'rgba(255,255,255,0.06)', color: '#667788', padding: '8px 14px', borderRadius: 7, fontSize: 12 }}>
@@ -100,58 +129,60 @@ export default function AdminDailyPage() {
         </div>
       </div>
 
-      {isToday && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, fontSize: 12, color: '#667788' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2ECC71', display: 'inline-block', animation: 'pulse-dot 2s infinite' }} />
-          Opdateres automatisk hvert 30 sek.
-        </div>
+      {rows.length === 0 && (
+        <div style={{ textAlign: 'center', color: '#667788', fontSize: 13, padding: 40 }}>Ingen sælgere</div>
       )}
 
-      <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
-        {/* Column headers */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '160px 90px 90px 1fr 1fr 60px 60px',
-          gap: 16, padding: '12px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-        }}>
-          {['Sælger', 'Opkaldsmål', 'Salgsmål', 'Opkald fremgang', 'Salg fremgang', 'Kontakter', 'Salg'].map(h => (
-            <div key={h} style={{ fontSize: 11, color: '#667788', fontWeight: 500 }}>{h}</div>
-          ))}
-        </div>
-
-        {rows.length === 0 && (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen sælgere</div>
-        )}
-
-        {rows.map((row, i) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {rows.map(row => (
           <div key={row.id} style={{
-            display: 'grid',
-            gridTemplateColumns: '160px 90px 90px 1fr 1fr 60px 60px',
-            gap: 16, padding: '16px 20px', alignItems: 'center',
-            borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
-            background: saving?.startsWith(row.id) ? 'rgba(24,95,165,0.05)' : 'transparent',
-            transition: 'background 0.2s',
+            background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 12, padding: '20px 24px',
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#ECF0F1' }}>{row.name}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#ECF0F1', marginBottom: 18 }}>{row.name}</div>
 
-            <GoalInput value={row.call_goal} onSave={v => saveGoal(row.id, 'call_goal', v)} />
-            <GoalInput value={row.sales_goal} onSave={v => saveGoal(row.id, 'sales_goal', v)} />
+            {/* Goal / Actual / Status table */}
+            <div style={{ display: 'grid', gridTemplateColumns: '90px 90px 90px 1fr', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+              {/* Headers */}
+              <div style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em' }}></div>
+              <div style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em', textAlign: 'center' }}>MÅL</div>
+              <div style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em', textAlign: 'center' }}>FAKTISK</div>
+              <div style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em' }}>STATUS</div>
 
-            <MiniBar value={row.calls_today} goal={row.call_goal} color="#185FA5" />
-            <MiniBar value={row.sales_today} goal={row.sales_goal} color="#0F6E56" />
+              {/* Opkald row */}
+              <div style={{ fontSize: 13, color: '#A0AEC0', fontWeight: 500 }}>Opkald</div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <NumInput value={row.call_goal} onSave={v => save(row.id, 'call_goal', v)} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <NumInput value={row.calls_actual} onSave={v => save(row.id, 'calls_actual', v)} />
+              </div>
+              <StatusBar value={row.calls_actual} goal={row.call_goal} color="#185FA5" />
 
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#667788', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-              {row.contacts_today}
+              {/* Salg row */}
+              <div style={{ fontSize: 13, color: '#A0AEC0', fontWeight: 500 }}>Salg</div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <NumInput value={row.sales_goal} onSave={v => save(row.id, 'sales_goal', v)} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: '#2ECC71', fontVariantNumeric: 'tabular-nums' }}>
+                  {row.sales_today}
+                </span>
+              </div>
+              <StatusBar value={row.sales_today} goal={row.sales_goal} color="#0F6E56" />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#2ECC71', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-              {row.sales_today}
+
+            {/* Activity metrics */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16, display: 'flex', gap: 24 }}>
+              <SmallNumInput label="KONTAKTER" value={row.contacts_actual} onSave={v => save(row.id, 'contacts_actual', v)} />
+              <SmallNumInput label="MØDER BOOKET" value={row.meetings_booked_actual} onSave={v => save(row.id, 'meetings_booked_actual', v)} />
+              <SmallNumInput label="MØDER AFHOLDT" value={row.meetings_held_actual} onSave={v => save(row.id, 'meetings_held_actual', v)} />
             </div>
           </div>
         ))}
       </div>
 
-      <p style={{ marginTop: 14, fontSize: 12, color: '#667788' }}>
+      <p style={{ marginTop: 16, fontSize: 12, color: '#667788' }}>
         Klik på et tal og tryk Enter eller klik væk for at gemme.
       </p>
     </div>

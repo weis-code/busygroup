@@ -6,6 +6,7 @@ interface Task {
   id: string; name: string; client: string; description: string | null;
   status: string; start_date: string | null; end_date: string | null;
   compensation_model: string; price_per_unit: number | null; percent_value: number | null;
+  units_label: string;
   seller_count: number; sales_count: number; log_count: number;
 }
 interface Package { id?: string; name: string; price: string }
@@ -17,7 +18,8 @@ const MODEL_DK: Record<string, string> = { FIXED: 'Fast (per unit)', PERCENT: 'P
 const emptyForm = () => ({
   name: '', client: '', description: '', status: 'active',
   start_date: '', end_date: '', compensation_model: 'FIXED',
-  price_per_unit: '', percent_value: '', packages: [] as Package[], seller_ids: [] as string[],
+  price_per_unit: '', percent_value: '', units_label: 'Antal',
+  packages: [] as Package[], seller_ids: [] as string[],
 });
 
 export default function TasksPage() {
@@ -54,6 +56,7 @@ export default function TasksPage() {
       compensation_model: task.compensation_model,
       price_per_unit: task.price_per_unit?.toString() || '',
       percent_value: task.percent_value?.toString() || '',
+      units_label: task.units_label || 'Antal',
       packages: [], seller_ids: sellers,
     });
     setEditId(task.id); setError(''); setModal('edit');
@@ -196,9 +199,15 @@ export default function TasksPage() {
                 </select>
               </div>
               {form.compensation_model === 'FIXED' && (
-                <div>
-                  <label>Pris pr. unit (kr)</label>
-                  <input type="number" min="0" value={form.price_per_unit} onChange={e => setForm(f => ({ ...f, price_per_unit: e.target.value }))} required placeholder="0" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label>Pris pr. unit (kr)</label>
+                    <input type="number" min="0" value={form.price_per_unit} onChange={e => setForm(f => ({ ...f, price_per_unit: e.target.value }))} required placeholder="0" />
+                  </div>
+                  <div>
+                    <label>Sælgerlabel</label>
+                    <input value={form.units_label} onChange={e => setForm(f => ({ ...f, units_label: e.target.value }))} placeholder="Antal møder" />
+                  </div>
                 </div>
               )}
               {form.compensation_model === 'PERCENT' && (

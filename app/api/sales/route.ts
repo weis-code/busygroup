@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const rows = await sql`
-    SELECT s.id, s.date::text, s.units, s.deal_size, s.status, s.note, s.created_at,
+    SELECT s.id, s.date::text, s.units, s.deal_size, s.status, s.note, s.cvr, s.company_name, s.created_at,
            t.name AS task_name, t.compensation_model,
            tp.name AS package_name, tp.price AS package_price
     FROM sales s
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { task_id, date, units, deal_size, package_id, note } = body;
+  const { task_id, date, units, deal_size, package_id, note, cvr, company_name } = body;
 
   if (!task_id) return NextResponse.json({ error: 'task_id kræves' }, { status: 400 });
 
@@ -61,13 +61,14 @@ export async function POST(req: NextRequest) {
   const saleDate = date || new Date().toISOString().slice(0, 10);
 
   const [sale] = await sql`
-    INSERT INTO sales (user_id, task_id, date, units, deal_size, package_id, note, house_revenue)
+    INSERT INTO sales (user_id, task_id, date, units, deal_size, package_id, note, house_revenue, cvr, company_name)
     VALUES (
       ${session.id}, ${task_id}, ${saleDate},
       ${units ?? null}, ${deal_size ?? null}, ${package_id ?? null},
-      ${note ?? null}, ${house_revenue}
+      ${note ?? null}, ${house_revenue},
+      ${cvr ?? null}, ${company_name ?? null}
     )
-    RETURNING id, date::text, units, deal_size, status, note
+    RETURNING id, date::text, units, deal_size, status, note, cvr, company_name
   `;
 
   return NextResponse.json(sale, { status: 201 });

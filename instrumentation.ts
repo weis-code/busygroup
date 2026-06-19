@@ -112,9 +112,22 @@ export async function register() {
       date DATE NOT NULL DEFAULT CURRENT_DATE,
       call_goal INTEGER NOT NULL DEFAULT 0,
       sales_goal INTEGER NOT NULL DEFAULT 0,
+      calls_actual INTEGER NOT NULL DEFAULT 0,
+      contacts_actual INTEGER NOT NULL DEFAULT 0,
+      meetings_booked_actual INTEGER NOT NULL DEFAULT 0,
+      meetings_held_actual INTEGER NOT NULL DEFAULT 0,
       UNIQUE(user_id, date)
     )
   `;
+
+  // Migrations for existing tables
+  await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS calls_actual INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS contacts_actual INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS meetings_booked_actual INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS meetings_held_actual INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE sales ADD COLUMN IF NOT EXISTS cvr TEXT`;
+  await sql`ALTER TABLE sales ADD COLUMN IF NOT EXISTS company_name TEXT`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS units_label TEXT NOT NULL DEFAULT 'Antal'`;
 
   // Seed default admin user if none exists
   const [existing] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;

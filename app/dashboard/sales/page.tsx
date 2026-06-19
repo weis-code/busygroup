@@ -5,9 +5,9 @@ import { useEffect, useState, FormEvent } from 'react';
 const STATUS_COLOR: Record<string, string> = { PENDING: '#F39C12', CONFIRMED: '#2ECC71', PAID: '#185FA5' };
 const STATUS_DK: Record<string, string> = { PENDING: 'Afventer', CONFIRMED: 'Bekræftet', PAID: 'Betalt' };
 
-interface Task { id: string; name: string; client: string; compensation_model: string; price_per_unit: number | null; percent_value: number | null }
+interface Task { id: string; name: string; client: string; compensation_model: string; price_per_unit: number | null; percent_value: number | null; units_label: string }
 interface Package { id: string; task_id: string; name: string; price: number }
-interface Sale { id: string; date: string; task_name: string; compensation_model: string; units: number | null; deal_size: number | null; package_name: string | null; package_price: number | null; status: string; note: string | null }
+interface Sale { id: string; date: string; task_name: string; compensation_model: string; units: number | null; deal_size: number | null; package_name: string | null; cvr: string | null; company_name: string | null; status: string; note: string | null }
 
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -17,9 +17,10 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Form state
   const [taskId, setTaskId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [cvr, setCvr] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [units, setUnits] = useState('');
   const [dealSize, setDealSize] = useState('');
   const [packageId, setPackageId] = useState('');
@@ -42,15 +43,22 @@ export default function SalesPage() {
 
   function resetForm() {
     setTaskId(''); setDate(new Date().toISOString().slice(0, 10));
+    setCvr(''); setCompanyName('');
     setUnits(''); setDealSize(''); setPackageId(''); setNote(''); setError('');
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    if (!cvr.trim()) { setError('CVR-nummer er påkrævet'); return; }
+    if (!companyName.trim()) { setError('Firmanavn er påkrævet'); return; }
     setLoading(true);
     try {
-      const body: Record<string, unknown> = { task_id: taskId, date, note: note || null };
+      const body: Record<string, unknown> = {
+        task_id: taskId, date,
+        cvr: cvr.trim(), company_name: companyName.trim(),
+        note: note || null,
+      };
       if (selectedTask?.compensation_model === 'FIXED') body.units = Number(units);
       if (selectedTask?.compensation_model === 'PERCENT') body.deal_size = Number(dealSize);
       if (selectedTask?.compensation_model === 'PACKAGE') body.package_id = packageId;
@@ -82,26 +90,27 @@ export default function SalesPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              {['Dato', 'Opgave', 'Type', 'Note', 'Status'].map(h => (
+              {['Dato', 'Opgave', 'Firma', 'CVR', 'Detalje', 'Status'].map(h => (
                 <th key={h} style={{ textAlign: 'left', padding: '14px 18px', fontSize: 11, color: '#667788', fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {sales.length === 0 && (
-              <tr><td colSpan={5} style={{ padding: '40px 18px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen salg endnu</td></tr>
+              <tr><td colSpan={6} style={{ padding: '40px 18px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen salg endnu</td></tr>
             )}
             {sales.map(s => (
               <tr key={s.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <td style={{ padding: '12px 18px', fontSize: 13, color: '#ECF0F1' }}>{s.date}</td>
-                <td style={{ fontSize: 13, color: '#ECF0F1' }}>{s.task_name}</td>
-                <td style={{ fontSize: 12, color: '#667788' }}>
+                <td style={{ padding: '12px 18px', fontSize: 13, color: '#ECF0F1', whiteSpace: 'nowrap' }}>{s.date}</td>
+                <td style={{ padding: '12px 18px', fontSize: 13, color: '#ECF0F1' }}>{s.task_name}</td>
+                <td style={{ padding: '12px 18px', fontSize: 13, color: '#ECF0F1' }}>{s.company_name || '—'}</td>
+                <td style={{ padding: '12px 18px', fontSize: 12, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>{s.cvr || '—'}</td>
+                <td style={{ padding: '12px 18px', fontSize: 12, color: '#667788' }}>
                   {s.compensation_model === 'FIXED' && `${s.units} units`}
-                  {s.compensation_model === 'PERCENT' && `${Number(s.deal_size).toLocaleString('da-DK')} kr (deal)`}
+                  {s.compensation_model === 'PERCENT' && `${Number(s.deal_size).toLocaleString('da-DK')} kr`}
                   {s.compensation_model === 'PACKAGE' && `${s.package_name}`}
                 </td>
-                <td style={{ fontSize: 12, color: '#667788', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.note || '—'}</td>
-                <td>
+                <td style={{ padding: '12px 18px' }}>
                   <span style={{
                     fontSize: 11, padding: '3px 8px', borderRadius: 4,
                     background: `${STATUS_COLOR[s.status]}22`, color: STATUS_COLOR[s.status], fontWeight: 600,
@@ -113,7 +122,6 @@ export default function SalesPage() {
         </table>
       </div>
 
-      {/* Modal */}
       {open && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 28, width: 440, maxHeight: '90vh', overflowY: 'auto' }}>
@@ -132,15 +140,26 @@ export default function SalesPage() {
                 </select>
               </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label>CVR-nummer</label>
+                  <input value={cvr} onChange={e => setCvr(e.target.value)} required placeholder="12345678" />
+                </div>
+                <div>
+                  <label>Firmanavn</label>
+                  <input value={companyName} onChange={e => setCompanyName(e.target.value)} required placeholder="Firma A/S" />
+                </div>
+              </div>
+
               {selectedTask?.compensation_model === 'FIXED' && (
                 <div>
-                  <label>Antal units</label>
+                  <label>{selectedTask.units_label || 'Antal'}</label>
                   <input type="number" min="1" value={units} onChange={e => setUnits(e.target.value)} required placeholder="1" />
                 </div>
               )}
               {selectedTask?.compensation_model === 'PERCENT' && (
                 <div>
-                  <label>Deal-størrelse (kr)</label>
+                  <label>Beløb (kr)</label>
                   <input type="number" min="0" value={dealSize} onChange={e => setDealSize(e.target.value)} required placeholder="0" />
                 </div>
               )}
