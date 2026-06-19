@@ -18,6 +18,7 @@ const adminNav: NavItem[] = [
   { href: '/admin/sellers', label: 'Sælgere', icon: '◉' },
   { href: '/admin/periods', label: 'Lønperioder', icon: '◇' },
   { href: '/admin/targets', label: 'Targets', icon: '◆' },
+  { href: '/admin/daily', label: 'Daglige mål', icon: '◐' },
   { href: '/admin/revenue', label: 'Omsætning', icon: '◈', adminOnly: true },
 ];
 
