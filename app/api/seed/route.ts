@@ -115,6 +115,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ step: 'create_tables', error: String(err) }, { status: 500 });
   }
 
+  // Step 3b: daily_targets table
+  try {
+    await sql`CREATE TABLE IF NOT EXISTS daily_targets (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      call_goal INTEGER NOT NULL DEFAULT 0,
+      sales_goal INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, date)
+    )`;
+  } catch (err) {
+    return NextResponse.json({ step: 'create_daily_targets', error: String(err) }, { status: 500 });
+  }
+
   // Step 4: hash password
   let hash: string;
   try {

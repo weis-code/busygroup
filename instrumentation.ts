@@ -105,6 +105,17 @@ export async function register() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS daily_targets (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      call_goal INTEGER NOT NULL DEFAULT 0,
+      sales_goal INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, date)
+    )
+  `;
+
   // Seed default admin user if none exists
   const [existing] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;
   if (!existing) {

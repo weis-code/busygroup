@@ -6,6 +6,7 @@ interface NavItem { href: string; label: string; icon: string; adminOnly?: boole
 
 const sellerNav: NavItem[] = [
   { href: '/dashboard', label: 'Overblik', icon: '◈' },
+  { href: '/dashboard/daily', label: 'Dagligt mål', icon: '◐' },
   { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
   { href: '/dashboard/log', label: 'Aktivitetslog', icon: '◉' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: '◆' },
