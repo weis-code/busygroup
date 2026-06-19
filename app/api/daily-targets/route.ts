@@ -43,20 +43,3 @@ export async function GET(req: NextRequest) {
   });
 }
 
-export async function POST(req: NextRequest) {
-  const session = sessionFromRequest(req);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { date, call_goal, sales_goal } = await req.json();
-  const d = date || new Date().toISOString().slice(0, 10);
-
-  const [row] = await sql`
-    INSERT INTO daily_targets (user_id, date, call_goal, sales_goal)
-    VALUES (${session.id}, ${d}, ${call_goal ?? 0}, ${sales_goal ?? 0})
-    ON CONFLICT (user_id, date) DO UPDATE
-      SET call_goal = EXCLUDED.call_goal, sales_goal = EXCLUDED.sales_goal
-    RETURNING call_goal, sales_goal
-  `;
-
-  return NextResponse.json(row);
-}
