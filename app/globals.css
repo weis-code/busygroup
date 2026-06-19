@@ -3,59 +3,44 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 214 32% 96%;
-    --foreground: 215 25% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
-    --primary: 211 72% 37%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 214 32% 96%;
-    --secondary-foreground: 215 25% 15%;
-    --muted: 214 32% 93%;
-    --muted-foreground: 215 15% 55%;
-    --accent: 214 32% 93%;
-    --accent-foreground: 215 25% 15%;
-    --destructive: 4 70% 56%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 214 20% 90%;
-    --input: 214 20% 90%;
-    --ring: 211 72% 37%;
-    --radius: 0.5rem;
-  }
-  * {
-    @apply border-border;
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background-color: #F1F5F9;
-    color: #1E293B;
+    background-color: #0F1923;
+    color: #ECF0F1;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    margin: 0;
+    font-size: 14px;
   }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #0F1923; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #185FA5; }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #F1F5F9; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #185FA5; }
-
-/* Pulse animations */
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+input, select, textarea {
+  background: #0F1923;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #ECF0F1;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
 }
-.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-
-@keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(46,204,113,0.5); }
-  70% { box-shadow: 0 0 0 6px rgba(46,204,113,0); }
-  100% { box-shadow: 0 0 0 0 rgba(46,204,113,0); }
+input:focus, select:focus, textarea:focus {
+  border-color: #185FA5;
 }
-.pulse-live { animation: pulse-ring 2s ease-in-out infinite; }
+input::placeholder, textarea::placeholder { color: #667788; }
+select option { background: #1A2A38; }
 
-/* Kanban */
-.kanban-drag-overlay { opacity: 0.85; transform: rotate(2deg); }
+button {
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  font-family: inherit;
+  transition: opacity 0.15s, background 0.15s;
+}
+button:hover { opacity: 0.88; }
+button:disabled { opacity: 0.4; cursor: default; }
+
+label { display: block; font-size: 12px; color: #667788; margin-bottom: 4px; font-weight: 500; letter-spacing: 0.03em; }

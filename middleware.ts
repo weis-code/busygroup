@@ -1,39 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionFromRequest } from '@/lib/auth';
+import { verifySession, COOKIE_NAME } from './lib/auth';
 
-// Portal routes handle their own auth internally
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/portal', '/api/portal'];
+const PUBLIC_PREFIXES = ['/login', '/api/auth', '/_next', '/favicon'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Always allow public paths and static assets
-  if (
-    PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon')
-  ) {
+  if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  const session = await getSessionFromRequest(req);
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  const session = token ? await verifySession(token) : null;
 
   if (!session) {
-    // API routes return 401
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // Pages redirect to login
-    const loginUrl = new URL('/login', req.url);
-    loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Attach user info to request headers for API routes
+  if (pathname.startsWith('/admin') && session.role === 'SELLER') {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  if (pathname === '/') {
+    const dest = session.role === 'SELLER' ? '/dashboard' : '/admin';
+    return NextResponse.redirect(new URL(dest, req.url));
+  }
+
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-user-id', session.id);
   requestHeaders.set('x-user-role', session.role);
   requestHeaders.set('x-user-name', session.name);
+  requestHeaders.set('x-user-email', session.email);
 
   return NextResponse.next({ request: { headers: requestHeaders } });
 }

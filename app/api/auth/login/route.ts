@@ -1,47 +1,42 @@
-export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { sql } from '@/lib/db';
-import { signToken, COOKIE_NAME, COOKIE_MAX_AGE } from '@/lib/auth';
+import sql from '@/lib/db';
+import { signSession, COOKIE_NAME } from '@/lib/auth';
 
-interface UserRow {
-  id: string;
-  name: string;
-  email: string;
-  password_hash: string;
-  role: 'admin' | 'seller';
-  active: number;
-}
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  try {
-    const { email, password } = await req.json();
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email og password er påkrævet' }, { status: 400 });
-    }
-
-    const [user] = await sql`SELECT * FROM users WHERE email = ${email.toLowerCase().trim()} AND active = 1` as unknown as [UserRow | undefined];
-
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-      return NextResponse.json({ error: 'Forkert email eller password' }, { status: 401 });
-    }
-
-    // Update last login
-    await sql`UPDATE users SET last_login = ${new Date().toISOString()} WHERE id = ${user.id}`;
-
-    const token = await signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
-
-    const res = NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
-    res.cookies.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: COOKIE_MAX_AGE,
-      path: '/',
-    });
-    return res;
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  const { email, password } = await req.json();
+  if (!email || !password) {
+    return NextResponse.json({ error: 'Email og kodeord kræves' }, { status: 400 });
   }
+
+  const [user] = await sql<{ id: string; email: string; name: string; role: string; password_hash: string }[]>`
+    SELECT id, email, name, role, password_hash FROM users WHERE email = ${email.toLowerCase().trim()}
+  `;
+  if (!user) {
+    return NextResponse.json({ error: 'Forkert email eller kodeord' }, { status: 401 });
+  }
+
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) {
+    return NextResponse.json({ error: 'Forkert email eller kodeord' }, { status: 401 });
+  }
+
+  const token = await signSession({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as 'ADMIN' | 'MANAGER' | 'SELLER',
+  });
+
+  const res = NextResponse.json({ ok: true, role: user.role, name: user.name });
+  res.cookies.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30,
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  return res;
 }

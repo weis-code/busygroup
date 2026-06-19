@@ -1,10 +1,10 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { sessionFromRequest } from '@/lib/auth';
+
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
-
-export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'Ikke logget ind' }, { status: 401 });
-  return NextResponse.json(session);
+export async function GET(req: NextRequest) {
+  const session = sessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return NextResponse.json({ id: session.id, name: session.name, email: session.email, role: session.role });
 }
