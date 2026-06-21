@@ -4,7 +4,20 @@ import { useEffect, useState, FormEvent } from 'react';
 
 interface User { id: string; email: string; name: string; role: string; created_at: string }
 
+interface DayRow { date: string; calls: number; contacts: number; call_goal: number; sales_goal: number; sales: number }
+interface SaleRow { id: string; date: string; cvr: string | null; company_name: string | null; deal_size: number | null; status: string; task_name: string; display_mode: string; compensation_model: string; package_name: string | null }
+interface SellerDetail { user: User; days: DayRow[]; sales: SaleRow[] }
+
 const ROLE_COLOR: Record<string, string> = { ADMIN: '#E74C3C', MANAGER: '#F39C12', SELLER: '#2ECC71' };
+const STATUS_COLOR: Record<string, string> = { PENDING: '#F39C12', CONFIRMED: '#2ECC71', PAID: '#185FA5' };
+const STATUS_DK: Record<string, string> = { PENDING: 'Afventer', CONFIRMED: 'Bekræftet', PAID: 'Betalt' };
+const fmtKr = (n: number) => n.toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
+
+function defaultRange() {
+  const to = new Date().toISOString().slice(0, 10);
+  const from = new Date(); from.setDate(from.getDate() - 29);
+  return { from: from.toISOString().slice(0, 10), to };
+}
 
 export default function SellersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -16,12 +29,36 @@ export default function SellersPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('SELLER');
 
+  const [detail, setDetail] = useState<SellerDetail | null>(null);
+  const [detailUser, setDetailUser] = useState<User | null>(null);
+  const [range, setRange] = useState(defaultRange);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   async function load() {
     const data = await fetch('/api/admin/sellers').then(r => r.json());
     setUsers(data);
   }
 
   useEffect(() => { load(); }, []);
+
+  async function openDetail(u: User) {
+    setDetailUser(u);
+    setDetail(null);
+    setLoadingDetail(true);
+    const r = defaultRange();
+    setRange(r);
+    const d = await fetch(`/api/admin/sellers/${u.id}?from=${r.from}&to=${r.to}`).then(r => r.json());
+    setDetail(d);
+    setLoadingDetail(false);
+  }
+
+  async function loadDetail(from: string, to: string) {
+    if (!detailUser) return;
+    setLoadingDetail(true);
+    const d = await fetch(`/api/admin/sellers/${detailUser.id}?from=${from}&to=${to}`).then(r => r.json());
+    setDetail(d);
+    setLoadingDetail(false);
+  }
 
   function reset() { setEmail(''); setName(''); setPassword(''); setRole('SELLER'); setError(''); }
 
@@ -41,6 +78,8 @@ export default function SellersPage() {
     finally { setLoading(false); }
   }
 
+  const activeDays = (detail?.days ?? []).filter(d => d.calls > 0 || d.contacts > 0 || d.sales > 0);
+
   return (
     <div style={{ padding: '28px 32px', maxWidth: 900 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
@@ -55,34 +94,158 @@ export default function SellersPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              {['Navn', 'Email', 'Rolle', 'Oprettet'].map(h => (
+              {['Navn', 'Email', 'Rolle', 'Oprettet', ''].map(h => (
                 <th key={h} style={{ textAlign: 'left', padding: '14px 18px', fontSize: 11, color: '#667788', fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {users.length === 0 && (
-              <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen brugere</td></tr>
+              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen brugere</td></tr>
             )}
             {users.map(u => (
-              <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
+                onClick={() => openDetail(u)}>
                 <td style={{ padding: '13px 18px', fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{u.name}</td>
                 <td style={{ fontSize: 13, color: '#667788' }}>{u.email}</td>
-                <td>
-                  <span style={{
-                    fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600,
-                    background: `${ROLE_COLOR[u.role]}18`, color: ROLE_COLOR[u.role],
-                  }}>{u.role}</span>
+                <td style={{ padding: '13px 18px' }}>
+                  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600, background: `${ROLE_COLOR[u.role]}18`, color: ROLE_COLOR[u.role] }}>{u.role}</span>
                 </td>
-                <td style={{ fontSize: 12, color: '#667788' }}>{new Date(u.created_at).toLocaleDateString('da-DK')}</td>
+                <td style={{ fontSize: 12, color: '#667788', padding: '13px 18px' }}>{new Date(u.created_at).toLocaleDateString('da-DK')}</td>
+                <td style={{ padding: '13px 18px' }}>
+                  <span style={{ fontSize: 12, color: '#185FA5' }}>Se historik →</span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      {/* Detail drawer */}
+      {detailUser && (
+        <>
+          <div onClick={() => setDetailUser(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 620,
+            background: '#0F1923', borderLeft: '1px solid rgba(255,255,255,0.1)',
+            zIndex: 50, display: 'flex', flexDirection: 'column', overflowY: 'auto',
+          }}>
+            {/* Drawer header */}
+            <div style={{ padding: '24px 28px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>{detailUser.name}</div>
+                <div style={{ fontSize: 12, color: '#667788' }}>{detailUser.email}</div>
+              </div>
+              <button onClick={() => setDetailUser(null)} style={{ background: 'rgba(255,255,255,0.06)', color: '#667788', padding: '6px 12px', borderRadius: 6, fontSize: 13 }}>✕ Luk</button>
+            </div>
+
+            {/* Date range picker */}
+            <div style={{ padding: '16px 28px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#667788' }}>Periode:</span>
+              <input type="date" value={range.from}
+                onChange={e => { const r = { ...range, from: e.target.value }; setRange(r); loadDetail(r.from, r.to); }}
+                style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, width: 140 }} />
+              <span style={{ fontSize: 12, color: '#667788' }}>→</span>
+              <input type="date" value={range.to}
+                onChange={e => { const r = { ...range, to: e.target.value }; setRange(r); loadDetail(r.from, r.to); }}
+                style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, width: 140 }} />
+              {loadingDetail && <span style={{ fontSize: 12, color: '#667788' }}>Indlæser…</span>}
+            </div>
+
+            <div style={{ padding: '20px 28px', flex: 1 }}>
+              {/* Summary totals */}
+              {detail && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 24 }}>
+                  {[
+                    { label: 'OPKALD', value: detail.days.reduce((s, d) => s + d.calls, 0) },
+                    { label: 'KONTAKTER', value: detail.days.reduce((s, d) => s + d.contacts, 0) },
+                    { label: 'SALG', value: detail.days.reduce((s, d) => s + d.sales, 0) },
+                  ].map(k => (
+                    <div key={k.label} style={{ background: '#111E2A', borderRadius: 8, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 10, color: '#667788', letterSpacing: '0.06em', marginBottom: 6 }}>{k.label}</div>
+                      <div style={{ fontSize: 26, fontWeight: 800, color: '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Daily history — only days with data */}
+              <div style={{ fontSize: 12, color: '#667788', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 10 }}>
+                DAGLIG HISTORIK {activeDays.length === 0 && detail ? '— ingen aktivitet i perioden' : ''}
+              </div>
+              {detail && activeDays.length > 0 && (
+                <div style={{ background: '#111E2A', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '110px 70px 70px 60px 80px 60px 56px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                    {['Dato', 'Opkald', 'Kontakter', 'Salg', 'Mål opk.', 'Mål salg', 'KR%'].map(h => (
+                      <div key={h} style={{ fontSize: 10, color: '#667788', fontWeight: 600, letterSpacing: '0.04em' }}>{h}</div>
+                    ))}
+                  </div>
+                  {activeDays.map((d, i) => {
+                    const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' });
+                    const kr = d.contacts > 0 ? (d.sales / d.contacts * 100).toFixed(1) + '%' : null;
+                    return (
+                      <div key={d.date} style={{
+                        display: 'grid', gridTemplateColumns: '110px 70px 70px 60px 80px 60px 56px',
+                        gap: 8, padding: '11px 16px', alignItems: 'center',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
+                        background: d.date === new Date().toISOString().slice(0, 10) ? 'rgba(24,95,165,0.07)' : 'transparent',
+                      }}>
+                        <div style={{ fontSize: 12, color: '#ECF0F1', fontWeight: 500 }}>{dateLabel}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: d.calls >= d.call_goal && d.call_goal > 0 ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>{d.calls}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>{d.contacts}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: d.sales > 0 ? '#2ECC71' : '#667788', fontVariantNumeric: 'tabular-nums' }}>{d.sales}</div>
+                        <div style={{ fontSize: 12, color: '#4A5568', fontVariantNumeric: 'tabular-nums' }}>{d.call_goal > 0 ? d.call_goal : '—'}</div>
+                        <div style={{ fontSize: 12, color: '#4A5568', fontVariantNumeric: 'tabular-nums' }}>{d.sales_goal > 0 ? d.sales_goal : '—'}</div>
+                        <div style={{ fontSize: 12, color: kr ? '#185FA5' : '#4A5568', fontVariantNumeric: 'tabular-nums' }}>{kr ?? '—'}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Sales list */}
+              {detail && detail.sales.length > 0 && (
+                <>
+                  <div style={{ fontSize: 12, color: '#667788', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 10 }}>SALG I PERIODEN ({detail.sales.length})</div>
+                  <div style={{ background: '#111E2A', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 1fr 80px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                      {['Dato', 'Firma', 'Opgave', 'Status'].map(h => (
+                        <div key={h} style={{ fontSize: 10, color: '#667788', fontWeight: 600, letterSpacing: '0.04em' }}>{h}</div>
+                      ))}
+                    </div>
+                    {detail.sales.map((s, i) => (
+                      <div key={s.id} style={{
+                        display: 'grid', gridTemplateColumns: '90px 1fr 1fr 80px',
+                        gap: 8, padding: '11px 16px', alignItems: 'center',
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
+                      }}>
+                        <div style={{ fontSize: 12, color: '#667788' }}>{s.date}</div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{s.company_name || '—'}</div>
+                          {s.cvr && <div style={{ fontSize: 11, color: '#4A5568' }}>{s.cvr}</div>}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 12, color: '#667788' }}>{s.task_name}</div>
+                          {s.deal_size && <div style={{ fontSize: 11, color: '#185FA5', fontVariantNumeric: 'tabular-nums' }}>{fmtKr(Number(s.deal_size))}</div>}
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 600, background: `${STATUS_COLOR[s.status]}18`, color: STATUS_COLOR[s.status] }}>
+                            {STATUS_DK[s.status]}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Create user modal */}
       {open && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 28, width: 420 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1', marginBottom: 22 }}>Opret ny bruger</div>
             <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
