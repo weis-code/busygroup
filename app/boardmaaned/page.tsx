@@ -7,9 +7,16 @@ interface SellerMonth {
   sales_month: number; units_month: number; unit_goal_month: number;
   contacts_month: number;
 }
+interface TaskRow {
+  task_id: string; task_name: string; display_mode: string;
+  seller_id: string; seller_name: string;
+  sales_count: number; amount_sold: number;
+  unit_goal: number | null; revenue_goal: number | null;
+}
 interface LatestSale { id: string; seller_name: string; created_at: string }
-
 interface Toast { id: number; seller: string }
+
+const fmtKr = (n: number) => n.toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -22,7 +29,8 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 }
 
 export default function BoardMaanedPage() {
-  const [data, setData] = useState<SellerMonth[] | null>(null);
+  const [sellers, setSellers] = useState<SellerMonth[]>([]);
+  const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [clock, setClock] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const lastSaleId = useRef<string | null>(null);
@@ -31,7 +39,8 @@ export default function BoardMaanedPage() {
 
   async function load() {
     const d = await fetch('/api/board').then(r => r.json());
-    setData(d.monthly);
+    setSellers(d.monthly ?? []);
+    setTasks(d.tasksMonthly ?? []);
 
     const ls: LatestSale | null = d.latestSale;
     if (ls) {
@@ -56,13 +65,19 @@ export default function BoardMaanedPage() {
   }, []);
 
   const monthName = new Date().toLocaleDateString('da-DK', { month: 'long', year: 'numeric' });
-  const sellers = data ?? [];
 
   const totalSales = sellers.reduce((s, r) => s + r.sales_month, 0);
   const totalGoal = sellers.reduce((s, r) => s + r.unit_goal_month, 0);
   const totalContacts = sellers.reduce((s, r) => s + r.contacts_month, 0);
   const totalPct = totalGoal > 0 ? Math.min(100, Math.round(totalSales / totalGoal * 100)) : 0;
   const teamKR = totalContacts > 0 ? (totalSales / totalContacts * 100) : null;
+
+  // Group task rows by task
+  const taskGroups = tasks.reduce((acc, row) => {
+    if (!acc[row.task_id]) acc[row.task_id] = { name: row.task_name, display_mode: row.display_mode, rows: [] };
+    acc[row.task_id].rows.push(row);
+    return acc;
+  }, {} as Record<string, { name: string; display_mode: string; rows: TaskRow[] }>);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1923', padding: '32px 48px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
@@ -106,33 +121,15 @@ export default function BoardMaanedPage() {
       </div>
 
       {/* KPI cards */}
-      {data && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
-          <KpiCard
-            label="SALG DENNE MÅNED"
-            value={String(totalSales)}
-            sub={totalGoal > 0 ? `Mål: ${totalGoal}` : 'Intet holdmål sat'}
-          />
-          <KpiCard
-            label="FREMGANG"
-            value={totalGoal > 0 ? `${totalPct}%` : '—'}
-            sub={totalGoal > 0 ? `${totalSales} af ${totalGoal}` : undefined}
-          />
-          <KpiCard
-            label="KONTAKTER"
-            value={String(totalContacts)}
-            sub={`${sellers.length} sælgere`}
-          />
-          <KpiCard
-            label="HOLDETS KONV. RATE"
-            value={teamKR !== null ? `${teamKR.toFixed(1)}%` : '—'}
-            sub={teamKR !== null ? `${totalSales} salg / ${totalContacts} kontakter` : 'Ingen kontakter registreret'}
-          />
-        </div>
-      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
+        <KpiCard label="SALG DENNE MÅNED" value={String(totalSales)} sub={totalGoal > 0 ? `Mål: ${totalGoal}` : 'Intet holdmål sat'} />
+        <KpiCard label="FREMGANG" value={totalGoal > 0 ? `${totalPct}%` : '—'} sub={totalGoal > 0 ? `${totalSales} af ${totalGoal}` : undefined} />
+        <KpiCard label="KONTAKTER" value={String(totalContacts)} sub={`${sellers.length} sælgere`} />
+        <KpiCard label="HOLDETS KONV. RATE" value={teamKR !== null ? `${teamKR.toFixed(1)}%` : '—'} sub={teamKR !== null ? `${totalSales} salg / ${totalContacts} kontakter` : 'Ingen kontakter endnu'} />
+      </div>
 
       {/* Team progress bar */}
-      {data && totalGoal > 0 && (
+      {totalGoal > 0 && (
         <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '18px 26px', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <span style={{ fontSize: 11, color: '#667788', fontWeight: 700, letterSpacing: '0.08em' }}>HOLDETS SAMLEDE FREMGANG</span>
@@ -148,68 +145,104 @@ export default function BoardMaanedPage() {
         </div>
       )}
 
-      {/* Seller table */}
-      {data && (
-        <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '180px 80px 80px 1fr 100px 100px',
-            gap: 16, padding: '12px 24px',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
-          }}>
-            {['Sælger', 'Salg', 'Mål', 'Fremgang', 'Kontakter', 'KR%'].map(h => (
-              <div key={h} style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em' }}>{h}</div>
-            ))}
-          </div>
-
-          {sellers.length === 0 && (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen sælgere endnu</div>
-          )}
-
-          {sellers.map((s, i) => {
-            const pct = s.unit_goal_month > 0 ? Math.min(100, Math.round(s.sales_month / s.unit_goal_month * 100)) : 0;
-            const done = pct >= 100;
-            const kr = s.contacts_month > 0 ? (s.sales_month / s.contacts_month * 100) : null;
-            return (
-              <div key={s.id} style={{
-                display: 'grid',
-                gridTemplateColumns: '180px 80px 80px 1fr 100px 100px',
-                gap: 16, padding: '18px 24px', alignItems: 'center',
-                borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
+      {/* Per-task sections */}
+      {Object.values(taskGroups).map(group => {
+        const isAmount = group.display_mode === 'AMOUNT';
+        const sortedRows = [...group.rows].sort((a, b) => {
+          const aVal = isAmount ? Number(a.amount_sold) : a.sales_count;
+          const bVal = isAmount ? Number(b.amount_sold) : b.sales_count;
+          return bVal - aVal;
+        });
+        return (
+          <div key={group.name} style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#ECF0F1' }}>{group.name}</span>
+              <span style={{
+                fontSize: 11, padding: '3px 9px', borderRadius: 4, fontWeight: 600,
+                background: isAmount ? 'rgba(15,110,86,0.2)' : 'rgba(24,95,165,0.2)',
+                color: isAmount ? '#2ECC71' : '#185FA5',
               }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#ECF0F1' }}>{s.name}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: done ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>
-                  {s.sales_month}
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>
-                  {s.unit_goal_month > 0 ? s.unit_goal_month : '—'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 4, transition: 'width 0.5s',
-                      width: s.unit_goal_month > 0 ? `${pct}%` : '0%',
-                      background: done ? '#2ECC71' : '#185FA5',
-                    }} />
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: done ? '#2ECC71' : '#667788', minWidth: 36, fontVariantNumeric: 'tabular-nums' }}>
-                    {s.unit_goal_month > 0 ? `${pct}%` : '—'}
-                  </span>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>
-                  {s.contacts_month}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: kr !== null ? '#185FA5' : '#334455', fontVariantNumeric: 'tabular-nums' }}>
-                  {kr !== null ? `${kr.toFixed(1)}%` : '—'}
-                </div>
+                {isAmount ? 'BELØB LUKKET' : 'ANTAL SALG'}
+              </span>
+            </div>
+            <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 120px', gap: 16, padding: '10px 22px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                {['Sælger', isAmount ? 'Beløb lukket' : 'Antal salg', 'Mål'].map(h => (
+                  <div key={h} style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em' }}>{h}</div>
+                ))}
               </div>
-            );
-          })}
+              {sortedRows.map((row, i) => {
+                const actual = isAmount ? Number(row.amount_sold) : row.sales_count;
+                const goal = isAmount ? Number(row.revenue_goal ?? 0) : Number(row.unit_goal ?? 0);
+                const pct = goal > 0 ? Math.min(100, Math.round(actual / goal * 100)) : 0;
+                const done = pct >= 100;
+                return (
+                  <div key={row.seller_id} style={{
+                    display: 'grid', gridTemplateColumns: '200px 1fr 120px',
+                    gap: 16, padding: '16px 22px', alignItems: 'center',
+                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
+                  }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#ECF0F1' }}>{row.seller_name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 20, fontWeight: 800, color: done ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums', minWidth: 80 }}>
+                        {isAmount ? fmtKr(actual) : actual}
+                      </span>
+                      {goal > 0 && (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }}>
+                            <div style={{ height: '100%', borderRadius: 4, width: `${pct}%`, background: done ? '#2ECC71' : '#185FA5', transition: 'width 0.5s' }} />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: done ? '#2ECC71' : '#667788', minWidth: 36, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>
+                      {goal > 0 ? (isAmount ? fmtKr(goal) : String(goal)) : '—'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Summary seller table */}
+      {sellers.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, color: '#667788', fontWeight: 700, letterSpacing: '0.08em', marginBottom: 12 }}>SAMLET PR. SÆLGER</div>
+          <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 80px 80px 1fr 100px 100px', gap: 16, padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              {['Sælger', 'Salg', 'Mål', 'Fremgang', 'Kontakter', 'KR%'].map(h => (
+                <div key={h} style={{ fontSize: 11, color: '#667788', fontWeight: 600, letterSpacing: '0.05em' }}>{h}</div>
+              ))}
+            </div>
+            {sellers.map((s, i) => {
+              const pct = s.unit_goal_month > 0 ? Math.min(100, Math.round(s.sales_month / s.unit_goal_month * 100)) : 0;
+              const done = pct >= 100;
+              const kr = s.contacts_month > 0 ? (s.sales_month / s.contacts_month * 100) : null;
+              return (
+                <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '180px 80px 80px 1fr 100px 100px', gap: 16, padding: '16px 24px', alignItems: 'center', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#ECF0F1' }}>{s.name}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: done ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>{s.sales_month}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>{s.unit_goal_month > 0 ? s.unit_goal_month : '—'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }}>
+                      <div style={{ height: '100%', borderRadius: 4, width: s.unit_goal_month > 0 ? `${pct}%` : '0%', background: done ? '#2ECC71' : '#185FA5', transition: 'width 0.5s' }} />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: done ? '#2ECC71' : '#667788', minWidth: 36, fontVariantNumeric: 'tabular-nums' }}>{s.unit_goal_month > 0 ? `${pct}%` : '—'}</span>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>{s.contacts_month}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: kr !== null ? '#185FA5' : '#334455', fontVariantNumeric: 'tabular-nums' }}>{kr !== null ? `${kr.toFixed(1)}%` : '—'}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {!data && (
-        <div style={{ color: '#667788', fontSize: 14, textAlign: 'center', padding: 60 }}>Indlæser…</div>
+      {sellers.length === 0 && (
+        <div style={{ color: '#667788', fontSize: 14, textAlign: 'center', padding: 60 }}>Ingen sælgere endnu</div>
       )}
     </div>
   );

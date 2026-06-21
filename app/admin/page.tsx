@@ -14,7 +14,7 @@ interface ChartItem { label: string; value: number }
 interface ConvRate { name: string; sales_month: number; contacts_month: number }
 interface OverviewData {
   sales: Sale[];
-  revenue: { this_month: number; last_month: number };
+  revenue: { today: number; this_month: number; last_month: number };
   byTask: ChartItem[];
   bySeller: ChartItem[];
   byModel: ChartItem[];
@@ -53,11 +53,12 @@ export default function AdminPage() {
       <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 28 }}>Admin oversigt</h1>
 
       {/* Revenue KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {[
+          { label: 'OMSÆTNING I DAG', value: fmt(Number(revenue.today)) },
           { label: 'DENNE MÅNED', value: fmt(Number(revenue.this_month)) },
           { label: 'FORRIGE MÅNED', value: fmt(Number(revenue.last_month)) },
-          { label: 'ÆNDRING', value: revenue.last_month > 0 ? ((revenue.this_month / revenue.last_month - 1) * 100).toFixed(1) + '%' : '—' },
+          { label: 'ÆNDRING MOM', value: revenue.last_month > 0 ? ((revenue.this_month / revenue.last_month - 1) * 100).toFixed(1) + '%' : '—' },
         ].map(k => (
           <div key={k.label} style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '20px 22px' }}>
             <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.06em', marginBottom: 8 }}>{k.label}</div>

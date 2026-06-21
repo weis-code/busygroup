@@ -44,6 +44,36 @@ export async function GET() {
     ORDER BY sales_month DESC, u.name
   `;
 
+  // Per-task monthly breakdown with display_mode
+  const tasksMonthly = await sql`
+    SELECT
+      t.id AS task_id, t.name AS task_name, t.display_mode,
+      u.id AS seller_id, u.name AS seller_name,
+      COALESCE(COUNT(s.id), 0)::int           AS sales_count,
+      COALESCE(SUM(s.deal_size), 0)::numeric  AS amount_sold,
+      COALESCE(
+        (SELECT tg.unit_goal FROM targets tg
+         JOIN pay_periods pp ON pp.id = tg.period_id
+         WHERE tg.task_id = t.id AND tg.user_id = u.id
+           AND pp.start_date <= ${today}::date AND pp.end_date >= ${today}::date
+         LIMIT 1), NULL
+      ) AS unit_goal,
+      COALESCE(
+        (SELECT tg.revenue_goal FROM targets tg
+         JOIN pay_periods pp ON pp.id = tg.period_id
+         WHERE tg.task_id = t.id AND tg.user_id = u.id
+           AND pp.start_date <= ${today}::date AND pp.end_date >= ${today}::date
+         LIMIT 1), NULL
+      ) AS revenue_goal
+    FROM tasks t
+    JOIN task_sellers ts ON ts.task_id = t.id
+    JOIN users u ON u.id = ts.user_id AND u.role = 'SELLER'
+    LEFT JOIN sales s ON s.task_id = t.id AND s.user_id = u.id AND s.date >= ${monthStart}
+    WHERE t.status = 'active'
+    GROUP BY t.id, t.name, t.display_mode, u.id, u.name
+    ORDER BY t.name, u.name
+  `;
+
   // Most recent sale this month for notification detection
   const [latestSale] = await sql`
     SELECT s.id, u.name AS seller_name, s.created_at
@@ -54,5 +84,5 @@ export async function GET() {
     LIMIT 1
   `;
 
-  return NextResponse.json({ daily, monthly, today, latestSale: latestSale ?? null });
+  return NextResponse.json({ daily, monthly, tasksMonthly, today, latestSale: latestSale ?? null });
 }

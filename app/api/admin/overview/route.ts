@@ -25,14 +25,14 @@ export async function GET(req: NextRequest) {
     LIMIT 500
   `;
 
-  // Revenue this month vs last month
+  // Revenue today / this month / last month
   const [revenue] = await sql`
     SELECT
+      COALESCE(SUM(CASE WHEN date = CURRENT_DATE THEN house_revenue ELSE 0 END), 0)::numeric AS today,
       COALESCE(SUM(CASE WHEN date >= date_trunc('month', CURRENT_DATE)::date THEN house_revenue ELSE 0 END), 0)::numeric AS this_month,
       COALESCE(SUM(CASE WHEN date >= (date_trunc('month', CURRENT_DATE) - INTERVAL '1 month')::date
                         AND date < date_trunc('month', CURRENT_DATE)::date THEN house_revenue ELSE 0 END), 0)::numeric AS last_month
     FROM sales
-    WHERE status != 'PENDING'
   `;
 
   // Revenue by task
