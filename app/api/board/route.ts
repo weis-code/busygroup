@@ -44,5 +44,15 @@ export async function GET() {
     ORDER BY sales_month DESC, u.name
   `;
 
-  return NextResponse.json({ daily, monthly, today });
+  // Most recent sale this month for notification detection
+  const [latestSale] = await sql`
+    SELECT s.id, u.name AS seller_name, s.created_at
+    FROM sales s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.date >= ${monthStart}
+    ORDER BY s.created_at DESC
+    LIMIT 1
+  `;
+
+  return NextResponse.json({ daily, monthly, today, latestSale: latestSale ?? null });
 }
