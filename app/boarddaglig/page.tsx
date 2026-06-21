@@ -8,6 +8,30 @@ interface SellerDay {
   calls_today: number; contacts_today: number; sales_today: number;
 }
 
+function BigBar({ value, goal, color, label }: { value: number; goal: number; color: string; label: string }) {
+  const pct = goal > 0 ? Math.min(100, Math.round(value / goal * 100)) : 0;
+  const done = pct >= 100;
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <span style={{ fontSize: 11, color: '#667788', fontWeight: 700, letterSpacing: '0.08em' }}>{label}</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontSize: 36, fontWeight: 800, color: done ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</span>
+          {goal > 0 && <span style={{ fontSize: 16, color: '#667788', fontVariantNumeric: 'tabular-nums' }}>/ {goal}</span>}
+          {goal > 0 && <span style={{ fontSize: 18, fontWeight: 700, color: done ? '#2ECC71' : '#185FA5', fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>}
+        </div>
+      </div>
+      <div style={{ height: 14, background: 'rgba(255,255,255,0.08)', borderRadius: 7 }}>
+        <div style={{
+          height: '100%', borderRadius: 7, transition: 'width 0.6s',
+          width: goal > 0 ? `${pct}%` : '0%',
+          background: done ? '#2ECC71' : color,
+        }} />
+      </div>
+    </div>
+  );
+}
+
 function Bar({ value, goal, color }: { value: number; goal: number; color: string }) {
   const pct = goal > 0 ? Math.min(100, Math.round(value / goal * 100)) : 0;
   const done = pct >= 100;
@@ -47,9 +71,18 @@ export default function BoardDagligPage() {
     ? new Date(today).toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' })
     : '';
 
+  const sellers = data ?? [];
+  const teamCallsTotal = sellers.reduce((s, r) => s + r.calls_today, 0);
+  const teamCallsGoal = sellers.reduce((s, r) => s + r.call_goal, 0);
+  const teamSalesTotal = sellers.reduce((s, r) => s + r.sales_today, 0);
+  const teamSalesGoal = sellers.reduce((s, r) => s + r.sales_goal, 0);
+  const teamContacts = sellers.reduce((s, r) => s + r.contacts_today, 0);
+
   return (
     <div style={{ minHeight: '100vh', background: '#0F1923', padding: '32px 40px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36 }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <div style={{ fontSize: 13, color: '#185FA5', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>NEXT LEVEL SALES</div>
           <div style={{ fontSize: 30, fontWeight: 800, color: '#ECF0F1', textTransform: 'capitalize' }}>{dateStr}</div>
@@ -60,6 +93,25 @@ export default function BoardDagligPage() {
         </div>
       </div>
 
+      {/* Team overview */}
+      {data && (
+        <div style={{
+          background: '#111E2A', border: '1px solid rgba(24,95,165,0.3)',
+          borderRadius: 14, padding: '24px 28px', marginBottom: 28,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+            <span style={{ fontSize: 12, color: '#185FA5', fontWeight: 700, letterSpacing: '0.1em' }}>HOLD I DAG</span>
+            <div style={{ flex: 1, height: 1, background: 'rgba(24,95,165,0.2)' }} />
+            <span style={{ fontSize: 12, color: '#667788' }}>{sellers.length} sælgere · {teamContacts} kontakter</span>
+          </div>
+          <div style={{ display: 'flex', gap: 32 }}>
+            <BigBar value={teamCallsTotal} goal={teamCallsGoal} color="#185FA5" label="OPKALD" />
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+            <BigBar value={teamSalesTotal} goal={teamSalesGoal} color="#0F6E56" label="SALG" />
+          </div>
+        </div>
+      )}
+
       {/* Column headers */}
       <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 1fr 90px 90px', gap: 16, padding: '0 20px', marginBottom: 8 }}>
         {['Sælger', 'Opkald', 'Salg', 'Kontakter', 'Salg i dag'].map(h => (
@@ -67,8 +119,9 @@ export default function BoardDagligPage() {
         ))}
       </div>
 
+      {/* Seller rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {(data ?? []).map((s, i) => (
+        {sellers.map((s, i) => (
           <div key={s.id} style={{
             display: 'grid', gridTemplateColumns: '200px 1fr 1fr 90px 90px',
             gap: 16, alignItems: 'center',
