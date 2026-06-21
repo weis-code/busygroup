@@ -11,12 +11,14 @@ interface Sale {
   package_name: string | null; house_revenue: number; status: string; note: string | null;
 }
 interface ChartItem { label: string; value: number }
+interface ConvRate { name: string; sales_month: number; contacts_month: number }
 interface OverviewData {
   sales: Sale[];
   revenue: { this_month: number; last_month: number };
   byTask: ChartItem[];
   bySeller: ChartItem[];
   byModel: ChartItem[];
+  conversionRates: ConvRate[];
 }
 
 const fmt = (n: number) => Number(n).toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
@@ -44,7 +46,7 @@ export default function AdminPage() {
 
   if (!data) return <div style={{ padding: 40, color: '#667788', fontSize: 13 }}>Indlæser…</div>;
 
-  const { sales, revenue, byTask, bySeller, byModel } = data;
+  const { sales, revenue, byTask, bySeller, byModel, conversionRates } = data;
 
   return (
     <div style={{ padding: '28px 32px' }}>
@@ -83,6 +85,30 @@ export default function AdminPage() {
             </ResponsiveContainer>
           </div>
         ))}
+      </div>
+
+      {/* Conversion rates */}
+      <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '18px 22px', marginBottom: 28 }}>
+        <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.06em', marginBottom: 16 }}>KONVERTERINGSRATE DENNE MÅNED</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          {conversionRates.map(r => {
+            const rate = r.contacts_month > 0 ? (r.sales_month / r.contacts_month * 100) : null;
+            return (
+              <div key={r.name} style={{ background: '#0F1923', borderRadius: 8, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: '#667788', marginBottom: 8, fontWeight: 500 }}>{r.name}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: rate !== null ? '#185FA5' : '#334455', fontVariantNumeric: 'tabular-nums' }}>
+                  {rate !== null ? rate.toFixed(1) + '%' : '—'}
+                </div>
+                <div style={{ fontSize: 11, color: '#4A5568', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+                  {r.sales_month} salg / {r.contacts_month} kontakter
+                </div>
+              </div>
+            );
+          })}
+          {conversionRates.length === 0 && (
+            <div style={{ fontSize: 13, color: '#667788' }}>Ingen data endnu</div>
+          )}
+        </div>
       </div>
 
       {/* Sales table */}

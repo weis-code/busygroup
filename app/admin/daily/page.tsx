@@ -6,7 +6,7 @@ interface SellerRow {
   id: string; name: string;
   call_goal: number; sales_goal: number;
   calls_actual: number; contacts_actual: number;
-  meetings_booked_actual: number; meetings_held_actual: number;
+  meetings_booked_actual: number; meetings_held_actual: number; // kept in DB, not shown
   sales_today: number;
 }
 
@@ -173,10 +173,16 @@ export default function AdminDailyPage() {
             </div>
 
             {/* Activity metrics */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16, display: 'flex', gap: 24 }}>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16, display: 'flex', gap: 24, alignItems: 'flex-end' }}>
               <SmallNumInput label="KONTAKTER" value={row.contacts_actual} onSave={v => save(row.id, 'contacts_actual', v)} />
-              <SmallNumInput label="MØDER BOOKET" value={row.meetings_booked_actual} onSave={v => save(row.id, 'meetings_booked_actual', v)} />
-              <SmallNumInput label="MØDER AFHOLDT" value={row.meetings_held_actual} onSave={v => save(row.id, 'meetings_held_actual', v)} />
+              {row.contacts_actual > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.04em' }}>KONV. RATE</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#185FA5', fontVariantNumeric: 'tabular-nums', padding: '7px 14px', background: 'rgba(24,95,165,0.1)', borderRadius: 6 }}>
+                    {(row.sales_today / row.contacts_actual * 100).toFixed(1)}%
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ))}

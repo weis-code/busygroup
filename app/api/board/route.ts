@@ -26,8 +26,9 @@ export async function GET() {
   const monthly = await sql`
     SELECT
       u.id, u.name,
-      COALESCE(COUNT(DISTINCT s.id), 0)::int AS sales_month,
-      COALESCE(SUM(s.units), 0)::int         AS units_month,
+      COALESCE(COUNT(DISTINCT s.id), 0)::int            AS sales_month,
+      COALESCE(SUM(s.units), 0)::int                    AS units_month,
+      COALESCE(SUM(dt.contacts_actual), 0)::int         AS contacts_month,
       COALESCE(
         (SELECT SUM(tg.unit_goal) FROM targets tg
          JOIN pay_periods pp ON pp.id = tg.period_id
@@ -37,6 +38,7 @@ export async function GET() {
       )::int AS unit_goal_month
     FROM users u
     LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${monthStart}
+    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${monthStart}
     WHERE u.role = 'SELLER'
     GROUP BY u.id, u.name
     ORDER BY sales_month DESC, u.name

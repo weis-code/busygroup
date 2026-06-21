@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 interface SellerMonth {
   id: string; name: string;
   sales_month: number; units_month: number; unit_goal_month: number;
+  contacts_month: number;
 }
 
 export default function BoardMaanedPage() {
@@ -107,9 +108,19 @@ export default function BoardMaanedPage() {
                   background: done ? '#2ECC71' : '#185FA5',
                 }} />
               </div>
-              {s.unit_goal_month === 0 && (
-                <div style={{ fontSize: 12, color: '#667788', marginTop: 8 }}>Intet månedsmål sat</div>
-              )}
+              <div style={{ display: 'flex', gap: 20, marginTop: 12 }}>
+                {s.unit_goal_month === 0 && (
+                  <span style={{ fontSize: 12, color: '#667788' }}>Intet månedsmål sat</span>
+                )}
+                {s.contacts_month > 0 && (
+                  <span style={{ fontSize: 13, color: '#667788' }}>
+                    Konverteringsrate: <span style={{ color: '#185FA5', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                      {(s.sales_month / s.contacts_month * 100).toFixed(1)}%
+                    </span>
+                    <span style={{ fontSize: 11, marginLeft: 6, color: '#4A5568' }}>({s.sales_month} salg / {s.contacts_month} kontakter)</span>
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}

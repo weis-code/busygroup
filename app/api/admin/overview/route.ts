@@ -59,5 +59,23 @@ export async function GET(req: NextRequest) {
     GROUP BY t.compensation_model ORDER BY value DESC
   `;
 
-  return NextResponse.json({ sales, revenue, byTask, bySeller, byModel });
+  // Conversion rate per seller this month
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const monthStartStr = monthStart.toISOString().slice(0, 10);
+
+  const conversionRates = await sql`
+    SELECT
+      u.name,
+      COALESCE(COUNT(DISTINCT s.id), 0)::int        AS sales_month,
+      COALESCE(SUM(dt.contacts_actual), 0)::int     AS contacts_month
+    FROM users u
+    LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${monthStartStr}
+    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${monthStartStr}
+    WHERE u.role = 'SELLER'
+    GROUP BY u.id, u.name
+    ORDER BY u.name
+  `;
+
+  return NextResponse.json({ sales, revenue, byTask, bySeller, byModel, conversionRates });
 }
