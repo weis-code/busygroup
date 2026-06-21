@@ -67,8 +67,9 @@ export async function GET(req: NextRequest) {
     targets = await sql`
       SELECT
         tg.id, tg.unit_goal, tg.revenue_goal,
-        t.name AS task_name, t.compensation_model,
-        COALESCE(SUM(s.units), 0)::int AS units_sold
+        t.name AS task_name, t.compensation_model, t.display_mode,
+        COALESCE(COUNT(s.id), 0)::int        AS units_sold,
+        COALESCE(SUM(s.deal_size), 0)::numeric AS amount_sold
       FROM targets tg
       JOIN tasks t ON t.id = tg.task_id
       LEFT JOIN sales s ON s.task_id = tg.task_id
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
         AND s.date <= ${activePeriod.end_date}
       WHERE tg.user_id = ${uid}
         AND tg.period_id = ${activePeriod.id}
-      GROUP BY tg.id, tg.unit_goal, tg.revenue_goal, t.name, t.compensation_model
+      GROUP BY tg.id, tg.unit_goal, tg.revenue_goal, t.name, t.compensation_model, t.display_mode
     `;
   }
 

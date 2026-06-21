@@ -16,6 +16,7 @@ export default function SalesPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const [taskId, setTaskId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -45,6 +46,14 @@ export default function SalesPage() {
     setTaskId(''); setDate(new Date().toISOString().slice(0, 10));
     setCvr(''); setCompanyName('');
     setUnits(''); setDealSize(''); setPackageId(''); setNote(''); setError('');
+  }
+
+  async function deleteSale(id: string) {
+    if (!confirm('Er du sikker på, at du vil slette dette salg?')) return;
+    setDeleting(id);
+    await fetch(`/api/sales/${id}`, { method: 'DELETE' });
+    setDeleting(null);
+    load();
   }
 
   async function onSubmit(e: FormEvent) {
@@ -90,7 +99,7 @@ export default function SalesPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              {['Dato', 'Opgave', 'Firma', 'CVR', 'Detalje', 'Status'].map(h => (
+              {['Dato', 'Opgave', 'Firma', 'CVR', 'Detalje', 'Status', ''].map(h => (
                 <th key={h} style={{ textAlign: 'left', padding: '14px 18px', fontSize: 11, color: '#667788', fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
@@ -115,6 +124,19 @@ export default function SalesPage() {
                     fontSize: 11, padding: '3px 8px', borderRadius: 4,
                     background: `${STATUS_COLOR[s.status]}22`, color: STATUS_COLOR[s.status], fontWeight: 600,
                   }}>{STATUS_DK[s.status]}</span>
+                </td>
+                <td style={{ padding: '12px 18px' }}>
+                  <button
+                    onClick={() => deleteSale(s.id)}
+                    disabled={deleting === s.id}
+                    style={{
+                      background: 'rgba(231,76,60,0.1)', color: '#E74C3C',
+                      border: '1px solid rgba(231,76,60,0.2)',
+                      padding: '4px 10px', borderRadius: 6, fontSize: 12,
+                      cursor: 'pointer', opacity: deleting === s.id ? 0.5 : 1,
+                    }}>
+                    Slet
+                  </button>
                 </td>
               </tr>
             ))}

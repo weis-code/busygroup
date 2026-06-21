@@ -6,7 +6,7 @@ interface Task {
   id: string; name: string; client: string; description: string | null;
   status: string; start_date: string | null; end_date: string | null;
   compensation_model: string; price_per_unit: number | null; percent_value: number | null;
-  units_label: string;
+  units_label: string; display_mode: string;
   seller_count: number; sales_count: number; log_count: number;
 }
 interface Package { id?: string; name: string; price: string }
@@ -18,7 +18,7 @@ const MODEL_DK: Record<string, string> = { FIXED: 'Fast (per unit)', PERCENT: 'P
 const emptyForm = () => ({
   name: '', client: '', description: '', status: 'active',
   start_date: '', end_date: '', compensation_model: 'FIXED',
-  price_per_unit: '', percent_value: '', units_label: 'Antal',
+  price_per_unit: '', percent_value: '', units_label: 'Antal', display_mode: 'COUNT',
   packages: [] as Package[], seller_ids: [] as string[],
 });
 
@@ -57,6 +57,7 @@ export default function TasksPage() {
       price_per_unit: task.price_per_unit?.toString() || '',
       percent_value: task.percent_value?.toString() || '',
       units_label: task.units_label || 'Antal',
+      display_mode: task.display_mode || 'COUNT',
       packages: [], seller_ids: sellers,
     });
     setEditId(task.id); setError(''); setModal('edit');
@@ -187,6 +188,15 @@ export default function TasksPage() {
                   <label>Slutdato</label>
                   <input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
                 </div>
+              </div>
+
+              {/* Dashboard display */}
+              <div>
+                <label>Dashboard viser</label>
+                <select value={form.display_mode} onChange={e => setForm(f => ({ ...f, display_mode: e.target.value }))}>
+                  <option value="COUNT">Antal salg (f.eks. mødebooking)</option>
+                  <option value="AMOUNT">Beløb lukket (f.eks. fundraising)</option>
+                </select>
               </div>
 
               {/* Compensation model */}

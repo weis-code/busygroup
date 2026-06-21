@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const tasks = await sql`
     SELECT t.id, t.name, t.client, t.description, t.status,
            t.start_date::text, t.end_date::text,
-           t.compensation_model, t.price_per_unit, t.percent_value, t.units_label,
+           t.compensation_model, t.price_per_unit, t.percent_value, t.units_label, t.display_mode,
            t.created_at,
            COUNT(DISTINCT ts.user_id)::int AS seller_count,
            COUNT(DISTINCT s.id)::int       AS sales_count,
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { name, client, description, status, start_date, end_date,
-          compensation_model, price_per_unit, percent_value, units_label, packages, seller_ids } = body;
+          compensation_model, price_per_unit, percent_value, units_label, display_mode, packages, seller_ids } = body;
 
   if (!name || !client || !compensation_model) {
     return NextResponse.json({ error: 'Navn, klient og kompensationsmodel kræves' }, { status: 400 });
@@ -54,14 +54,14 @@ export async function POST(req: NextRequest) {
 
   const [task] = await sql`
     INSERT INTO tasks (name, client, description, status, start_date, end_date,
-                       compensation_model, price_per_unit, percent_value, units_label)
+                       compensation_model, price_per_unit, percent_value, units_label, display_mode)
     VALUES (
       ${name}, ${client}, ${description ?? null},
       ${status ?? 'active'},
       ${start_date || null}, ${end_date || null},
       ${compensation_model},
       ${price_per_unit ?? null}, ${percent_value ?? null},
-      ${units_label || 'Antal'}
+      ${units_label || 'Antal'}, ${display_mode || 'COUNT'}
     )
     RETURNING id
   `;

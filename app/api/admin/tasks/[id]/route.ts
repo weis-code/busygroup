@@ -10,7 +10,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json();
   const { name, client, description, status, start_date, end_date,
-          compensation_model, price_per_unit, percent_value, units_label, packages, seller_ids } = body;
+          compensation_model, price_per_unit, percent_value, units_label, display_mode, packages, seller_ids } = body;
 
   await sql`
     UPDATE tasks SET
@@ -18,7 +18,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       status = ${status}, start_date = ${start_date || null}, end_date = ${end_date || null},
       compensation_model = ${compensation_model},
       price_per_unit = ${price_per_unit ?? null}, percent_value = ${percent_value ?? null},
-      units_label = ${units_label || 'Antal'}
+      units_label = ${units_label || 'Antal'},
+      display_mode = ${display_mode || 'COUNT'}
     WHERE id = ${params.id}
   `;
 

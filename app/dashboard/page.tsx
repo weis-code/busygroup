@@ -9,7 +9,7 @@ const pct = (a: number, b: number) => b === 0 ? '—' : (a / b * 100).toFixed(1)
 interface Kpi { calls_7d: number; contacts_7d: number; booked_7d: number; held_7d: number; sales_7d: number }
 interface DailyCall { date: string; calls: number }
 interface RecentSale { id: string; date: string; task_name: string; compensation_model: string; units: number | null; deal_size: number | null; package_name: string | null; status: string }
-interface Target { id: string; task_name: string; unit_goal: number | null; units_sold: number }
+interface Target { id: string; task_name: string; unit_goal: number | null; revenue_goal: number | null; units_sold: number; amount_sold: number; display_mode: string }
 interface Period { id: string; name: string; start_date: string; end_date: string }
 interface DashboardData { kpi: Kpi; dailyCalls: DailyCall[]; recentSales: RecentSale[]; activePeriod: Period | null; targets: Target[] }
 
@@ -87,14 +87,26 @@ export default function DashboardPage() {
             <div style={{ fontSize: 13, fontWeight: 600, color: '#ECF0F1', marginBottom: 16 }}>{activePeriod.name}</div>
             {targets.length === 0 && <div style={{ fontSize: 12, color: '#667788' }}>Ingen targets sat</div>}
             {targets.map((tg) => {
-              const progress = tg.unit_goal ? Math.min(100, Math.round(tg.units_sold / tg.unit_goal * 100)) : 0;
+              const isAmount = tg.display_mode === 'AMOUNT';
+              const actual = isAmount ? Number(tg.amount_sold) : tg.units_sold;
+              const goal = isAmount ? Number(tg.revenue_goal ?? 0) : Number(tg.unit_goal ?? 0);
+              const progress = goal > 0 ? Math.min(100, Math.round(actual / goal * 100)) : 0;
+              const actualLabel = isAmount
+                ? actual.toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr'
+                : String(actual);
+              const goalLabel = isAmount
+                ? goal.toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr'
+                : String(goal);
               return (
                 <div key={tg.id} style={{ marginBottom: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
                     <span style={{ color: '#ECF0F1' }}>{tg.task_name}</span>
-                    {tg.unit_goal && <span style={{ color: '#667788' }}>{tg.units_sold} / {tg.unit_goal} units</span>}
+                    {goal > 0
+                      ? <span style={{ color: '#667788' }}>{actualLabel} / {goalLabel}</span>
+                      : <span style={{ color: '#667788' }}>{actualLabel}</span>
+                    }
                   </div>
-                  {tg.unit_goal && (
+                  {goal > 0 && (
                     <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3 }}>
                       <div style={{ height: '100%', width: `${progress}%`, background: progress >= 100 ? '#2ECC71' : '#185FA5', borderRadius: 3, transition: 'width 0.4s' }} />
                     </div>

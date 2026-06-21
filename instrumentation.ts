@@ -128,6 +128,7 @@ export async function register() {
   await sql`ALTER TABLE sales ADD COLUMN IF NOT EXISTS cvr TEXT`;
   await sql`ALTER TABLE sales ADD COLUMN IF NOT EXISTS company_name TEXT`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS units_label TEXT NOT NULL DEFAULT 'Antal'`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS display_mode TEXT NOT NULL DEFAULT 'COUNT'`;
 
   // Seed default admin user if none exists
   const [existing] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;
