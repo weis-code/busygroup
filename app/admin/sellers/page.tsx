@@ -8,10 +8,19 @@ interface DayRow { date: string; calls: number; contacts: number; call_goal: num
 interface SaleRow { id: string; date: string; cvr: string | null; company_name: string | null; deal_size: number | null; status: string; task_name: string; display_mode: string; compensation_model: string; package_name: string | null }
 interface SellerDetail { user: User; days: DayRow[]; sales: SaleRow[] }
 
+type EditField = 'calls' | 'contacts' | 'call_goal' | 'sales_goal';
+
 const ROLE_COLOR: Record<string, string> = { ADMIN: '#E74C3C', MANAGER: '#F39C12', SELLER: '#2ECC71' };
 const STATUS_COLOR: Record<string, string> = { PENDING: '#F39C12', CONFIRMED: '#2ECC71', PAID: '#185FA5' };
 const STATUS_DK: Record<string, string> = { PENDING: 'Afventer', CONFIRMED: 'Bekræftet', PAID: 'Betalt' };
 const fmtKr = (n: number) => n.toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
+
+const FIELD_TO_API: Record<EditField, string> = {
+  calls: 'calls_actual',
+  contacts: 'contacts_actual',
+  call_goal: 'call_goal',
+  sales_goal: 'sales_goal',
+};
 
 function defaultRange() {
   const to = new Date().toISOString().slice(0, 10);
@@ -33,6 +42,10 @@ export default function SellersPage() {
   const [detailUser, setDetailUser] = useState<User | null>(null);
   const [range, setRange] = useState(defaultRange);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  const [editing, setEditing] = useState<{ date: string; field: EditField } | null>(null);
+  const [editVal, setEditVal] = useState('');
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     const data = await fetch('/api/admin/sellers').then(r => r.json());
@@ -78,7 +91,87 @@ export default function SellersPage() {
     finally { setLoading(false); }
   }
 
-  const activeDays = (detail?.days ?? []).filter(d => d.calls > 0 || d.contacts > 0 || d.sales > 0);
+  function startEdit(date: string, field: EditField, current: number) {
+    setEditing({ date, field });
+    setEditVal(String(current));
+  }
+
+  async function commitEdit(date: string, field: EditField) {
+    if (!detailUser || !detail) { setEditing(null); return; }
+    const num = parseInt(editVal, 10);
+    if (isNaN(num) || num < 0) { setEditing(null); return; }
+
+    const day = detail.days.find(d => d.date === date);
+    const patch = {
+      user_id: detailUser.id,
+      date,
+      calls_actual: day?.calls ?? 0,
+      contacts_actual: day?.contacts ?? 0,
+      call_goal: day?.call_goal ?? 0,
+      sales_goal: day?.sales_goal ?? 0,
+      [FIELD_TO_API[field]]: num,
+    };
+
+    setSaving(true);
+    await fetch('/api/admin/daily-targets', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    setSaving(false);
+
+    setDetail(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map(d => d.date === date ? { ...d, [field]: num } : d),
+      };
+    });
+
+    setEditing(null);
+  }
+
+  function EditableNum({ date, field, value, bold }: { date: string; field: EditField; value: number; bold?: boolean }) {
+    const isActive = editing?.date === date && editing?.field === field;
+    if (isActive) {
+      return (
+        <input
+          autoFocus
+          type="number"
+          min={0}
+          value={editVal}
+          onChange={e => setEditVal(e.target.value)}
+          onBlur={() => commitEdit(date, field)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') commitEdit(date, field);
+            if (e.key === 'Escape') setEditing(null);
+          }}
+          style={{
+            width: 54, background: '#1A2A38', border: '1px solid #185FA5',
+            borderRadius: 4, color: '#ECF0F1', fontSize: 12, padding: '2px 6px',
+            fontVariantNumeric: 'tabular-nums', outline: 'none',
+          }}
+        />
+      );
+    }
+    return (
+      <div
+        onClick={() => startEdit(date, field, value)}
+        title="Klik for at redigere"
+        style={{
+          fontSize: 13, fontWeight: bold ? 700 : 400,
+          color: value > 0 ? '#ECF0F1' : '#334455',
+          fontVariantNumeric: 'tabular-nums',
+          cursor: 'text', padding: '2px 4px', borderRadius: 4,
+          display: 'inline-block', minWidth: 20,
+          textDecoration: 'underline dotted rgba(255,255,255,0.15)',
+        }}
+      >
+        {value > 0 ? value : '—'}
+      </div>
+    );
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 900 }}>
@@ -126,7 +219,7 @@ export default function SellersPage() {
         <>
           <div onClick={() => setDetailUser(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
           <div style={{
-            position: 'fixed', top: 0, right: 0, bottom: 0, width: 620,
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 660,
             background: '#0F1923', borderLeft: '1px solid rgba(255,255,255,0.1)',
             zIndex: 50, display: 'flex', flexDirection: 'column', overflowY: 'auto',
           }}>
@@ -136,7 +229,10 @@ export default function SellersPage() {
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>{detailUser.name}</div>
                 <div style={{ fontSize: 12, color: '#667788' }}>{detailUser.email}</div>
               </div>
-              <button onClick={() => setDetailUser(null)} style={{ background: 'rgba(255,255,255,0.06)', color: '#667788', padding: '6px 12px', borderRadius: 6, fontSize: 13 }}>✕ Luk</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {saving && <span style={{ fontSize: 11, color: '#667788' }}>Gemmer…</span>}
+                <button onClick={() => setDetailUser(null)} style={{ background: 'rgba(255,255,255,0.06)', color: '#667788', padding: '6px 12px', borderRadius: 6, fontSize: 13 }}>✕ Luk</button>
+              </div>
             </div>
 
             {/* Date range picker */}
@@ -169,33 +265,37 @@ export default function SellersPage() {
                 </div>
               )}
 
-              {/* Daily history — only days with data */}
-              <div style={{ fontSize: 12, color: '#667788', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 10 }}>
-                DAGLIG HISTORIK {activeDays.length === 0 && detail ? '— ingen aktivitet i perioden' : ''}
+              {/* Daily history — all days, editable */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: '#667788', fontWeight: 600, letterSpacing: '0.06em' }}>DAGLIG HISTORIK</div>
+                <div style={{ fontSize: 11, color: '#4A5568' }}>Klik på et tal for at redigere</div>
               </div>
-              {detail && activeDays.length > 0 && (
+              {detail && (
                 <div style={{ background: '#111E2A', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '110px 70px 70px 60px 80px 60px 56px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 70px 70px 50px 75px 70px 56px', gap: 8, padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                     {['Dato', 'Opkald', 'Kontakter', 'Salg', 'Mål opk.', 'Mål salg', 'KR%'].map(h => (
                       <div key={h} style={{ fontSize: 10, color: '#667788', fontWeight: 600, letterSpacing: '0.04em' }}>{h}</div>
                     ))}
                   </div>
-                  {activeDays.map((d, i) => {
-                    const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' });
+                  {detail.days.map((d, i) => {
+                    const isEmpty = d.calls === 0 && d.contacts === 0 && d.sales === 0 && d.call_goal === 0 && d.sales_goal === 0;
+                    const isToday = d.date === today;
                     const kr = d.contacts > 0 ? (d.sales / d.contacts * 100).toFixed(1) + '%' : null;
+                    const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' });
                     return (
                       <div key={d.date} style={{
-                        display: 'grid', gridTemplateColumns: '110px 70px 70px 60px 80px 60px 56px',
-                        gap: 8, padding: '11px 16px', alignItems: 'center',
+                        display: 'grid', gridTemplateColumns: '120px 70px 70px 50px 75px 70px 56px',
+                        gap: 8, padding: '10px 16px', alignItems: 'center',
                         borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
-                        background: d.date === new Date().toISOString().slice(0, 10) ? 'rgba(24,95,165,0.07)' : 'transparent',
+                        background: isToday ? 'rgba(24,95,165,0.07)' : 'transparent',
+                        opacity: isEmpty ? 0.4 : 1,
                       }}>
-                        <div style={{ fontSize: 12, color: '#ECF0F1', fontWeight: 500 }}>{dateLabel}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: d.calls >= d.call_goal && d.call_goal > 0 ? '#2ECC71' : '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>{d.calls}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#ECF0F1', fontVariantNumeric: 'tabular-nums' }}>{d.contacts}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: d.sales > 0 ? '#2ECC71' : '#667788', fontVariantNumeric: 'tabular-nums' }}>{d.sales}</div>
-                        <div style={{ fontSize: 12, color: '#4A5568', fontVariantNumeric: 'tabular-nums' }}>{d.call_goal > 0 ? d.call_goal : '—'}</div>
-                        <div style={{ fontSize: 12, color: '#4A5568', fontVariantNumeric: 'tabular-nums' }}>{d.sales_goal > 0 ? d.sales_goal : '—'}</div>
+                        <div style={{ fontSize: 12, color: isToday ? '#185FA5' : '#ECF0F1', fontWeight: isToday ? 700 : 500 }}>{dateLabel}</div>
+                        <EditableNum date={d.date} field="calls" value={d.calls} bold />
+                        <EditableNum date={d.date} field="contacts" value={d.contacts} bold />
+                        <div style={{ fontSize: 13, fontWeight: 700, color: d.sales > 0 ? '#2ECC71' : '#334455', fontVariantNumeric: 'tabular-nums' }}>{d.sales || '—'}</div>
+                        <EditableNum date={d.date} field="call_goal" value={d.call_goal} />
+                        <EditableNum date={d.date} field="sales_goal" value={d.sales_goal} />
                         <div style={{ fontSize: 12, color: kr ? '#185FA5' : '#4A5568', fontVariantNumeric: 'tabular-nums' }}>{kr ?? '—'}</div>
                       </div>
                     );
