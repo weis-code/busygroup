@@ -15,6 +15,7 @@ interface TaskRow {
 }
 interface LatestSale { id: string; seller_name: string; created_at: string }
 interface Toast { id: number; seller: string }
+interface Period { id: string; name: string; start_date: string; end_date: string }
 
 const fmtKr = (n: number) => n.toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
 
@@ -31,6 +32,9 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
 export default function BoardMaanedPage() {
   const [sellers, setSellers] = useState<SellerMonth[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
+  const [period, setPeriod] = useState<Period | null>(null);
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
   const [clock, setClock] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const lastSaleId = useRef<string | null>(null);
@@ -41,6 +45,9 @@ export default function BoardMaanedPage() {
     const d = await fetch('/api/board').then(r => r.json());
     setSellers(d.monthly ?? []);
     setTasks(d.tasksMonthly ?? []);
+    setPeriod(d.period ?? null);
+    setPeriodStart(d.periodStart ?? '');
+    setPeriodEnd(d.periodEnd ?? '');
 
     const ls: LatestSale | null = d.latestSale;
     if (ls) {
@@ -64,7 +71,13 @@ export default function BoardMaanedPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const monthName = new Date().toLocaleDateString('da-DK', { month: 'long', year: 'numeric' });
+  const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
+  const periodLabel = period
+    ? `${period.name}`
+    : periodStart
+      ? `${fmtDate(periodStart)} – ${fmtDate(periodEnd)}`
+      : new Date().toLocaleDateString('da-DK', { month: 'long', year: 'numeric' });
+  const periodSub = period && `${fmtDate(period.start_date)} – ${fmtDate(period.end_date)}`;
 
   const totalSales = sellers.reduce((s, r) => s + r.sales_month, 0);
   const totalGoal = sellers.reduce((s, r) => s + r.unit_goal_month, 0);
@@ -112,7 +125,8 @@ export default function BoardMaanedPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
         <div>
           <div style={{ fontSize: 12, color: '#185FA5', fontWeight: 700, letterSpacing: '0.12em', marginBottom: 6 }}>NEXT LEVEL SALES</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#ECF0F1', textTransform: 'capitalize' }}>{monthName}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#ECF0F1' }}>{periodLabel}</div>
+          {periodSub && <div style={{ fontSize: 12, color: '#667788', marginTop: 4 }}>{periodSub}</div>}
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 36, fontWeight: 700, color: '#ECF0F1', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em' }}>{clock}</div>

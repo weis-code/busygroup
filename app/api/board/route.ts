@@ -6,6 +6,16 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const today = new Date().toISOString().slice(0, 10);
 
+  // Find active pay period — fall back to calendar month if none set
+  const [period] = await sql`
+    SELECT id, name, start_date::text, end_date::text
+    FROM pay_periods
+    WHERE start_date <= ${today}::date AND end_date >= ${today}::date
+    ORDER BY start_date DESC LIMIT 1
+  `;
+  const periodStart = period?.start_date ?? today.slice(0, 7) + '-01';
+  const periodEnd   = period?.end_date   ?? today;
+
   const daily = await sql`
     SELECT
       u.id, u.name,
@@ -22,7 +32,6 @@ export async function GET() {
     ORDER BY sales_today DESC, calls_today DESC, u.name
   `;
 
-  const monthStart = today.slice(0, 7) + '-01';
   const monthly = await sql`
     SELECT
       u.id, u.name,
@@ -37,14 +46,13 @@ export async function GET() {
            AND pp.end_date >= ${today}::date), 0
       )::int AS unit_goal_month
     FROM users u
-    LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${monthStart}
-    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${monthStart}
+    LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${periodStart} AND s.date <= ${periodEnd}
+    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${periodStart} AND dt.date <= ${periodEnd}
     WHERE u.role = 'SELLER'
     GROUP BY u.id, u.name
     ORDER BY sales_month DESC, u.name
   `;
 
-  // Per-task monthly breakdown with display_mode
   const tasksMonthly = await sql`
     SELECT
       t.id AS task_id, t.name AS task_name, t.display_mode,
@@ -68,21 +76,27 @@ export async function GET() {
     FROM tasks t
     JOIN task_sellers ts ON ts.task_id = t.id
     JOIN users u ON u.id = ts.user_id AND u.role = 'SELLER'
-    LEFT JOIN sales s ON s.task_id = t.id AND s.user_id = u.id AND s.date >= ${monthStart}
+    LEFT JOIN sales s ON s.task_id = t.id AND s.user_id = u.id
+      AND s.date >= ${periodStart} AND s.date <= ${periodEnd}
     WHERE t.status = 'active'
     GROUP BY t.id, t.name, t.display_mode, u.id, u.name
     ORDER BY t.name, u.name
   `;
 
-  // Most recent sale this month for notification detection
   const [latestSale] = await sql`
     SELECT s.id, u.name AS seller_name, s.created_at
     FROM sales s
     JOIN users u ON u.id = s.user_id
-    WHERE s.date >= ${monthStart}
+    WHERE s.date >= ${periodStart} AND s.date <= ${periodEnd}
     ORDER BY s.created_at DESC
     LIMIT 1
   `;
 
-  return NextResponse.json({ daily, monthly, tasksMonthly, today, latestSale: latestSale ?? null });
+  return NextResponse.json({
+    daily, monthly, tasksMonthly, today,
+    latestSale: latestSale ?? null,
+    period: period ?? null,
+    periodStart,
+    periodEnd,
+  });
 }

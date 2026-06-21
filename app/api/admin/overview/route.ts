@@ -10,7 +10,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // All sales with full context
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Active pay period — fall back to calendar month
+  const [period] = await sql`
+    SELECT id, name, start_date::text, end_date::text
+    FROM pay_periods
+    WHERE start_date <= ${today}::date AND end_date >= ${today}::date
+    ORDER BY start_date DESC LIMIT 1
+  `;
+  const periodStart = period?.start_date ?? today.slice(0, 7) + '-01';
+  const periodEnd   = period?.end_date   ?? today;
+
+  // Previous pay period
+  const [prevPeriod] = await sql`
+    SELECT start_date::text, end_date::text
+    FROM pay_periods
+    WHERE end_date < ${periodStart}::date
+    ORDER BY end_date DESC LIMIT 1
+  `;
+  const prevStart = prevPeriod?.start_date ?? null;
+  const prevEnd   = prevPeriod?.end_date   ?? null;
+
+  // All sales (full list for admin table)
   const sales = await sql`
     SELECT s.id, s.date::text, s.units, s.deal_size, s.status, s.note,
            s.house_revenue, s.created_at,
@@ -25,57 +47,58 @@ export async function GET(req: NextRequest) {
     LIMIT 500
   `;
 
-  // Revenue today / this month / last month
+  // Revenue: today / current period / previous period
   const [revenue] = await sql`
     SELECT
-      COALESCE(SUM(CASE WHEN date = CURRENT_DATE THEN house_revenue ELSE 0 END), 0)::numeric AS today,
-      COALESCE(SUM(CASE WHEN date >= date_trunc('month', CURRENT_DATE)::date THEN house_revenue ELSE 0 END), 0)::numeric AS this_month,
-      COALESCE(SUM(CASE WHEN date >= (date_trunc('month', CURRENT_DATE) - INTERVAL '1 month')::date
-                        AND date < date_trunc('month', CURRENT_DATE)::date THEN house_revenue ELSE 0 END), 0)::numeric AS last_month
+      COALESCE(SUM(CASE WHEN date = ${today}::date THEN house_revenue ELSE 0 END), 0)::numeric AS today,
+      COALESCE(SUM(CASE WHEN date >= ${periodStart}::date AND date <= ${periodEnd}::date THEN house_revenue ELSE 0 END), 0)::numeric AS this_period,
+      COALESCE(SUM(CASE WHEN ${prevStart}::date IS NOT NULL
+                        AND date >= ${prevStart}::date AND date <= ${prevEnd}::date
+                        THEN house_revenue ELSE 0 END), 0)::numeric AS last_period
     FROM sales
   `;
 
-  // Revenue by task
+  // Revenue by task — current period
   const byTask = await sql`
     SELECT t.name AS label, SUM(s.house_revenue)::numeric AS value
     FROM sales s JOIN tasks t ON t.id = s.task_id
-    WHERE s.date >= date_trunc('month', CURRENT_DATE)::date AND s.status != 'PENDING'
+    WHERE s.date >= ${periodStart}::date AND s.date <= ${periodEnd}::date
     GROUP BY t.name ORDER BY value DESC
   `;
 
-  // Revenue by seller
+  // Revenue by seller — current period
   const bySeller = await sql`
     SELECT u.name AS label, SUM(s.house_revenue)::numeric AS value
     FROM sales s JOIN users u ON u.id = s.user_id
-    WHERE s.date >= date_trunc('month', CURRENT_DATE)::date AND s.status != 'PENDING'
+    WHERE s.date >= ${periodStart}::date AND s.date <= ${periodEnd}::date
     GROUP BY u.name ORDER BY value DESC
   `;
 
-  // Revenue by compensation model
+  // Revenue by model — current period
   const byModel = await sql`
     SELECT t.compensation_model AS label, SUM(s.house_revenue)::numeric AS value
     FROM sales s JOIN tasks t ON t.id = s.task_id
-    WHERE s.date >= date_trunc('month', CURRENT_DATE)::date AND s.status != 'PENDING'
+    WHERE s.date >= ${periodStart}::date AND s.date <= ${periodEnd}::date
     GROUP BY t.compensation_model ORDER BY value DESC
   `;
 
-  // Conversion rate per seller this month
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  const monthStartStr = monthStart.toISOString().slice(0, 10);
-
+  // Conversion rate per seller — current period
   const conversionRates = await sql`
     SELECT
       u.name,
       COALESCE(COUNT(DISTINCT s.id), 0)::int        AS sales_month,
       COALESCE(SUM(dt.contacts_actual), 0)::int     AS contacts_month
     FROM users u
-    LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${monthStartStr}
-    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${monthStartStr}
+    LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${periodStart}::date AND s.date <= ${periodEnd}::date
+    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${periodStart}::date AND dt.date <= ${periodEnd}::date
     WHERE u.role = 'SELLER'
     GROUP BY u.id, u.name
     ORDER BY u.name
   `;
 
-  return NextResponse.json({ sales, revenue, byTask, bySeller, byModel, conversionRates });
+  return NextResponse.json({
+    sales, revenue, byTask, bySeller, byModel, conversionRates,
+    period: period ?? null, prevPeriod: prevPeriod ?? null,
+    periodStart, periodEnd,
+  });
 }

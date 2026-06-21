@@ -12,13 +12,18 @@ interface Sale {
 }
 interface ChartItem { label: string; value: number }
 interface ConvRate { name: string; sales_month: number; contacts_month: number }
+interface Period { id: string; name: string; start_date: string; end_date: string }
 interface OverviewData {
   sales: Sale[];
-  revenue: { today: number; this_month: number; last_month: number };
+  revenue: { today: number; this_period: number; last_period: number };
   byTask: ChartItem[];
   bySeller: ChartItem[];
   byModel: ChartItem[];
   conversionRates: ConvRate[];
+  period: Period | null;
+  prevPeriod: { start_date: string; end_date: string } | null;
+  periodStart: string;
+  periodEnd: string;
 }
 
 const fmt = (n: number) => Number(n).toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
@@ -46,23 +51,41 @@ export default function AdminPage() {
 
   if (!data) return <div style={{ padding: 40, color: '#667788', fontSize: 13 }}>Indlæser…</div>;
 
-  const { sales, revenue, byTask, bySeller, byModel, conversionRates } = data;
+  const { sales, revenue, byTask, bySeller, byModel, conversionRates, period, prevPeriod } = data;
+
+  const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
+  const periodLabel = period
+    ? `${period.name} (${fmtDate(period.start_date)} – ${fmtDate(period.end_date)})`
+    : 'Aktuel lønperiode';
+  const prevLabel = prevPeriod
+    ? `Forrige (${fmtDate(prevPeriod.start_date)} – ${fmtDate(prevPeriod.end_date)})`
+    : 'Forrige lønperiode';
+  const change = revenue.last_period > 0 ? ((revenue.this_period / revenue.last_period - 1) * 100).toFixed(1) + '%' : '—';
 
   return (
     <div style={{ padding: '28px 32px' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 28 }}>Admin oversigt</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>Admin oversigt</h1>
+      {period && (
+        <div style={{ fontSize: 12, color: '#667788', marginBottom: 24 }}>
+          Viser data for lønperiode: <span style={{ color: '#185FA5', fontWeight: 600 }}>{period.name}</span> ({fmtDate(period.start_date)} – {fmtDate(period.end_date)})
+        </div>
+      )}
+      {!period && (
+        <div style={{ fontSize: 12, color: '#F39C12', marginBottom: 24 }}>Ingen aktiv lønperiode — viser indeværende kalendermåned</div>
+      )}
 
       {/* Revenue KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {[
           { label: 'OMSÆTNING I DAG', value: fmt(Number(revenue.today)) },
-          { label: 'DENNE MÅNED', value: fmt(Number(revenue.this_month)) },
-          { label: 'FORRIGE MÅNED', value: fmt(Number(revenue.last_month)) },
-          { label: 'ÆNDRING MOM', value: revenue.last_month > 0 ? ((revenue.this_month / revenue.last_month - 1) * 100).toFixed(1) + '%' : '—' },
+          { label: 'AKTUEL LØNPERIODE', value: fmt(Number(revenue.this_period)), sub: periodLabel },
+          { label: prevLabel.toUpperCase(), value: fmt(Number(revenue.last_period)) },
+          { label: 'ÆNDRING', value: change },
         ].map(k => (
           <div key={k.label} style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '20px 22px' }}>
             <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.06em', marginBottom: 8 }}>{k.label}</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: '#ECF0F1' }}>{k.value}</div>
+            {'sub' in k && k.sub && <div style={{ fontSize: 10, color: '#4A5568', marginTop: 6 }}>{k.sub}</div>}
           </div>
         ))}
       </div>
