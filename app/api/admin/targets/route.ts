@@ -11,13 +11,21 @@ export async function GET(req: NextRequest) {
   const rows = await sql`
     SELECT tg.id, tg.unit_goal, tg.revenue_goal,
            u.name AS seller_name, u.id AS user_id,
-           t.name AS task_name, t.id AS task_id,
+           t.name AS task_name, t.id AS task_id, t.display_mode,
            p.name AS period_name, p.id AS period_id,
-           p.start_date::text, p.end_date::text
+           p.start_date::text, p.end_date::text,
+           COALESCE(COUNT(s.id), 0)::int          AS actual_count,
+           COALESCE(SUM(s.deal_size), 0)::numeric  AS actual_amount
     FROM targets tg
     JOIN users u ON u.id = tg.user_id
     JOIN tasks t ON t.id = tg.task_id
     JOIN pay_periods p ON p.id = tg.period_id
+    LEFT JOIN sales s ON s.task_id = tg.task_id
+      AND s.user_id = tg.user_id
+      AND s.date >= p.start_date AND s.date <= p.end_date
+    GROUP BY tg.id, tg.unit_goal, tg.revenue_goal,
+             u.name, u.id, t.name, t.id, t.display_mode,
+             p.name, p.id, p.start_date, p.end_date
     ORDER BY p.start_date DESC, u.name, t.name
   `;
   return NextResponse.json(rows);

@@ -8,40 +8,33 @@ export async function GET(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const uid = session.id;
+  const today = new Date().toISOString().slice(0, 10);
 
-  // KPIs from activity_logs — last 7 days
-  const [kpi] = await sql`
+  // Today's numbers from daily_targets (admin sets these)
+  const [todayRow] = await sql`
     SELECT
-      COALESCE(SUM(calls_made), 0)::int        AS calls_7d,
-      COALESCE(SUM(contacts_reached), 0)::int  AS contacts_7d,
-      COALESCE(SUM(meetings_booked), 0)::int   AS booked_7d,
-      COALESCE(SUM(meetings_held), 0)::int     AS held_7d
-    FROM activity_logs
-    WHERE user_id = ${uid}
-      AND date >= CURRENT_DATE - INTERVAL '6 days'
+      COALESCE(calls_actual, 0)::int    AS calls_today,
+      COALESCE(contacts_actual, 0)::int AS contacts_today
+    FROM daily_targets
+    WHERE user_id = ${uid} AND date = ${today}
+  `;
+  const [salesToday] = await sql`
+    SELECT COUNT(*)::int AS sales_today FROM sales
+    WHERE user_id = ${uid} AND date = ${today}
   `;
 
-  // Sales count last 7 days (for closing rate)
-  const [salesKpi] = await sql`
-    SELECT COUNT(*)::int AS sales_7d FROM sales
-    WHERE user_id = ${uid}
-      AND date >= CURRENT_DATE - INTERVAL '6 days'
-      AND status != 'PENDING'
-  `;
-
-  // Daily calls — last 14 days
+  // Daily calls — last 14 days (from daily_targets)
   const dailyCalls = await sql`
-    SELECT date::text, COALESCE(SUM(calls_made), 0)::int AS calls
-    FROM activity_logs
+    SELECT date::text, calls_actual AS calls
+    FROM daily_targets
     WHERE user_id = ${uid}
       AND date >= CURRENT_DATE - INTERVAL '13 days'
-    GROUP BY date
     ORDER BY date
   `;
 
   // Last 10 sales
   const recentSales = await sql`
-    SELECT s.id, s.date::text, s.units, s.deal_size, s.status,
+    SELECT s.id, s.date::text, s.units, s.deal_size, s.status, s.cvr, s.company_name,
            t.name AS task_name, t.compensation_model,
            tp.name AS package_name
     FROM sales s
@@ -52,7 +45,7 @@ export async function GET(req: NextRequest) {
     LIMIT 10
   `;
 
-  // Active pay period + targets
+  // Active pay period
   const [activePeriod] = await sql`
     SELECT id, name, start_date::text, end_date::text
     FROM pay_periods
@@ -68,8 +61,8 @@ export async function GET(req: NextRequest) {
       SELECT
         tg.id, tg.unit_goal, tg.revenue_goal,
         t.name AS task_name, t.compensation_model, t.display_mode,
-        COALESCE(COUNT(s.id), 0)::int        AS units_sold,
-        COALESCE(SUM(s.deal_size), 0)::numeric AS amount_sold
+        COALESCE(COUNT(s.id), 0)::int          AS units_sold,
+        COALESCE(SUM(s.deal_size), 0)::numeric  AS amount_sold
       FROM targets tg
       JOIN tasks t ON t.id = tg.task_id
       LEFT JOIN sales s ON s.task_id = tg.task_id
@@ -83,13 +76,9 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    kpi: {
-      calls_7d: Number(kpi.calls_7d),
-      contacts_7d: Number(kpi.contacts_7d),
-      booked_7d: Number(kpi.booked_7d),
-      held_7d: Number(kpi.held_7d),
-      sales_7d: Number(salesKpi.sales_7d),
-    },
+    calls_today: todayRow?.calls_today ?? 0,
+    contacts_today: todayRow?.contacts_today ?? 0,
+    sales_today: salesToday?.sales_today ?? 0,
     dailyCalls,
     recentSales,
     activePeriod: activePeriod ?? null,
