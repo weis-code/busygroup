@@ -16,7 +16,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const [user] = await sql`SELECT id, name, email, role FROM users WHERE id = ${params.id}`;
   if (!user) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
 
-  // Daily rows: calls, contacts from daily_targets + sales count per day
   const days = await sql`
     SELECT
       d.date::text,
@@ -32,7 +31,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     ORDER BY d.date DESC
   `;
 
-  // Sales list in period
   const sales = await sql`
     SELECT s.id, s.date::text, s.cvr, s.company_name, s.deal_size, s.status,
            t.name AS task_name, t.display_mode, t.compensation_model,
@@ -45,4 +43,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   `;
 
   return NextResponse.json({ user, days, sales });
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = sessionFromRequest(req);
+  if (!session || session.role === 'SELLER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const body = await req.json();
+  const { name, email, role } = body;
+
+  // Only ADMIN can change roles
+  if (role && session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan ændre roller' }, { status: 403 });
+
+  const [existing] = await sql`SELECT id, name, email, role FROM users WHERE id = ${params.id}`;
+  if (!existing) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
+
+  const newName  = name  ?? existing.name;
+  const newEmail = email ? email.toLowerCase().trim() : existing.email;
+  const newRole  = role  ?? existing.role;
+
+  const [updated] = await sql`
+    UPDATE users SET name = ${newName}, email = ${newEmail}, role = ${newRole}
+    WHERE id = ${params.id}
+    RETURNING id, name, email, role
+  `;
+
+  return NextResponse.json(updated);
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = sessionFromRequest(req);
+  if (!session || session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan slette brugere' }, { status: 403 });
+
+  // Prevent self-deletion
+  if (params.id === session.id) return NextResponse.json({ error: 'Du kan ikke slette dig selv' }, { status: 400 });
+
+  await sql`DELETE FROM users WHERE id = ${params.id}`;
+  return NextResponse.json({ ok: true });
 }

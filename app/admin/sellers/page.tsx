@@ -30,6 +30,8 @@ function defaultRange() {
 
 export default function SellersPage() {
   const [users, setUsers] = useState<User[]>([]);
+
+  // Create modal
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,14 +40,24 @@ export default function SellersPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('SELLER');
 
+  // History drawer
   const [detail, setDetail] = useState<SellerDetail | null>(null);
   const [detailUser, setDetailUser] = useState<User | null>(null);
   const [range, setRange] = useState(defaultRange);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // Inline cell editing
   const [editing, setEditing] = useState<{ date: string; field: EditField } | null>(null);
   const [editVal, setEditVal] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Edit user modal
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
 
   async function load() {
     const data = await fetch('/api/admin/sellers').then(r => r.json());
@@ -126,7 +138,6 @@ export default function SellersPage() {
         days: prev.days.map(d => d.date === date ? { ...d, [field]: num } : d),
       };
     });
-
     setEditing(null);
   }
 
@@ -135,21 +146,14 @@ export default function SellersPage() {
     if (isActive) {
       return (
         <input
-          autoFocus
-          type="number"
-          min={0}
-          value={editVal}
+          autoFocus type="number" min={0} value={editVal}
           onChange={e => setEditVal(e.target.value)}
           onBlur={() => commitEdit(date, field)}
           onKeyDown={e => {
             if (e.key === 'Enter') commitEdit(date, field);
             if (e.key === 'Escape') setEditing(null);
           }}
-          style={{
-            width: 54, background: '#1A2A38', border: '1px solid #185FA5',
-            borderRadius: 4, color: '#ECF0F1', fontSize: 12, padding: '2px 6px',
-            fontVariantNumeric: 'tabular-nums', outline: 'none',
-          }}
+          style={{ width: 54, background: '#1A2A38', border: '1px solid #185FA5', borderRadius: 4, color: '#ECF0F1', fontSize: 12, padding: '2px 6px', fontVariantNumeric: 'tabular-nums', outline: 'none' }}
         />
       );
     }
@@ -157,24 +161,54 @@ export default function SellersPage() {
       <div
         onClick={() => startEdit(date, field, value)}
         title="Klik for at redigere"
-        style={{
-          fontSize: 13, fontWeight: bold ? 700 : 400,
-          color: value > 0 ? '#ECF0F1' : '#334455',
-          fontVariantNumeric: 'tabular-nums',
-          cursor: 'text', padding: '2px 4px', borderRadius: 4,
-          display: 'inline-block', minWidth: 20,
-          textDecoration: 'underline dotted rgba(255,255,255,0.15)',
-        }}
+        style={{ fontSize: 13, fontWeight: bold ? 700 : 400, color: value > 0 ? '#ECF0F1' : '#334455', fontVariantNumeric: 'tabular-nums', cursor: 'text', padding: '2px 4px', borderRadius: 4, display: 'inline-block', minWidth: 20, textDecoration: 'underline dotted rgba(255,255,255,0.15)' }}
       >
         {value > 0 ? value : '—'}
       </div>
     );
   }
 
+  // Edit user
+  function openEditUser(u: User, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditUser(u);
+    setEditName(u.name);
+    setEditEmail(u.email);
+    setEditRole(u.role);
+    setEditError('');
+  }
+
+  async function submitEditUser(e: FormEvent) {
+    e.preventDefault();
+    if (!editUser) return;
+    setEditLoading(true); setEditError('');
+    try {
+      const res = await fetch(`/api/admin/sellers/${editUser.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName, email: editEmail, role: editRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setEditError(data.error || 'Fejl'); return; }
+      setEditUser(null);
+      // Update detailUser if drawer is open for this user
+      if (detailUser?.id === editUser.id) setDetailUser(data);
+      load();
+    } catch { setEditError('Netværksfejl'); }
+    finally { setEditLoading(false); }
+  }
+
+  async function deleteUser(u: User, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!window.confirm(`Slet ${u.name}? Dette kan ikke fortrydes.`)) return;
+    await fetch(`/api/admin/sellers/${u.id}`, { method: 'DELETE' });
+    if (detailUser?.id === u.id) setDetailUser(null);
+    load();
+  }
+
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 900 }}>
+    <div style={{ padding: '28px 32px', maxWidth: 960 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>Sælgere</h1>
@@ -197,16 +231,19 @@ export default function SellersPage() {
               <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen brugere</td></tr>
             )}
             {users.map(u => (
-              <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}
-                onClick={() => openDetail(u)}>
+              <tr key={u.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }} onClick={() => openDetail(u)}>
                 <td style={{ padding: '13px 18px', fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{u.name}</td>
-                <td style={{ fontSize: 13, color: '#667788' }}>{u.email}</td>
+                <td style={{ fontSize: 13, color: '#667788', padding: '13px 18px' }}>{u.email}</td>
                 <td style={{ padding: '13px 18px' }}>
                   <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600, background: `${ROLE_COLOR[u.role]}18`, color: ROLE_COLOR[u.role] }}>{u.role}</span>
                 </td>
                 <td style={{ fontSize: 12, color: '#667788', padding: '13px 18px' }}>{new Date(u.created_at).toLocaleDateString('da-DK')}</td>
                 <td style={{ padding: '13px 18px' }}>
-                  <span style={{ fontSize: 12, color: '#185FA5' }}>Se historik →</span>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button onClick={e => openEditUser(u, e)} style={{ fontSize: 12, color: '#185FA5', background: 'rgba(24,95,165,0.1)', border: '1px solid rgba(24,95,165,0.2)', padding: '4px 10px', borderRadius: 5 }}>Rediger</button>
+                    <button onClick={e => deleteUser(u, e)} style={{ fontSize: 12, color: '#E74C3C', background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.2)', padding: '4px 10px', borderRadius: 5 }}>Slet</button>
+                    <span style={{ fontSize: 12, color: '#667788', padding: '4px 0' }}>Historik →</span>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -214,16 +251,11 @@ export default function SellersPage() {
         </table>
       </div>
 
-      {/* Detail drawer */}
+      {/* History drawer */}
       {detailUser && (
         <>
           <div onClick={() => setDetailUser(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
-          <div style={{
-            position: 'fixed', top: 0, right: 0, bottom: 0, width: 660,
-            background: '#0F1923', borderLeft: '1px solid rgba(255,255,255,0.1)',
-            zIndex: 50, display: 'flex', flexDirection: 'column', overflowY: 'auto',
-          }}>
-            {/* Drawer header */}
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 660, background: '#0F1923', borderLeft: '1px solid rgba(255,255,255,0.1)', zIndex: 50, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             <div style={{ padding: '24px 28px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>{detailUser.name}</div>
@@ -235,21 +267,15 @@ export default function SellersPage() {
               </div>
             </div>
 
-            {/* Date range picker */}
             <div style={{ padding: '16px 28px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 12, alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: '#667788' }}>Periode:</span>
-              <input type="date" value={range.from}
-                onChange={e => { const r = { ...range, from: e.target.value }; setRange(r); loadDetail(r.from, r.to); }}
-                style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, width: 140 }} />
+              <input type="date" value={range.from} onChange={e => { const r = { ...range, from: e.target.value }; setRange(r); loadDetail(r.from, r.to); }} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, width: 140 }} />
               <span style={{ fontSize: 12, color: '#667788' }}>→</span>
-              <input type="date" value={range.to}
-                onChange={e => { const r = { ...range, to: e.target.value }; setRange(r); loadDetail(r.from, r.to); }}
-                style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, width: 140 }} />
+              <input type="date" value={range.to} onChange={e => { const r = { ...range, to: e.target.value }; setRange(r); loadDetail(r.from, r.to); }} style={{ padding: '6px 10px', borderRadius: 6, fontSize: 12, width: 140 }} />
               {loadingDetail && <span style={{ fontSize: 12, color: '#667788' }}>Indlæser…</span>}
             </div>
 
             <div style={{ padding: '20px 28px', flex: 1 }}>
-              {/* Summary totals */}
               {detail && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 24 }}>
                   {[
@@ -265,7 +291,6 @@ export default function SellersPage() {
                 </div>
               )}
 
-              {/* Daily history — all days, editable */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <div style={{ fontSize: 12, color: '#667788', fontWeight: 600, letterSpacing: '0.06em' }}>DAGLIG HISTORIK</div>
                 <div style={{ fontSize: 11, color: '#4A5568' }}>Klik på et tal for at redigere</div>
@@ -283,13 +308,7 @@ export default function SellersPage() {
                     const kr = d.contacts > 0 ? (d.sales / d.contacts * 100).toFixed(1) + '%' : null;
                     const dateLabel = new Date(d.date + 'T12:00:00').toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' });
                     return (
-                      <div key={d.date} style={{
-                        display: 'grid', gridTemplateColumns: '120px 70px 70px 50px 75px 70px 56px',
-                        gap: 8, padding: '10px 16px', alignItems: 'center',
-                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
-                        background: isToday ? 'rgba(24,95,165,0.07)' : 'transparent',
-                        opacity: isEmpty ? 0.4 : 1,
-                      }}>
+                      <div key={d.date} style={{ display: 'grid', gridTemplateColumns: '120px 70px 70px 50px 75px 70px 56px', gap: 8, padding: '10px 16px', alignItems: 'center', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined, background: isToday ? 'rgba(24,95,165,0.07)' : 'transparent', opacity: isEmpty ? 0.4 : 1 }}>
                         <div style={{ fontSize: 12, color: isToday ? '#185FA5' : '#ECF0F1', fontWeight: isToday ? 700 : 500 }}>{dateLabel}</div>
                         <EditableNum date={d.date} field="calls" value={d.calls} bold />
                         <EditableNum date={d.date} field="contacts" value={d.contacts} bold />
@@ -303,7 +322,6 @@ export default function SellersPage() {
                 </div>
               )}
 
-              {/* Sales list */}
               {detail && detail.sales.length > 0 && (
                 <>
                   <div style={{ fontSize: 12, color: '#667788', fontWeight: 600, letterSpacing: '0.06em', marginBottom: 10 }}>SALG I PERIODEN ({detail.sales.length})</div>
@@ -314,11 +332,7 @@ export default function SellersPage() {
                       ))}
                     </div>
                     {detail.sales.map((s, i) => (
-                      <div key={s.id} style={{
-                        display: 'grid', gridTemplateColumns: '90px 1fr 1fr 80px',
-                        gap: 8, padding: '11px 16px', alignItems: 'center',
-                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined,
-                      }}>
+                      <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '90px 1fr 1fr 80px', gap: 8, padding: '11px 16px', alignItems: 'center', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : undefined }}>
                         <div style={{ fontSize: 12, color: '#667788' }}>{s.date}</div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{s.company_name || '—'}</div>
@@ -329,9 +343,7 @@ export default function SellersPage() {
                           {s.deal_size && <div style={{ fontSize: 11, color: '#185FA5', fontVariantNumeric: 'tabular-nums' }}>{fmtKr(Number(s.deal_size))}</div>}
                         </div>
                         <div>
-                          <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 600, background: `${STATUS_COLOR[s.status]}18`, color: STATUS_COLOR[s.status] }}>
-                            {STATUS_DK[s.status]}
-                          </span>
+                          <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 600, background: `${STATUS_COLOR[s.status]}18`, color: STATUS_COLOR[s.status] }}>{STATUS_DK[s.status]}</span>
                         </div>
                       </div>
                     ))}
@@ -341,6 +353,40 @@ export default function SellersPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Edit user modal */}
+      {editUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 28, width: 420 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1', marginBottom: 22 }}>Rediger {editUser.name}</div>
+            <form onSubmit={submitEditUser} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, color: '#667788', display: 'block', marginBottom: 6 }}>Navn</label>
+                <input value={editName} onChange={e => setEditName(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 7, fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#667788', display: 'block', marginBottom: 6 }}>Email</label>
+                <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: 7, fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#667788', display: 'block', marginBottom: 6 }}>Rolle</label>
+                <select value={editRole} onChange={e => setEditRole(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 7, fontSize: 13, boxSizing: 'border-box' }}>
+                  <option value="SELLER">SELLER</option>
+                  <option value="MANAGER">MANAGER</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+              </div>
+              {editError && <div style={{ color: '#E74C3C', fontSize: 12, padding: '8px 12px', background: 'rgba(231,76,60,0.1)', borderRadius: 6 }}>{editError}</div>}
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button type="button" onClick={() => setEditUser(null)} style={{ flex: 1, padding: '10px 0', borderRadius: 7, background: 'rgba(255,255,255,0.06)', color: '#667788' }}>Annuller</button>
+                <button type="submit" disabled={editLoading} style={{ flex: 2, padding: '10px 0', borderRadius: 7, background: '#185FA5', color: '#fff', fontWeight: 600 }}>
+                  {editLoading ? 'Gemmer…' : 'Gem ændringer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Create user modal */}

@@ -9,11 +9,13 @@ const sellerNav: NavItem[] = [
   { href: '/dashboard/daily', label: 'Dagligt mål', icon: '◐' },
   { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: '◆' },
+  { href: '/dashboard/settings', label: 'Indstillinger', icon: '◌' },
 ];
 
 const adminNav: NavItem[] = [
   { href: '/admin', label: 'Oversigt', icon: '◈' },
-  { href: '/admin/tasks', label: 'Opgaver', icon: '◎' },
+  { href: '/admin/sales', label: 'Salgslog', icon: '◎' },
+  { href: '/admin/tasks', label: 'Opgaver', icon: '◇' },
   { href: '/admin/sellers', label: 'Sælgere', icon: '◉' },
   { href: '/admin/periods', label: 'Lønperioder', icon: '◇' },
   { href: '/admin/targets', label: 'Targets', icon: '◆' },
