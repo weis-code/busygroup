@@ -8,6 +8,7 @@ const sellerNav: NavItem[] = [
   { href: '/dashboard', label: 'Overblik', icon: '◈' },
   { href: '/dashboard/daily', label: 'Dagligt mål', icon: '◐' },
   { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
+  { href: '/dashboard/sitrep', label: 'Sitrep', icon: '◑' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: '◆' },
   { href: '/dashboard/settings', label: 'Indstillinger', icon: '◌' },
 ];
@@ -16,6 +17,8 @@ const adminNav: NavItem[] = [
   { href: '/admin', label: 'Oversigt', icon: '◈' },
   { href: '/admin/sales', label: 'Salgslog', icon: '◎' },
   { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
+  { href: '/admin/sitreps', label: 'Sitreps', icon: '◑' },
+  { href: '/admin/followups', label: 'Follow-ups', icon: '◒' },
   { href: '/admin/tasks', label: 'Opgaver', icon: '◇' },
   { href: '/admin/sellers', label: 'Sælgere', icon: '◉' },
   { href: '/admin/periods', label: 'Lønperioder', icon: '◇' },

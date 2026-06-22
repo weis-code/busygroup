@@ -138,6 +138,54 @@ export async function register() {
   `;
   await sql`INSERT INTO settings (key, value) VALUES ('desk_count', '0') ON CONFLICT DO NOTHING`;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS sitreps (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      went_well TEXT,
+      challenges TEXT,
+      needs_help TEXT,
+      is_support_request BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, date)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS sitrep_replies (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      sitrep_id UUID NOT NULL REFERENCES sitreps(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id),
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS followups (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      sitrep_id UUID REFERENCES sitreps(id),
+      title TEXT NOT NULL,
+      body TEXT,
+      status TEXT NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','IN_PROGRESS','RESOLVED')),
+      assigned_to UUID REFERENCES users(id),
+      created_by UUID NOT NULL REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      resolved_at TIMESTAMPTZ
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS followup_comments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      followup_id UUID NOT NULL REFERENCES followups(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id),
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   // Seed default admin user if none exists
   const [existing] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;
   if (!existing) {
