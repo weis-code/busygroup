@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const STATUS_COLOR: Record<string, string> = { PENDING: '#F39C12', CONFIRMED: '#2ECC71', PAID: '#185FA5' };
 
@@ -10,20 +9,18 @@ interface Sale {
   compensation_model: string; units: number | null; deal_size: number | null;
   package_name: string | null; house_revenue: number; status: string; note: string | null;
 }
-interface ChartItem { label: string; value: number }
 interface ConvRate { name: string; sales_month: number; contacts_month: number }
 interface Period { id: string; name: string; start_date: string; end_date: string }
 interface OverviewData {
   sales: Sale[];
   revenue: { today: number; this_period: number; last_period: number };
-  byTask: ChartItem[];
-  bySeller: ChartItem[];
-  byModel: ChartItem[];
   conversionRates: ConvRate[];
   period: Period | null;
   prevPeriod: { start_date: string; end_date: string } | null;
   periodStart: string;
   periodEnd: string;
+  seller_count: number;
+  desk_count: number;
 }
 
 const fmt = (n: number) => Number(n).toLocaleString('da-DK', { maximumFractionDigits: 0 }) + ' kr';
@@ -51,7 +48,7 @@ export default function AdminPage() {
 
   if (!data) return <div style={{ padding: 40, color: '#667788', fontSize: 13 }}>Indlæser…</div>;
 
-  const { sales, revenue, byTask, bySeller, byModel, conversionRates, period, prevPeriod } = data;
+  const { sales, revenue, conversionRates, period, prevPeriod, seller_count, desk_count } = data;
 
   const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
   const periodLabel = period
@@ -90,26 +87,50 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 28 }}>
-        {[
-          { title: 'PR. OPGAVE', d: byTask },
-          { title: 'PR. SÆLGER', d: bySeller },
-          { title: 'PR. MODEL', d: byModel },
-        ].map(({ title, d }) => (
-          <div key={title} style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '18px 20px' }}>
-            <div style={{ fontSize: 11, color: '#667788', marginBottom: 14, letterSpacing: '0.05em' }}>OMSÆTNING {title}</div>
-            <ResponsiveContainer width="100%" height={130}>
-              <BarChart data={d} barSize={20} layout="vertical">
-                <XAxis type="number" tick={{ fill: '#667788', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(Number(v)/1000).toFixed(0)}k`} />
-                <YAxis type="category" dataKey="label" tick={{ fill: '#ECF0F1', fontSize: 11 }} axisLine={false} tickLine={false} width={80} />
-                <Tooltip formatter={(v) => fmt(Number(v))} contentStyle={{ background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: '#ECF0F1', fontSize: 12 }} cursor={{ fill: 'rgba(24,95,165,0.1)' }} />
-                <Bar dataKey="value" fill="#185FA5" radius={[0, 3, 3, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* FTE / desk metrics */}
+      {(() => {
+        const periodRev = Number(revenue.this_period);
+        const revPerFTE  = seller_count > 0 ? periodRev / seller_count : null;
+        const revPerDesk = desk_count   > 0 ? periodRev / desk_count   : null;
+        const potential  = revPerFTE !== null && desk_count > 0 ? revPerFTE * desk_count : null;
+        const tiles = [
+          {
+            label: 'OMSÆTNING PR. FTE',
+            value: revPerFTE !== null ? fmt(revPerFTE) : '—',
+            sub: `${seller_count} sælger${seller_count !== 1 ? 'e' : ''}`,
+            color: '#185FA5',
+          },
+          {
+            label: 'OMSÆTNING PR. STOL',
+            value: revPerDesk !== null ? fmt(revPerDesk) : '—',
+            sub: desk_count > 0 ? `${desk_count} skriveborde` : 'Sæt antal stole i indstillinger →',
+            link: desk_count === 0 ? '/admin/settings' : undefined,
+            color: '#0F6E56',
+          },
+          {
+            label: 'POTENTIEL (FULDT HUS)',
+            value: potential !== null ? fmt(potential) : '—',
+            sub: desk_count > 0 ? `Rev/FTE × ${desk_count} stole` : 'Kræver antal stole sat',
+            color: '#8E44AD',
+          },
+        ];
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
+            {tiles.map(t => (
+              <div key={t.label} style={{ background: '#111E2A', border: `1px solid ${t.color}22`, borderRadius: 10, padding: '20px 22px' }}>
+                <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.06em', marginBottom: 8 }}>{t.label}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#ECF0F1', fontVariantNumeric: 'tabular-nums', marginBottom: 8 }}>{t.value}</div>
+                <div style={{ fontSize: 11, color: '#4A5568' }}>
+                  {t.link ? <a href={t.link} style={{ color: '#185FA5', textDecoration: 'underline' }}>{t.sub}</a> : t.sub}
+                </div>
+                <div style={{ height: 3, background: `${t.color}33`, borderRadius: 2, marginTop: 14 }}>
+                  <div style={{ height: '100%', borderRadius: 2, background: t.color, width: revPerFTE !== null ? '100%' : '0%' }} />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        );
+      })()}
 
       {/* Conversion rates */}
       <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '18px 22px', marginBottom: 28 }}>

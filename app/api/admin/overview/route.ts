@@ -82,6 +82,13 @@ export async function GET(req: NextRequest) {
     GROUP BY t.compensation_model ORDER BY value DESC
   `;
 
+  // Seller count (active sellers)
+  const [{ seller_count }] = await sql`SELECT COUNT(*)::int AS seller_count FROM users WHERE role = 'SELLER'`;
+
+  // Desk count from settings
+  const [deskSetting] = await sql`SELECT value FROM settings WHERE key = 'desk_count'`;
+  const desk_count = parseInt(deskSetting?.value ?? '0', 10) || 0;
+
   // Conversion rate per seller — current period
   const conversionRates = await sql`
     SELECT
@@ -100,5 +107,6 @@ export async function GET(req: NextRequest) {
     sales, revenue, byTask, bySeller, byModel, conversionRates,
     period: period ?? null, prevPeriod: prevPeriod ?? null,
     periodStart, periodEnd,
+    seller_count, desk_count,
   });
 }

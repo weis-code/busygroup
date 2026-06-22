@@ -130,6 +130,14 @@ export async function register() {
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS units_label TEXT NOT NULL DEFAULT 'Antal'`;
   await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS display_mode TEXT NOT NULL DEFAULT 'COUNT'`;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `;
+  await sql`INSERT INTO settings (key, value) VALUES ('desk_count', '0') ON CONFLICT DO NOTHING`;
+
   // Seed default admin user if none exists
   const [existing] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;
   if (!existing) {

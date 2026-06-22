@@ -21,6 +21,7 @@ const adminNav: NavItem[] = [
   { href: '/admin/targets', label: 'Targets', icon: '◆' },
   { href: '/admin/daily', label: 'Daglige mål', icon: '◐' },
   { href: '/admin/revenue', label: 'Omsætning', icon: '◈', adminOnly: true },
+  { href: '/admin/settings', label: 'Indstillinger', icon: '◌', adminOnly: true },
 ];
 
 interface Props {
