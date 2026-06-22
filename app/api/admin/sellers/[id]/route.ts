@@ -50,10 +50,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session || session.role === 'SELLER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { name, email, role } = body;
+  const { name, email, role, new_password } = body;
 
-  // Only ADMIN can change roles
+  // Only ADMIN can change roles or reset passwords
   if (role && session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan ændre roller' }, { status: 403 });
+  if (new_password && session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan nulstille kodeord' }, { status: 403 });
+  if (new_password && new_password.length < 8) return NextResponse.json({ error: 'Kodeord skal være mindst 8 tegn' }, { status: 400 });
 
   const [existing] = await sql`SELECT id, name, email, role FROM users WHERE id = ${params.id}`;
   if (!existing) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
@@ -61,6 +63,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const newName  = name  ?? existing.name;
   const newEmail = email ? email.toLowerCase().trim() : existing.email;
   const newRole  = role  ?? existing.role;
+
+  if (new_password) {
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.hash(new_password, 12);
+    await sql`UPDATE users SET password_hash = ${hash} WHERE id = ${params.id}`;
+  }
 
   const [updated] = await sql`
     UPDATE users SET name = ${newName}, email = ${newEmail}, role = ${newRole}

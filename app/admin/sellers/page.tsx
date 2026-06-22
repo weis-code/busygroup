@@ -56,6 +56,7 @@ export default function SellersPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('');
+  const [editNewPassword, setEditNewPassword] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -175,6 +176,7 @@ export default function SellersPage() {
     setEditName(u.name);
     setEditEmail(u.email);
     setEditRole(u.role);
+    setEditNewPassword('');
     setEditError('');
   }
 
@@ -185,7 +187,7 @@ export default function SellersPage() {
     try {
       const res = await fetch(`/api/admin/sellers/${editUser.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, role: editRole }),
+        body: JSON.stringify({ name: editName, email: editEmail, role: editRole, ...(editNewPassword ? { new_password: editNewPassword } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) { setEditError(data.error || 'Fejl'); return; }
@@ -376,6 +378,17 @@ export default function SellersPage() {
                   <option value="MANAGER">MANAGER</option>
                   <option value="ADMIN">ADMIN</option>
                 </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#667788', display: 'block', marginBottom: 6 }}>Nyt kodeord <span style={{ color: '#4A5568', fontWeight: 400 }}>(lad stå tom for at beholde nuværende)</span></label>
+                <input
+                  type="password"
+                  value={editNewPassword}
+                  onChange={e => setEditNewPassword(e.target.value)}
+                  placeholder="Mindst 8 tegn"
+                  minLength={8}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 7, fontSize: 13, boxSizing: 'border-box' }}
+                />
               </div>
               {editError && <div style={{ color: '#E74C3C', fontSize: 12, padding: '8px 12px', background: 'rgba(231,76,60,0.1)', borderRadius: 6 }}>{editError}</div>}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
