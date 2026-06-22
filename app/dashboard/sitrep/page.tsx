@@ -114,6 +114,24 @@ export default function SitrepPage() {
         </div>
       </form>
 
+      {/* Replies on today's sitrep */}
+      {todaySitrep && todaySitrep.replies.length > 0 && (
+        <div style={{ background: '#111E2A', border: '1px solid rgba(24,95,165,0.25)', borderRadius: 10, padding: '18px 22px', marginBottom: 28 }}>
+          <div style={{ fontSize: 11, color: '#185FA5', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 14 }}>SVAR FRA ADMIN</div>
+          {todaySitrep.replies.map(r => (
+            <div key={r.id} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#185FA522', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#185FA5', flexShrink: 0, fontWeight: 600 }}>
+                {r.user_name.charAt(0)}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: '#667788', marginBottom: 3 }}>{r.user_name} · {fmtTime(r.created_at)}</div>
+                <div style={{ fontSize: 13, color: '#ECF0F1', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{r.body}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Past sitreps */}
       {past.length > 0 && (
         <div>
