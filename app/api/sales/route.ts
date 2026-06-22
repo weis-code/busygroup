@@ -32,12 +32,14 @@ export async function POST(req: NextRequest) {
 
   if (!task_id) return NextResponse.json({ error: 'task_id kræves' }, { status: 400 });
 
-  // Verify seller is assigned to this task
-  const [assigned] = await sql`
-    SELECT 1 FROM task_sellers WHERE task_id = ${task_id} AND user_id = ${session.id}
-  `;
-  if (!assigned) {
-    return NextResponse.json({ error: 'Du er ikke tilknyttet denne opgave' }, { status: 403 });
+  // SELLER role must be assigned to the task; ADMIN/MANAGER can sell on any task
+  if (session.role === 'SELLER') {
+    const [assigned] = await sql`
+      SELECT 1 FROM task_sellers WHERE task_id = ${task_id} AND user_id = ${session.id}
+    `;
+    if (!assigned) {
+      return NextResponse.json({ error: 'Du er ikke tilknyttet denne opgave' }, { status: 403 });
+    }
   }
 
   // Load task to calculate house_revenue server-side
