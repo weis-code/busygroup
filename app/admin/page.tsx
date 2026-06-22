@@ -89,7 +89,7 @@ export default function AdminPage() {
 
       {/* FTE / desk metrics */}
       {(() => {
-        const periodRev = Number(revenue.this_period);
+        const periodRev  = Number(revenue.this_period);
         const revPerFTE  = seller_count > 0 ? periodRev / seller_count : null;
         const revPerDesk = desk_count   > 0 ? periodRev / desk_count   : null;
         const potential  = revPerFTE !== null && desk_count > 0 ? revPerFTE * desk_count : null;
