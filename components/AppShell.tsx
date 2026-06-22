@@ -15,6 +15,7 @@ const sellerNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { href: '/admin', label: 'Oversigt', icon: '◈' },
   { href: '/admin/sales', label: 'Salgslog', icon: '◎' },
+  { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
   { href: '/admin/tasks', label: 'Opgaver', icon: '◇' },
   { href: '/admin/sellers', label: 'Sælgere', icon: '◉' },
   { href: '/admin/periods', label: 'Lønperioder', icon: '◇' },
