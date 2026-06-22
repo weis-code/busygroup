@@ -13,7 +13,9 @@ interface Package { id?: string; name: string; price: string }
 interface Seller { id: string; name: string; email: string; role: string }
 interface TaskSeller { task_id: string; user_id: string; user_name: string }
 
-const MODEL_DK: Record<string, string> = { FIXED: 'Fast (per unit)', PERCENT: 'Procent af deal', PACKAGE: 'Pakker' };
+const MODEL_DK: Record<string, string> = { FIXED: 'Fast pris', PERCENT: '% af ordre', PACKAGE: 'Pakker' };
+const DISPLAY_DK: Record<string, string> = { COUNT: 'Antal salg', AMOUNT: 'Beløb lukket' };
+const DISPLAY_COLOR: Record<string, string> = { COUNT: '#185FA5', AMOUNT: '#0F9B6E' };
 
 const emptyForm = () => ({
   name: '', client: '', description: '', status: 'active',
@@ -131,7 +133,16 @@ export default function TasksPage() {
               <tr key={t.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                 <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{t.name}</td>
                 <td style={{ fontSize: 13, color: '#667788' }}>{t.client}</td>
-                <td style={{ fontSize: 12, color: '#667788' }}>{MODEL_DK[t.compensation_model]}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 600, background: `${DISPLAY_COLOR[t.display_mode]}18`, color: DISPLAY_COLOR[t.display_mode] }}>
+                      {DISPLAY_DK[t.display_mode] ?? t.display_mode}
+                    </span>
+                    <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 500, background: 'rgba(255,255,255,0.05)', color: '#667788' }}>
+                      {MODEL_DK[t.compensation_model]}
+                    </span>
+                  </div>
+                </td>
                 <td>
                   <span style={{
                     fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600,
@@ -190,24 +201,46 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Dashboard display */}
-              <div>
-                <label>Dashboard viser</label>
-                <select value={form.display_mode} onChange={e => setForm(f => ({ ...f, display_mode: e.target.value }))}>
-                  <option value="COUNT">Antal salg (f.eks. mødebooking)</option>
-                  <option value="AMOUNT">Beløb lukket (f.eks. fundraising)</option>
-                </select>
+              {/* Dashboard display + compensation model */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label>Mål tracker</label>
+                  <select value={form.display_mode} onChange={e => setForm(f => ({ ...f, display_mode: e.target.value }))}>
+                    <option value="COUNT">Antal salg</option>
+                    <option value="AMOUNT">Beløb lukket (kr)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Omsætning beregnes som</label>
+                  <select value={form.compensation_model} onChange={e => setForm(f => ({ ...f, compensation_model: e.target.value, packages: [] }))}>
+                    <option value="FIXED">Fast pris pr. salg</option>
+                    <option value="PERCENT">Procent af ordrebeløb</option>
+                    <option value="PACKAGE">Pakkepriser</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Compensation model */}
-              <div>
-                <label>Kompensationsmodel</label>
-                <select value={form.compensation_model} onChange={e => setForm(f => ({ ...f, compensation_model: e.target.value, packages: [] }))}>
-                  <option value="FIXED">Fast (pris pr. unit)</option>
-                  <option value="PERCENT">Procent af deal</option>
-                  <option value="PACKAGE">Pakker</option>
-                </select>
-              </div>
+              {/* Combination hint */}
+              {(() => {
+                const hints: Record<string, Record<string, string>> = {
+                  COUNT: {
+                    FIXED:   'Tracker antal salg. Sælger angiver antal units — omsætning = fast pris × antal.',
+                    PERCENT: 'Tracker antal salg mod mål. Sælger angiver ordrebeløbet — omsætning = % af det.',
+                    PACKAGE: 'Tracker antal salg. Sælger vælger en pakke ved hvert salg.',
+                  },
+                  AMOUNT: {
+                    FIXED:   'Tracker samlet omsætning. Sælger angiver antal units — omsætning = fast pris × antal.',
+                    PERCENT: 'Tracker beløb lukket. Sælger angiver ordrebeløbet — omsætning = % af det.',
+                    PACKAGE: 'Tracker beløb lukket. Sælger vælger en pakke ved hvert salg.',
+                  },
+                };
+                const hint = hints[form.display_mode]?.[form.compensation_model];
+                return hint ? (
+                  <div style={{ background: 'rgba(24,95,165,0.1)', border: '1px solid rgba(24,95,165,0.2)', borderRadius: 7, padding: '10px 14px', fontSize: 12, color: '#8EB8E0', lineHeight: 1.5 }}>
+                    {hint}
+                  </div>
+                ) : null;
+              })()}
               {form.compensation_model === 'FIXED' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
