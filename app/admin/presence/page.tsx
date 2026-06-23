@@ -257,7 +257,7 @@ export default function PresencePage() {
                     <span style={{ fontSize: 12, color: '#667788' }}>
                       {fmtDate(a.start_date)}{a.end_date !== a.start_date ? ` – ${fmtDate(a.end_date)}` : ''}
                     </span>
-                    {a.note && <span style={{ fontSize: 12, color: '#4A5568', fontStyle: 'italic' }}>"{a.note}"</span>}
+                    {a.note && <span style={{ fontSize: 12, color: '#4A5568', fontStyle: 'italic' }}>&ldquo;{a.note}&rdquo;</span>}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
