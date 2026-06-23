@@ -2,7 +2,7 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 
-interface User { id: string; email: string; name: string; role: string; created_at: string }
+interface User { id: string; email: string; name: string; role: string; is_part_time: boolean; created_at: string }
 
 interface DayRow { date: string; calls: number; contacts: number; call_goal: number; sales_goal: number; sales: number }
 interface SaleRow { id: string; date: string; cvr: string | null; company_name: string | null; deal_size: number | null; status: string; task_name: string; display_mode: string; compensation_model: string; package_name: string | null }
@@ -39,6 +39,7 @@ export default function SellersPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('SELLER');
+  const [isPartTime, setIsPartTime] = useState(false);
 
   // History drawer
   const [detail, setDetail] = useState<SellerDetail | null>(null);
@@ -56,6 +57,7 @@ export default function SellersPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('');
+  const [editIsPartTime, setEditIsPartTime] = useState(false);
   const [editNewPassword, setEditNewPassword] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -86,7 +88,7 @@ export default function SellersPage() {
     setLoadingDetail(false);
   }
 
-  function reset() { setEmail(''); setName(''); setPassword(''); setRole('SELLER'); setError(''); }
+  function reset() { setEmail(''); setName(''); setPassword(''); setRole('SELLER'); setIsPartTime(false); setError(''); }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -95,7 +97,7 @@ export default function SellersPage() {
     try {
       const res = await fetch('/api/admin/sellers', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password, role }),
+        body: JSON.stringify({ email, name, password, role, is_part_time: isPartTime }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Fejl'); return; }
@@ -176,6 +178,7 @@ export default function SellersPage() {
     setEditName(u.name);
     setEditEmail(u.email);
     setEditRole(u.role);
+    setEditIsPartTime(u.is_part_time);
     setEditNewPassword('');
     setEditError('');
   }
@@ -187,7 +190,7 @@ export default function SellersPage() {
     try {
       const res = await fetch(`/api/admin/sellers/${editUser.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, role: editRole, ...(editNewPassword ? { new_password: editNewPassword } : {}) }),
+        body: JSON.stringify({ name: editName, email: editEmail, role: editRole, is_part_time: editIsPartTime, ...(editNewPassword ? { new_password: editNewPassword } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) { setEditError(data.error || 'Fejl'); return; }
@@ -237,7 +240,10 @@ export default function SellersPage() {
                 <td style={{ padding: '13px 18px', fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{u.name}</td>
                 <td style={{ fontSize: 13, color: '#667788', padding: '13px 18px' }}>{u.email}</td>
                 <td style={{ padding: '13px 18px' }}>
-                  <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600, background: `${ROLE_COLOR[u.role]}18`, color: ROLE_COLOR[u.role] }}>{u.role}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600, background: `${ROLE_COLOR[u.role]}18`, color: ROLE_COLOR[u.role] }}>{u.role}</span>
+                    {u.is_part_time && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 700, background: 'rgba(142,68,173,0.15)', color: '#8E44AD', border: '1px solid rgba(142,68,173,0.3)' }}>DELTID</span>}
+                  </div>
                 </td>
                 <td style={{ fontSize: 12, color: '#667788', padding: '13px 18px' }}>{new Date(u.created_at).toLocaleDateString('da-DK')}</td>
                 <td style={{ padding: '13px 18px' }}>
@@ -390,6 +396,13 @@ export default function SellersPage() {
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 7, fontSize: 13, boxSizing: 'border-box' }}
                 />
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', background: editIsPartTime ? 'rgba(142,68,173,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: 7, border: `1px solid ${editIsPartTime ? 'rgba(142,68,173,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
+                <input type="checkbox" checked={editIsPartTime} onChange={e => setEditIsPartTime(e.target.checked)} style={{ width: 15, height: 15, accentColor: '#8E44AD' }} />
+                <div>
+                  <div style={{ fontSize: 13, color: editIsPartTime ? '#8E44AD' : '#ECF0F1', fontWeight: editIsPartTime ? 600 : 400 }}>Deltidsansat</div>
+                  <div style={{ fontSize: 11, color: '#4A5568', marginTop: 2 }}>Tæller ikke med i Omsætning pr. FTE</div>
+                </div>
+              </label>
               {editError && <div style={{ color: '#E74C3C', fontSize: 12, padding: '8px 12px', background: 'rgba(231,76,60,0.1)', borderRadius: 6 }}>{editError}</div>}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => setEditUser(null)} style={{ flex: 1, padding: '10px 0', borderRadius: 7, background: 'rgba(255,255,255,0.06)', color: '#667788' }}>Annuller</button>
@@ -428,6 +441,13 @@ export default function SellersPage() {
                   <option value="ADMIN">ADMIN</option>
                 </select>
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', background: isPartTime ? 'rgba(142,68,173,0.08)' : 'rgba(255,255,255,0.03)', borderRadius: 7, border: `1px solid ${isPartTime ? 'rgba(142,68,173,0.3)' : 'rgba(255,255,255,0.07)'}` }}>
+                <input type="checkbox" checked={isPartTime} onChange={e => setIsPartTime(e.target.checked)} style={{ width: 15, height: 15, accentColor: '#8E44AD' }} />
+                <div>
+                  <div style={{ fontSize: 13, color: isPartTime ? '#8E44AD' : '#ECF0F1', fontWeight: isPartTime ? 600 : 400 }}>Deltidsansat</div>
+                  <div style={{ fontSize: 11, color: '#4A5568', marginTop: 2 }}>Tæller ikke med i Omsætning pr. FTE</div>
+                </div>
+              </label>
               {error && <div style={{ color: '#E74C3C', fontSize: 12, padding: '8px 12px', background: 'rgba(231,76,60,0.1)', borderRadius: 6 }}>{error}</div>}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, padding: '10px 0', borderRadius: 7, background: 'rgba(255,255,255,0.06)', color: '#667788' }}>Annuller</button>

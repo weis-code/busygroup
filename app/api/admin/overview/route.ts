@@ -82,8 +82,8 @@ export async function GET(req: NextRequest) {
     GROUP BY t.compensation_model ORDER BY value DESC
   `;
 
-  // Seller count (SELLER role only — admins/managers excluded from FTE)
-  const [{ seller_count }] = await sql`SELECT COUNT(*)::int AS seller_count FROM users WHERE role = 'SELLER'`;
+  // Seller count: full-time SELLER role only (part-time excluded from FTE)
+  const [{ seller_count }] = await sql`SELECT COUNT(*)::int AS seller_count FROM users WHERE role = 'SELLER' AND is_part_time = FALSE`;
 
   // Desk count from settings
   const [deskSetting] = await sql`SELECT value FROM settings WHERE key = 'desk_count'`;
