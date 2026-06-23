@@ -22,6 +22,13 @@ export async function GET(req: NextRequest) {
     WHERE user_id = ${session.id} AND date = ${date}
   `;
 
+  const [absence] = await sql`
+    SELECT type FROM absences
+    WHERE user_id = ${session.id} AND status = 'APPROVED'
+      AND start_date <= ${date} AND end_date >= ${date}
+    LIMIT 1
+  `;
+
   return NextResponse.json({
     date,
     call_goal: dt?.call_goal ?? 0,
@@ -31,5 +38,7 @@ export async function GET(req: NextRequest) {
     booked_today: dt?.meetings_booked_actual ?? 0,
     held_today: dt?.meetings_held_actual ?? 0,
     sales_today: salesActual.sales_today,
+    is_absent: !!absence,
+    absence_type: absence?.type ?? null,
   });
 }

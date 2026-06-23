@@ -19,10 +19,13 @@ export async function GET(req: NextRequest) {
       COALESCE(dt.contacts_actual, 0)::int       AS contacts_actual,
       COALESCE(dt.meetings_booked_actual, 0)::int AS meetings_booked_actual,
       COALESCE(dt.meetings_held_actual, 0)::int   AS meetings_held_actual,
-      COALESCE(COUNT(DISTINCT s.id), 0)::int     AS sales_today
+      COALESCE(COUNT(DISTINCT s.id), 0)::int     AS sales_today,
+      MAX(ab.type)                               AS absence_type
     FROM users u
     LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date = ${date}
     LEFT JOIN sales s ON s.user_id = u.id AND s.date = ${date}
+    LEFT JOIN absences ab ON ab.user_id = u.id AND ab.status = 'APPROVED'
+      AND ab.start_date <= ${date} AND ab.end_date >= ${date}
     WHERE u.role = 'SELLER'
     GROUP BY u.id, u.name, dt.call_goal, dt.sales_goal,
              dt.calls_actual, dt.contacts_actual, dt.meetings_booked_actual, dt.meetings_held_actual

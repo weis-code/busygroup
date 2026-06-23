@@ -2,12 +2,16 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 
+const ABSENCE_DK: Record<string, string> = { VACATION: 'Ferie', SICK: 'Sygdom', OTHER: 'Andet fravær' };
+const ABSENCE_COLOR: Record<string, string> = { VACATION: '#185FA5', SICK: '#E74C3C', OTHER: '#F39C12' };
+
 interface SellerRow {
   id: string; name: string;
   call_goal: number; sales_goal: number;
   calls_actual: number; contacts_actual: number;
-  meetings_booked_actual: number; meetings_held_actual: number; // kept in DB, not shown
+  meetings_booked_actual: number; meetings_held_actual: number;
   sales_today: number;
+  absence_type: string | null;
 }
 
 function StatusBar({ value, goal, color }: { value: number; goal: number; color: string }) {
@@ -136,10 +140,19 @@ export default function AdminDailyPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {rows.map(row => (
           <div key={row.id} style={{
-            background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)',
+            background: '#111E2A',
+            border: row.absence_type ? `1px solid ${ABSENCE_COLOR[row.absence_type]}33` : '1px solid rgba(255,255,255,0.07)',
             borderRadius: 12, padding: '20px 24px',
+            opacity: row.absence_type ? 0.55 : 1,
           }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#ECF0F1', marginBottom: 18 }}>{row.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#ECF0F1' }}>{row.name}</span>
+              {row.absence_type && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: ABSENCE_COLOR[row.absence_type], background: `${ABSENCE_COLOR[row.absence_type]}18`, border: `1px solid ${ABSENCE_COLOR[row.absence_type]}44`, borderRadius: 4, padding: '2px 8px', letterSpacing: '0.04em' }}>
+                  {ABSENCE_DK[row.absence_type].toUpperCase()}
+                </span>
+              )}
+            </div>
 
             {/* Goal / Actual / Status table */}
             <div style={{ display: 'grid', gridTemplateColumns: '90px 90px 90px 1fr', gap: 10, alignItems: 'center', marginBottom: 18 }}>

@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from 'react';
 
+const ABSENCE_DK: Record<string, string> = { VACATION: 'Ferie', SICK: 'Sygdom', OTHER: 'Andet fravær' };
+const ABSENCE_COLOR: Record<string, string> = { VACATION: '#185FA5', SICK: '#E74C3C', OTHER: '#F39C12' };
+
 interface DayData {
   date: string;
   call_goal: number; sales_goal: number;
   calls_today: number; contacts_today: number;
   booked_today: number; held_today: number; sales_today: number;
+  is_absent: boolean; absence_type: string | null;
 }
 
 function ProgressBar({ label, value, goal, color }: { label: string; value: number; goal: number; color: string }) {
@@ -55,6 +59,21 @@ export default function DailyPage() {
   if (!data) return <div style={{ padding: 40, color: '#667788', fontSize: 13 }}>Indlæser…</div>;
 
   const today = new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  if (data.is_absent && data.absence_type) {
+    const color = ABSENCE_COLOR[data.absence_type];
+    return (
+      <div style={{ padding: '28px 32px', maxWidth: 700 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>Dagligt mål</h1>
+        <p style={{ fontSize: 13, color: '#667788', textTransform: 'capitalize', marginBottom: 28 }}>{today}</p>
+        <div style={{ background: '#111E2A', border: `1px solid ${color}44`, borderRadius: 10, padding: '32px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 32 }}>{data.absence_type === 'VACATION' ? '🌴' : data.absence_type === 'SICK' ? '🤒' : '📅'}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color, letterSpacing: '0.04em' }}>{ABSENCE_DK[data.absence_type]}</div>
+          <div style={{ fontSize: 13, color: '#667788' }}>Du er registreret fraværende i dag — ingen daglige mål.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 700 }}>
