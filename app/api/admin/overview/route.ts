@@ -90,16 +90,26 @@ export async function GET(req: NextRequest) {
   const desk_count = parseInt(deskSetting?.value ?? '0', 10) || 0;
 
   // Conversion rate per seller — current period
+  // Aggregated in subqueries to avoid fan-out when joining sales and daily_targets separately
   const conversionRates = await sql`
     SELECT
       u.name,
-      COALESCE(COUNT(DISTINCT s.id), 0)::int        AS sales_month,
-      COALESCE(SUM(dt.contacts_actual), 0)::int     AS contacts_month
+      COALESCE(s.sales_count, 0)::int      AS sales_month,
+      COALESCE(dt.contacts_total, 0)::int  AS contacts_month
     FROM users u
-    LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${periodStart}::date AND s.date <= ${periodEnd}::date
-    LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${periodStart}::date AND dt.date <= ${periodEnd}::date
+    LEFT JOIN (
+      SELECT user_id, COUNT(*) AS sales_count
+      FROM sales
+      WHERE date >= ${periodStart}::date AND date <= ${periodEnd}::date
+      GROUP BY user_id
+    ) s ON s.user_id = u.id
+    LEFT JOIN (
+      SELECT user_id, SUM(contacts_actual) AS contacts_total
+      FROM daily_targets
+      WHERE date >= ${periodStart}::date AND date <= ${periodEnd}::date
+      GROUP BY user_id
+    ) dt ON dt.user_id = u.id
     WHERE u.role = 'SELLER'
-    GROUP BY u.id, u.name
     ORDER BY u.name
   `;
 
