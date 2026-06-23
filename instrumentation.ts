@@ -186,6 +186,31 @@ export async function register() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS absences (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL CHECK (type IN ('VACATION','SICK','OTHER')),
+      start_date DATE NOT NULL,
+      end_date DATE NOT NULL,
+      note TEXT,
+      status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+      created_by UUID NOT NULL REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS time_entries (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date DATE NOT NULL DEFAULT CURRENT_DATE,
+      clocked_in_at TIMESTAMPTZ,
+      clocked_out_at TIMESTAMPTZ,
+      UNIQUE(user_id, date)
+    )
+  `;
+
   // Seed default admin user if none exists
   const [existing] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;
   if (!existing) {

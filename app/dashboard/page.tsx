@@ -3,6 +3,70 @@
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
+interface TimeEntry { id?: string; date: string; clocked_in_at: string | null; clocked_out_at: string | null }
+
+function ClockWidget() {
+  const [entry, setEntry] = useState<TimeEntry | null | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    const d = await fetch('/api/time-entries').then(r => r.json());
+    setEntry(d.entry ?? null);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function clockIn() {
+    setLoading(true);
+    await fetch('/api/time-entries/clock-in', { method: 'POST' });
+    await load();
+    setLoading(false);
+  }
+
+  async function clockOut() {
+    if (!confirm('Stemple ud nu?')) return;
+    setLoading(true);
+    await fetch('/api/time-entries/clock-out', { method: 'POST' });
+    await load();
+    setLoading(false);
+  }
+
+  const fmtTime = (ts: string) => new Date(ts).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+
+  if (entry === undefined) return null;
+
+  const isClockedIn = !!entry?.clocked_in_at;
+  const isClockedOut = !!entry?.clocked_out_at;
+
+  return (
+    <div style={{ background: '#111E2A', border: `1px solid ${isClockedIn && !isClockedOut ? 'rgba(46,204,113,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 10, padding: '18px 22px', marginBottom: 28, display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 11, color: '#667788', letterSpacing: '0.06em', marginBottom: 6 }}>STEMPLING I DAG</div>
+        {!isClockedIn && <div style={{ fontSize: 13, color: '#667788' }}>Ikke stemplet ind endnu</div>}
+        {isClockedIn && (
+          <div style={{ fontSize: 13, color: '#ECF0F1' }}>
+            Ind <span style={{ fontWeight: 700, color: '#2ECC71', fontVariantNumeric: 'tabular-nums' }}>{fmtTime(entry!.clocked_in_at!)}</span>
+            {isClockedOut && <> · Ud <span style={{ fontWeight: 700, color: '#185FA5', fontVariantNumeric: 'tabular-nums' }}>{fmtTime(entry!.clocked_out_at!)}</span></>}
+          </div>
+        )}
+      </div>
+      {!isClockedIn && (
+        <button onClick={clockIn} disabled={loading} style={{ background: '#2ECC71', color: '#0F1923', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, whiteSpace: 'nowrap' }}>
+          Stemple ind
+        </button>
+      )}
+      {isClockedIn && !isClockedOut && (
+        <button onClick={clockOut} disabled={loading} style={{ background: 'rgba(255,255,255,0.07)', color: '#ECF0F1', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 22px', fontSize: 13, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, whiteSpace: 'nowrap' }}>
+          Stemple ud
+        </button>
+      )}
+      {isClockedOut && (
+        <span style={{ fontSize: 12, color: '#667788' }}>Stemplet ud</span>
+      )}
+    </div>
+  );
+}
+
 interface DailyCall { date: string; calls: number }
 interface RecentSale { id: string; date: string; task_name: string; compensation_model: string; units: number | null; deal_size: number | null; package_name: string | null; status: string; cvr: string | null; company_name: string | null }
 interface Target { id: string; task_name: string; unit_goal: number | null; revenue_goal: number | null; units_sold: number; amount_sold: number; display_mode: string }
@@ -36,6 +100,8 @@ export default function DashboardPage() {
     <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 6 }}>Overblik</h1>
       <p style={{ fontSize: 13, color: '#667788', marginBottom: 28 }}>I dag</p>
+
+      <ClockWidget />
 
       {/* Today's quick stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>

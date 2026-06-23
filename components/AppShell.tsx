@@ -12,6 +12,7 @@ const sellerNav: NavEntry[] = [
   { href: '/dashboard/daily', label: 'Dagligt mål', icon: '◐' },
   { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
   { href: '/dashboard/sitrep', label: 'Sitrep', icon: '◑' },
+  { href: '/dashboard/absence', label: 'Fravær', icon: '◫' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: '◆' },
   { href: '/dashboard/settings', label: 'Indstillinger', icon: '◌' },
 ];
@@ -21,6 +22,7 @@ const adminNav: NavEntry[] = [
   { href: '/dashboard/sales', label: 'Mine salg', icon: '◎' },
   { href: '/admin/sitreps', label: 'Sitreps', icon: '◑' },
   { href: '/admin/followups', label: 'Follow-ups', icon: '◒' },
+  { href: '/admin/presence', label: 'Tilstedeværelse', icon: '◫' },
   { href: '/admin/targets', label: 'Targets', icon: '◆' },
   { href: '/admin/daily', label: 'Daglige mål', icon: '◐' },
   {
