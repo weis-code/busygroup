@@ -94,6 +94,7 @@ export default function AdminMessagesPage() {
     loadChannels();
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadMe();
     loadChannels();
@@ -102,6 +103,7 @@ export default function AdminMessagesPage() {
     fetch('/api/companies').then(r => r.json()).then(d => setCompanies(d as { id: number; name: string }[]));
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadMessages();
     clearInterval(pollRef.current);

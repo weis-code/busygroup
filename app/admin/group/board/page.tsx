@@ -326,7 +326,9 @@ function CompanyBoardTab() {
     setColumns(cols); setCards(cds);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadBoards(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (activeBoardId) loadBoard(activeBoardId); }, [activeBoardId]);
 
   async function saveCard(data: Partial<Card>) {

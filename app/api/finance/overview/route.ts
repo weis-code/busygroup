@@ -102,7 +102,6 @@ export async function GET(req: NextRequest) {
   const mrrMap: Record<string, number> = {};
   for (const r of mrrNow) mrrMap[r.slug] = Number(r.mrr_amount);
 
-  const nlsFixedCosts = costsMap['nls'] ?? 0;
   const nlsRev = Number(nlsRevenue.amount);
   const totalMrr = Object.entries(mrrMap)
     .filter(([s]) => s !== 'nls')

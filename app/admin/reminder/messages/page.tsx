@@ -65,7 +65,9 @@ export default function ReminderMessagesPage() {
     setMessages(await fetch(url).then(r => r.json()) as Message[]);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadMessages();
     clearInterval(pollRef.current);

@@ -103,8 +103,10 @@ export default function MessagesPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadMe(); loadChannels(); loadDms(); }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadMessages();
     clearInterval(pollRef.current);

@@ -77,6 +77,7 @@ export default function GroupPage() {
 
   useEffect(() => { loadOverview(); }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (tab === 'board') loadBoard();
   }, [tab]);

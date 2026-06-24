@@ -69,8 +69,10 @@ export default function NlsMessagesPage() {
     setMessages(data);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll(); }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadMessages();
     clearInterval(pollRef.current);
