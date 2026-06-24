@@ -41,7 +41,7 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     { href: '/admin/targets',     label: 'Targets',         icon: <TargetIcon /> },
     { href: '/admin/daily',       label: 'Daglige mål',     icon: <BarIcon /> },
     { href: '/admin/nls/board',   label: 'Board',           icon: <BoardIcon /> },
-    { href: '/admin/messages',    label: 'Beskeder',        icon: <ChatIcon /> },
+    { href: '/admin/nls/messages', label: 'Beskeder',       icon: <ChatIcon /> },
     {
       group: true, label: 'Indstillinger', icon: <GearIcon />, adminOnly: true,
       children: [
@@ -91,10 +91,10 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
 
 const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; icon: React.ReactNode }[]> = {
   nls:      [
-    { href: '/admin/nls',       label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/nls/board', label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/sitreps',   label: 'Sitreps',  icon: <NoteIcon /> },
-    { href: '/admin/messages',  label: 'Beskeder', icon: <ChatIcon /> },
+    { href: '/admin/nls',          label: 'Oversigt', icon: <GridIcon /> },
+    { href: '/admin/nls/board',    label: 'Board',    icon: <BoardIcon /> },
+    { href: '/admin/sitreps',      label: 'Sitreps',  icon: <NoteIcon /> },
+    { href: '/admin/nls/messages', label: 'Beskeder', icon: <ChatIcon /> },
   ],
   meridian: [
     { href: '/admin/meridian',          label: 'Oversigt', icon: <GridIcon /> },
@@ -209,11 +209,26 @@ function AppShellInner({ role, name, children }: Props) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Sync localStorage when URL changes
   useEffect(() => {
     if (role !== 'SELLER') setActiveCompany(displayCompany);
   }, [displayCompany, role, setActiveCompany]);
+
+  // Poll unread message count every 30 seconds
+  useEffect(() => {
+    let mounted = true;
+    function poll() {
+      fetch('/api/messages/unread/count')
+        .then(r => r.json())
+        .then((d: { count: number }) => { if (mounted) setUnreadCount(d.count || 0); })
+        .catch(() => { /* ignore network errors */ });
+    }
+    poll();
+    const id = setInterval(poll, 30_000);
+    return () => { mounted = false; clearInterval(id); };
+  }, []);
 
   // Auto-open settings accordion when on a settings sub-page
   useEffect(() => {
@@ -360,7 +375,7 @@ function AppShellInner({ role, name, children }: Props) {
             }
 
             return (
-              <NavLink key={entry.href} href={entry.href} label={entry.label} icon={entry.icon} active={isActive(entry.href, pathname)} />
+              <NavLink key={entry.href} href={entry.href} label={entry.label} icon={entry.icon} active={isActive(entry.href, pathname)} badge={entry.label === 'Beskeder' && unreadCount > 0} />
             );
           })}
         </nav>
@@ -430,8 +445,12 @@ function AppShellInner({ role, name, children }: Props) {
       <nav className="bottom-nav">
         {bottomNav.map(item => {
           const active = isActive(item.href, pathname);
+          const hasBadge = item.label === 'Beskeder' && unreadCount > 0;
           return (
-            <a key={item.href} href={item.href} className={`bottom-nav-item${active ? ' active' : ''}`}>
+            <a key={item.href} href={item.href} className={`bottom-nav-item${active ? ' active' : ''}`} style={{ position: 'relative' }}>
+              {hasBadge && (
+                <span style={{ position: 'absolute', top: 6, right: '50%', transform: 'translateX(8px)', width: 7, height: 7, borderRadius: '50%', background: 'var(--bl)', border: '1.5px solid var(--bg)' }} />
+              )}
               {item.icon}
               <span>{item.label}</span>
             </a>
@@ -447,7 +466,7 @@ function AppShellInner({ role, name, children }: Props) {
 }
 
 /* ── NavLink ────────────────────────────────────────── */
-function NavLink({ href, label, icon, active }: { href: string; label: string; icon: React.ReactNode; active: boolean }) {
+function NavLink({ href, label, icon, active, badge }: { href: string; label: string; icon: React.ReactNode; active: boolean; badge?: boolean }) {
   return (
     <a href={href} style={{
       display: 'flex', alignItems: 'center', gap: 9,
@@ -460,6 +479,9 @@ function NavLink({ href, label, icon, active }: { href: string; label: string; i
     }}>
       <span style={{ opacity: active ? 1 : 0.65 }}>{icon}</span>
       {label}
+      {badge && (
+        <span style={{ marginLeft: 'auto', width: 7, height: 7, borderRadius: '50%', background: 'var(--bl)', flexShrink: 0, display: 'inline-block' }} />
+      )}
     </a>
   );
 }

@@ -6,37 +6,39 @@ interface Channel { id: number; name: string; company_name: string; company_colo
 interface DmConv { id: number; participant_a: string; participant_b: string; participant_a_name: string; participant_b_name: string; last_message: string | null }
 interface Message { id: number; sender_id: string; sender_name: string; body: string; created_at: string }
 interface User { id: string; name: string; role: string }
+
 type ActiveView = { type: 'channel'; id: number; name: string } | { type: 'dm'; id: number; name: string } | null;
 
-const COMPANY_SLUG = 'quorex';
-const COMPANY_LABEL = 'Quorex';
+const COMPANY_NAME = 'NextLevel Sales';
 
 function formatTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
-  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+  }
   return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
 }
 
-export default function QuorexMessagesPage() {
-  const [myId, setMyId]         = useState('');
-  const [allChannels, setAll]   = useState<Channel[]>([]);
-  const [dms, setDms]           = useState<DmConv[]>([]);
+export default function NlsMessagesPage() {
+  const [myId, setMyId] = useState('');
+  const [allChannels, setAllChannels] = useState<Channel[]>([]);
+  const [dms, setDms] = useState<DmConv[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [active, setActive]     = useState<ActiveView>(null);
-  const [body, setBody]         = useState('');
-  const [sending, setSending]   = useState(false);
+  const [active, setActive] = useState<ActiveView>(null);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
   const [showThread, setShowThread] = useState(false);
-  const [showNewDm, setShowNewDm]   = useState(false);
-  const [showNewCh, setShowNewCh]   = useState(false);
-  const [newChName, setNewChName]   = useState('');
-  const [users, setUsers]       = useState<User[]>([]);
-  const [companyId, setCompanyId] = useState<number | null>(null);
+  const [showNewDm, setShowNewDm] = useState(false);
+  const [showNewChannel, setShowNewChannel] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
+  const [companies, setCompanies] = useState<{ id: number; name: string; slug: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLTextAreaElement>(null);
-  const pollRef   = useRef<ReturnType<typeof setInterval>>();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval>>();
 
-  const channels = allChannels.filter(c => c.company_name === COMPANY_LABEL);
+  const channels = allChannels.filter(c => c.company_name === COMPANY_NAME);
 
   async function loadAll() {
     const [me, chs, dmsData, usersData, comps] = await Promise.all([
@@ -47,64 +49,82 @@ export default function QuorexMessagesPage() {
       fetch('/api/companies').then(r => r.json()) as Promise<{ id: number; name: string; slug: string }[]>,
     ]);
     setMyId(me.id ?? '');
-    setAll(chs);
+    setAllChannels(chs);
     setDms(dmsData);
     setUsers(usersData);
-    const comp = comps.find(c => c.slug === COMPANY_SLUG);
-    if (comp) setCompanyId(comp.id);
-    const filtered = chs.filter(c => c.company_name === COMPANY_LABEL);
-    if (!active && filtered.length > 0) {
-      setActive({ type: 'channel', id: filtered[0].id, name: `#${filtered[0].name}` });
+    setCompanies(comps);
+    const nlsChs = chs.filter(c => c.company_name === COMPANY_NAME);
+    if (!active && nlsChs.length > 0) {
+      setActive({ type: 'channel', id: nlsChs[0].id, name: `#${nlsChs[0].name}` });
       setShowThread(true);
     }
   }
 
   async function loadMessages() {
     if (!active) return;
-    const url = active.type === 'channel' ? `/api/channels/${active.id}/messages` : `/api/dm/${active.id}/messages`;
-    setMessages(await fetch(url).then(r => r.json()) as Message[]);
+    const url = active.type === 'channel'
+      ? `/api/channels/${active.id}/messages`
+      : `/api/dm/${active.id}/messages`;
+    const data = await fetch(url).then(r => r.json()) as Message[];
+    setMessages(data);
   }
 
   useEffect(() => { loadAll(); }, []);
+
   useEffect(() => {
     loadMessages();
     clearInterval(pollRef.current);
     pollRef.current = setInterval(loadMessages, 5000);
     return () => clearInterval(pollRef.current);
   }, [active]);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   async function send() {
     if (!body.trim() || !active || sending) return;
     setSending(true);
-    const url = active.type === 'channel' ? `/api/channels/${active.id}/messages` : `/api/dm/${active.id}/messages`;
+    const url = active.type === 'channel'
+      ? `/api/channels/${active.id}/messages`
+      : `/api/dm/${active.id}/messages`;
     await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: body.trim() }) });
-    setBody(''); setSending(false); await loadMessages(); inputRef.current?.focus();
+    setBody('');
+    setSending(false);
+    await loadMessages();
+    inputRef.current?.focus();
   }
 
   async function startDm(userId: string) {
     await fetch('/api/dm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ other_user_id: userId }) });
     setShowNewDm(false);
-    setDms(await fetch('/api/dm').then(r => r.json()) as DmConv[]);
+    const data = await fetch('/api/dm').then(r => r.json()) as DmConv[];
+    setDms(data);
   }
 
   async function createChannel() {
-    if (!newChName.trim() || !companyId) return;
-    await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newChName.trim(), company_id: companyId }) });
-    setNewChName(''); setShowNewCh(false);
-    setAll(await fetch('/api/channels').then(r => r.json()) as Channel[]);
+    if (!newChannelName.trim()) return;
+    const nlsCompany = companies.find(c => c.slug === 'nls');
+    if (!nlsCompany) return;
+    await fetch('/api/channels', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newChannelName.trim(), company_id: nlsCompany.id }),
+    });
+    setNewChannelName('');
+    setShowNewChannel(false);
+    const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
+    setAllChannels(data);
   }
 
   return (
     <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
       <div className={`msg-list${showThread ? ' hidden-mobile' : ''}`} style={{ width: 240, flexShrink: 0, borderRight: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{COMPANY_LABEL} · Beskeder</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>NLS · Beskeder</span>
           <div style={{ display: 'flex', gap: 2 }}>
-            <button onClick={() => setShowNewCh(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 17, padding: '0 5px', cursor: 'pointer', minHeight: 44, minWidth: 36 }}>+</button>
-            <button onClick={() => setShowNewDm(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 15, padding: '0 5px', cursor: 'pointer', minHeight: 44, minWidth: 36 }}>✉</button>
+            <button onClick={() => setShowNewChannel(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 17, padding: '0 5px', cursor: 'pointer', minHeight: 44, minWidth: 36 }} title="Ny kanal">+</button>
+            <button onClick={() => setShowNewDm(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 15, padding: '0 5px', cursor: 'pointer', minHeight: 44, minWidth: 36 }} title="Ny DM">✉</button>
           </div>
         </div>
+
         {channels.length > 0 && (
           <div>
             <div style={{ padding: '10px 14px 4px', fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase' }}>Kanaler</div>
@@ -119,24 +139,28 @@ export default function QuorexMessagesPage() {
             })}
           </div>
         )}
+
         {dms.length > 0 && (
           <div>
             <div style={{ padding: '10px 14px 4px', fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase' }}>Direkte</div>
             {dms.map(dm => {
-              const other = dm.participant_a === myId ? dm.participant_b_name : dm.participant_a_name;
+              const otherName = dm.participant_a === myId ? dm.participant_b_name : dm.participant_a_name;
               const isAct = active?.type === 'dm' && active.id === dm.id;
               return (
-                <button key={dm.id} onClick={() => { setActive({ type: 'dm', id: dm.id, name: other }); setShowThread(true); }}
+                <button key={dm.id} onClick={() => { setActive({ type: 'dm', id: dm.id, name: otherName }); setShowThread(true); }}
                   style={{ width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: 13, color: isAct ? 'var(--t1)' : 'var(--t2)', background: isAct ? 'var(--bl3)' : 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, minHeight: 44 }}>
-                  <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>{other.charAt(0).toUpperCase()}</span>
-                  <span>{other}</span>
+                  <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>{otherName.charAt(0).toUpperCase()}</span>
+                  <span>{otherName}</span>
                 </button>
               );
             })}
           </div>
         )}
+
         {channels.length === 0 && dms.length === 0 && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', color: 'var(--t3)', fontSize: 12 }}>Ingen kanaler endnu.<br />Klik + for at oprette en.</div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', color: 'var(--t3)', fontSize: 12 }}>
+            Ingen kanaler endnu.<br />Klik + for at oprette en.
+          </div>
         )}
       </div>
 
@@ -168,7 +192,8 @@ export default function QuorexMessagesPage() {
             <div style={{ padding: '12px 18px', borderTop: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea ref={inputRef} value={body} onChange={e => setBody(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Skriv en besked…" rows={1} style={{ flex: 1, resize: 'none', borderRadius: 8, padding: '10px 12px', fontSize: 14, lineHeight: 1.4, minHeight: 44 }} />
+                placeholder="Skriv en besked…" rows={1}
+                style={{ flex: 1, resize: 'none', borderRadius: 8, padding: '10px 12px', fontSize: 14, lineHeight: 1.4, minHeight: 44 }} />
               <button onClick={send} disabled={!body.trim() || sending}
                 style={{ background: 'var(--bl)', color: '#fff', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, flexShrink: 0, minHeight: 44 }}>↑</button>
             </div>
@@ -197,15 +222,17 @@ export default function QuorexMessagesPage() {
         </div>
       )}
 
-      {showNewCh && (
+      {showNewChannel && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowNewCh(false); }}>
+          onClick={e => { if (e.target === e.currentTarget) setShowNewChannel(false); }}>
           <div className="modal-box" style={{ background: 'var(--s1)', borderRadius: 13, padding: 24, width: 360, maxWidth: '94vw', boxShadow: '0 40px 80px rgba(0,0,0,0.7)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny kanal · {COMPANY_LABEL}</div>
-            <div><label>Kanalnavn</label><input value={newChName} onChange={e => setNewChName(e.target.value)} placeholder="e.g. projekter" autoFocus /></div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny kanal · NLS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div><label>Kanalnavn</label><input value={newChannelName} onChange={e => setNewChannelName(e.target.value)} placeholder="e.g. projekter" autoFocus /></div>
+            </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowNewCh(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
-              <button onClick={createChannel} disabled={!newChName.trim()} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600 }}>Opret</button>
+              <button onClick={() => setShowNewChannel(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
+              <button onClick={createChannel} disabled={!newChannelName.trim()} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600 }}>Opret</button>
             </div>
           </div>
         </div>
