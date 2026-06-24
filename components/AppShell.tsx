@@ -14,6 +14,8 @@ const sellerNav: NavEntry[] = [
   { href: '/dashboard/sitrep', label: 'Sitrep', icon: '◑' },
   { href: '/dashboard/absence', label: 'Fravær', icon: '◫' },
   { href: '/dashboard/leaderboard', label: 'Leaderboard', icon: '◆' },
+  { href: '/dashboard/board', label: 'Mit board', icon: '▦' },
+  { href: '/dashboard/messages', label: 'Beskeder', icon: '◉' },
   { href: '/dashboard/settings', label: 'Indstillinger', icon: '◌' },
 ];
 
@@ -35,6 +37,28 @@ const adminNav: NavEntry[] = [
       { href: '/admin/settings', label: 'Indstillinger', icon: '◌' },
     ],
   },
+  // ── Platform ─────────────────────────────────────────────────
+  { href: '/admin/group', label: 'Group overblik', icon: '◈' },
+  { href: '/admin/companies', label: 'Virksomheder', icon: '▣' },
+  { href: '/admin/customers', label: 'Kunder', icon: '◎' },
+  { href: '/admin/handover', label: 'Handovers', icon: '◒' },
+  { href: '/admin/portal', label: 'Klientportal', icon: '◇' },
+  { href: '/admin/messages', label: 'Beskeder', icon: '◉' },
+];
+
+const sellerBottomNav = [
+  { href: '/dashboard', label: 'Oversigt', icon: '◈' },
+  { href: '/dashboard/board', label: 'Board', icon: '▦' },
+  { href: '/dashboard/log', label: 'Log', icon: '◎' },
+  { href: '/dashboard/messages', label: 'Beskeder', icon: '◉' },
+  { href: '/dashboard/settings', label: 'Profil', icon: '◌' },
+];
+
+const adminBottomNav = [
+  { href: '/admin/group', label: 'Group', icon: '◈' },
+  { href: '/admin', label: 'NLS', icon: '▣' },
+  { href: '/admin/messages', label: 'Beskeder', icon: '◉' },
+  { href: '/admin/customers', label: 'Kunder', icon: '◎' },
 ];
 
 interface Props {
@@ -47,12 +71,14 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return 'group' in entry && entry.group === true;
 }
 
+const PLATFORM_HREFS = ['/admin/group', '/admin/companies', '/admin/customers', '/admin/handover', '/admin/portal', '/admin/messages'];
+
 export default function AppShell({ role, name, children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const nav = role === 'SELLER' ? sellerNav : adminNav;
+  const bottomNav = role === 'SELLER' ? sellerBottomNav : adminBottomNav;
 
-  // Determine if settings group is active on initial render
   const settingsGroup = adminNav.find(isGroup);
   const settingsActive = settingsGroup?.children.some(c => pathname.startsWith(c.href)) ?? false;
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
@@ -74,10 +100,12 @@ export default function AppShell({ role, name, children }: Props) {
     transition: 'all 0.12s',
   } as React.CSSProperties);
 
+  const isPlatformSection = (href: string) => PLATFORM_HREFS.includes(href);
+
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#0F1923' }}>
-      {/* Sidebar */}
-      <aside style={{
+      {/* Sidebar — hidden on mobile via CSS class */}
+      <aside className="sidebar-desktop" style={{
         width: 220, flexShrink: 0, background: '#111E2A',
         borderRight: '1px solid rgba(255,255,255,0.07)',
         display: 'flex', flexDirection: 'column',
@@ -128,14 +156,25 @@ export default function AppShell({ role, name, children }: Props) {
               );
             }
 
+            // Separator before platform section
+            const showSeparator = role !== 'SELLER' && isPlatformSection(entry.href) &&
+              (i === 0 || !isPlatformSection((nav[i - 1] as NavItem).href));
+
             const active = entry.href === '/admin' || entry.href === '/dashboard'
               ? pathname === entry.href
               : pathname.startsWith(entry.href);
             return (
-              <a key={entry.href} href={entry.href} style={itemStyle(active)}>
-                <span style={{ fontSize: 10 }}>{entry.icon}</span>
-                {entry.label}
-              </a>
+              <div key={entry.href}>
+                {showSeparator && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', margin: '8px 0', paddingTop: 8 }}>
+                    <div style={{ fontSize: 9, color: '#4a5d78', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', padding: '0 12px 6px' }}>PLATFORM</div>
+                  </div>
+                )}
+                <a href={entry.href} style={itemStyle(active)}>
+                  <span style={{ fontSize: 10 }}>{entry.icon}</span>
+                  {entry.label}
+                </a>
+              </div>
             );
           })}
         </nav>
@@ -155,9 +194,32 @@ export default function AppShell({ role, name, children }: Props) {
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, overflowY: 'auto', background: '#0F1923' }}>
+      <main className="main-content" style={{ flex: 1, overflowY: 'auto', background: '#0F1923' }}>
         {children}
       </main>
+
+      {/* Bottom nav — shown on mobile via CSS */}
+      <nav className="bottom-nav">
+        {bottomNav.map(item => {
+          const active = item.href === '/admin' || item.href === '/dashboard'
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
+          return (
+            <a key={item.href} href={item.href} className={`bottom-nav-item${active ? ' active' : ''}`}>
+              <span style={{ fontSize: 20 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </a>
+          );
+        })}
+        <button
+          onClick={logout}
+          className="bottom-nav-item"
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          <span style={{ fontSize: 20 }}>◌</span>
+          <span>Log ud</span>
+        </button>
+      </nav>
     </div>
   );
 }

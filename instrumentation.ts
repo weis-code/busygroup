@@ -220,11 +220,183 @@ export async function register() {
     const hash = await bcrypt.hash('admin123', 12);
     await sql`
       INSERT INTO users (email, name, password_hash, role)
-      VALUES ('admin@busygroup.dk', 'Admin', ${hash}, 'ADMIN')
+      VALUES ('admin@nextlevelgroup.dk', 'Admin', ${hash}, 'ADMIN')
       ON CONFLICT DO NOTHING
     `;
-    console.log('[NLS] Default admin created: admin@busygroup.dk / admin123');
+    console.log('[NLS] Default admin created: admin@nextlevelgroup.dk / admin123');
   }
+
+  // ── Platform extensions ────────────────────────────────────────────────────
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS companies (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      type TEXT NOT NULL,
+      color TEXT NOT NULL,
+      logo_initials TEXT NOT NULL,
+      ownership_pct INTEGER DEFAULT 100,
+      stripe_enabled BOOLEAN DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
+    VALUES
+      ('Next Level Sales', 'nls', 'sales', '#4f8ef7', 'NLS', 100, false),
+      ('Meridian Consulting', 'meridian', 'consulting', '#2dd4a0', 'MC', 100, false),
+      ('Quorex', 'quorex', 'saas', '#a78bfa', 'QX', 100, true),
+      ('BusyReminder', 'reminder', 'saas', '#f59e0b', 'BR', 75, true),
+      ('NextLevel Group', 'group', 'group', '#4f8ef7', 'NL', 100, false)
+    ON CONFLICT (slug) DO NOTHING
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS kanban_boards (
+      id SERIAL PRIMARY KEY,
+      company_id INTEGER REFERENCES companies(id),
+      owner_user_id UUID REFERENCES users(id) NULL,
+      name TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS kanban_columns (
+      id SERIAL PRIMARY KEY,
+      board_id INTEGER REFERENCES kanban_boards(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      color TEXT DEFAULT '#4a5d78',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS kanban_cards (
+      id SERIAL PRIMARY KEY,
+      column_id INTEGER REFERENCES kanban_columns(id) ON DELETE CASCADE,
+      board_id INTEGER REFERENCES kanban_boards(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      assigned_to UUID REFERENCES users(id) NULL,
+      created_by UUID REFERENCES users(id),
+      priority TEXT DEFAULT 'normal',
+      due_date DATE NULL,
+      position INTEGER DEFAULT 0,
+      completed_at TIMESTAMPTZ NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS customers (
+      id SERIAL PRIMARY KEY,
+      company_id INTEGER REFERENCES companies(id),
+      name TEXT NOT NULL,
+      cvr TEXT,
+      contact_name TEXT,
+      contact_email TEXT,
+      contact_phone TEXT,
+      am_user_id UUID REFERENCES users(id) NULL,
+      kam_user_id UUID REFERENCES users(id) NULL,
+      status TEXT DEFAULT 'active',
+      mrr INTEGER DEFAULT 0,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS customer_products (
+      id SERIAL PRIMARY KEY,
+      customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+      product_name TEXT NOT NULL,
+      price_dkk INTEGER NOT NULL,
+      status TEXT DEFAULT 'active',
+      started_at DATE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS handovers (
+      id SERIAL PRIMARY KEY,
+      customer_id INTEGER REFERENCES customers(id),
+      company_id INTEGER REFERENCES companies(id),
+      what_was_sold TEXT NOT NULL,
+      mrr_dkk INTEGER DEFAULT 0,
+      customer_goal TEXT,
+      promises TEXT,
+      am_user_id UUID REFERENCES users(id) NULL,
+      kam_user_id UUID REFERENCES users(id) NULL,
+      deadline DATE,
+      status TEXT DEFAULT 'new_sale',
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS portal_access (
+      id SERIAL PRIMARY KEY,
+      customer_id INTEGER REFERENCES customers(id),
+      portal_token TEXT UNIQUE NOT NULL,
+      last_login TIMESTAMPTZ NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS channels (
+      id SERIAL PRIMARY KEY,
+      company_id INTEGER REFERENCES companies(id),
+      name TEXT NOT NULL,
+      description TEXT,
+      created_by UUID REFERENCES users(id),
+      is_general BOOLEAN DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS channel_members (
+      id SERIAL PRIMARY KEY,
+      channel_id INTEGER REFERENCES channels(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      last_read_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(channel_id, user_id)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      channel_id INTEGER REFERENCES channels(id) NULL,
+      dm_conversation_id INTEGER NULL,
+      sender_id UUID REFERENCES users(id),
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      deleted_at TIMESTAMPTZ NULL
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS dm_conversations (
+      id SERIAL PRIMARY KEY,
+      participant_a UUID REFERENCES users(id),
+      participant_b UUID REFERENCES users(id),
+      company_id INTEGER REFERENCES companies(id) NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(participant_a, participant_b)
+    )
+  `;
+
   } catch (err) {
     console.error('[NLS] Schema init failed:', err);
   }
