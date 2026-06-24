@@ -1,6 +1,6 @@
 {
-  "name": "BusyGroup Dashboard",
-  "short_name": "BusyGroup",
+  "name": "NextLevelGroup Dashboard",
+  "short_name": "NextLevelGroup",
   "description": "AI Sales Agent Dashboard",
   "start_url": "/",
   "display": "standalone",

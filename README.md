@@ -1,4 +1,4 @@
-# BusyGroup Agent Dashboard
+# NextLevelGroup Agent Dashboard
 
 AI-drevet salgsagent dashboard til BusyConsulting's svenske og danske marked.
 
@@ -32,9 +32,9 @@ Eller klik "Kør nu" i dashboardet.
 ## Arkitektur
 
 - Dashboard: http://localhost:3000
-- Database: ./busygroup.db (SQLite via better-sqlite3)
+- Database: ./nextlevelgroup.db (SQLite via better-sqlite3)
 - Agenter: /agents/ — cron schedule via runner.ts
-- Slack: #busygroup-ledelse, #agent-salg-sverige, #agent-alerts
+- Slack: #nextlevelgroup-ledelse, #agent-salg-sverige, #agent-alerts
 
 ## Agent planlægning
 

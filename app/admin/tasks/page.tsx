@@ -9,13 +9,14 @@ interface Task {
   units_label: string; display_mode: string;
   seller_count: number; sales_count: number; log_count: number;
 }
-interface Package { id?: string; name: string; price: string }
-interface Seller { id: string; name: string; email: string; role: string }
+interface Package    { id?: string; name: string; price: string }
+interface Seller     { id: string; name: string; email: string; role: string }
 interface TaskSeller { task_id: string; user_id: string; user_name: string }
 
-const MODEL_DK: Record<string, string> = { FIXED: 'Fast pris', PERCENT: '% af ordre', PACKAGE: 'Pakker' };
+const MODEL_DK:   Record<string, string> = { FIXED: 'Fast pris', PERCENT: '% af ordre', PACKAGE: 'Pakker' };
 const DISPLAY_DK: Record<string, string> = { COUNT: 'Antal salg', AMOUNT: 'Beløb lukket' };
-const DISPLAY_COLOR: Record<string, string> = { COUNT: '#185FA5', AMOUNT: '#0F9B6E' };
+const DISPLAY_CLR: Record<string, string> = { COUNT: 'var(--bl)', AMOUNT: 'var(--gr)' };
+const DISPLAY_BG: Record<string, string>  = { COUNT: 'var(--bl2)', AMOUNT: 'var(--gr2)' };
 
 const emptyForm = () => ({
   name: '', client: '', description: '', status: 'active',
@@ -25,14 +26,14 @@ const emptyForm = () => ({
 });
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks]           = useState<Task[]>([]);
   const [allSellers, setAllSellers] = useState<Seller[]>([]);
   const [taskSellers, setTaskSellers] = useState<TaskSeller[]>([]);
-  const [modal, setModal] = useState<'create' | 'edit' | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [modal, setModal]           = useState<'create' | 'edit' | null>(null);
+  const [editId, setEditId]         = useState<string | null>(null);
+  const [form, setForm]             = useState(emptyForm());
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
 
   async function load() {
     const [t, s] = await Promise.all([
@@ -96,7 +97,7 @@ export default function TasksPage() {
       packages: form.packages.filter(p => p.name && p.price).map(p => ({ name: p.name, price: Number(p.price) })),
     };
     try {
-      const url = modal === 'edit' ? `/api/admin/tasks/${editId}` : '/api/admin/tasks';
+      const url    = modal === 'edit' ? `/api/admin/tasks/${editId}` : '/api/admin/tasks';
       const method = modal === 'edit' ? 'PATCH' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
@@ -106,55 +107,52 @@ export default function TasksPage() {
     finally { setLoading(false); }
   }
 
+  const hints: Record<string, Record<string, string>> = {
+    COUNT:  { FIXED: 'Tracker antal salg. Sælger angiver antal units — omsætning = fast pris × antal.', PERCENT: 'Tracker antal salg mod mål. Sælger angiver ordrebeløbet — omsætning = % af det.', PACKAGE: 'Tracker antal salg. Sælger vælger en pakke ved hvert salg.' },
+    AMOUNT: { FIXED: 'Tracker samlet omsætning. Sælger angiver antal units — omsætning = fast pris × antal.', PERCENT: 'Tracker beløb lukket. Sælger angiver ordrebeløbet — omsætning = % af det.', PACKAGE: 'Tracker beløb lukket. Sælger vælger en pakke ved hvert salg.' },
+  };
+
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#ECF0F1', marginBottom: 4 }}>Opgaver</h1>
-          <p style={{ fontSize: 13, color: '#667788' }}>{tasks.length} opgaver</p>
+          <h1 className="page-title">Opgaver</h1>
+          <p className="page-sub">{tasks.length} opgaver</p>
         </div>
-        <button onClick={openCreate} style={{ background: '#185FA5', color: '#fff', padding: '10px 18px', borderRadius: 8, fontWeight: 600, fontSize: 13 }}>+ Ny opgave</button>
+        <button onClick={openCreate} className="btn btn-primary">+ Ny opgave</button>
       </div>
 
-      <div style={{ background: '#111E2A', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="table-wrap">
+        <table>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              {['Navn', 'Klient', 'Model', 'Status', 'Sælgere', 'Salg', 'Logs', ''].map(h => (
-                <th key={h} style={{ textAlign: 'left', padding: '14px 16px', fontSize: 11, color: '#667788', fontWeight: 500 }}>{h}</th>
-              ))}
-            </tr>
+            <tr>{['Navn', 'Klient', 'Model', 'Status', 'Sælgere', 'Salg', 'Logs', ''].map(h => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {tasks.length === 0 && (
-              <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#667788', fontSize: 13 }}>Ingen opgaver endnu</td></tr>
+              <tr className="empty-row"><td colSpan={8}>Ingen opgaver endnu</td></tr>
             )}
             {tasks.map(t => (
-              <tr key={t.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#ECF0F1' }}>{t.name}</td>
-                <td style={{ fontSize: 13, color: '#667788' }}>{t.client}</td>
-                <td style={{ padding: '12px 16px' }}>
+              <tr key={t.id}>
+                <td className="td-primary">{t.name}</td>
+                <td style={{ color: 'var(--t3)' }}>{t.client}</td>
+                <td>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 600, background: `${DISPLAY_COLOR[t.display_mode]}18`, color: DISPLAY_COLOR[t.display_mode] }}>
+                    <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 700, background: DISPLAY_BG[t.display_mode], color: DISPLAY_CLR[t.display_mode] }}>
                       {DISPLAY_DK[t.display_mode] ?? t.display_mode}
                     </span>
-                    <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, fontWeight: 500, background: 'rgba(255,255,255,0.05)', color: '#667788' }}>
-                      {MODEL_DK[t.compensation_model]}
-                    </span>
+                    <span className="badge badge-muted">{MODEL_DK[t.compensation_model]}</span>
                   </div>
                 </td>
                 <td>
-                  <span style={{
-                    fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 600,
-                    background: t.status === 'active' ? 'rgba(46,204,113,0.12)' : 'rgba(255,255,255,0.06)',
-                    color: t.status === 'active' ? '#2ECC71' : '#667788',
-                  }}>{t.status === 'active' ? 'Aktiv' : 'Inaktiv'}</span>
+                  <span className={`badge ${t.status === 'active' ? 'badge-green' : 'badge-muted'}`}>
+                    {t.status === 'active' ? 'Aktiv' : 'Inaktiv'}
+                  </span>
                 </td>
-                <td style={{ fontSize: 13, color: '#667788' }}>{t.seller_count}</td>
-                <td style={{ fontSize: 13, color: '#667788' }}>{t.sales_count}</td>
-                <td style={{ fontSize: 13, color: '#667788' }}>{t.log_count}</td>
-                <td style={{ padding: '12px 16px' }}>
-                  <button onClick={() => openEdit(t)} style={{ background: 'rgba(255,255,255,0.06)', color: '#667788', padding: '5px 12px', borderRadius: 6, fontSize: 12 }}>Rediger</button>
+                <td style={{ color: 'var(--t3)' }}>{t.seller_count}</td>
+                <td style={{ color: 'var(--t3)' }}>{t.sales_count}</td>
+                <td style={{ color: 'var(--t3)' }}>{t.log_count}</td>
+                <td>
+                  <button onClick={() => openEdit(t)} className="btn btn-ghost btn-sm">Rediger</button>
                 </td>
               </tr>
             ))}
@@ -163,54 +161,53 @@ export default function TasksPage() {
       </div>
 
       {modal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#1A2A38', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 28, width: 520, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#ECF0F1', marginBottom: 22 }}>
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ width: 540, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-title">
               {modal === 'create' ? 'Opret opgave' : 'Rediger opgave'}
             </div>
-            <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
+            <form onSubmit={onSubmit} className="modal-form">
+              <div className="form-grid-2">
+                <div className="form-group">
                   <label>Navn</label>
                   <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required placeholder="Opgavenavn" />
                 </div>
-                <div>
+                <div className="form-group">
                   <label>Klient</label>
                   <input value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} required placeholder="Klientnavn" />
                 </div>
               </div>
-              <div>
+              <div className="form-group">
                 <label>Beskrivelse (valgfri)</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
+              <div className="form-grid-3">
+                <div className="form-group">
                   <label>Status</label>
                   <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                     <option value="active">Aktiv</option>
                     <option value="inactive">Inaktiv</option>
                   </select>
                 </div>
-                <div>
+                <div className="form-group">
                   <label>Startdato</label>
                   <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} />
                 </div>
-                <div>
+                <div className="form-group">
                   <label>Slutdato</label>
                   <input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
                 </div>
               </div>
 
-              {/* Dashboard display + compensation model */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
+              <div className="form-grid-2">
+                <div className="form-group">
                   <label>Mål tracker</label>
                   <select value={form.display_mode} onChange={e => setForm(f => ({ ...f, display_mode: e.target.value }))}>
                     <option value="COUNT">Antal salg</option>
                     <option value="AMOUNT">Beløb lukket (kr)</option>
                   </select>
                 </div>
-                <div>
+                <div className="form-group">
                   <label>Omsætning beregnes som</label>
                   <select value={form.compensation_model} onChange={e => setForm(f => ({ ...f, compensation_model: e.target.value, packages: [] }))}>
                     <option value="FIXED">Fast pris pr. salg</option>
@@ -220,82 +217,65 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Combination hint */}
-              {(() => {
-                const hints: Record<string, Record<string, string>> = {
-                  COUNT: {
-                    FIXED:   'Tracker antal salg. Sælger angiver antal units — omsætning = fast pris × antal.',
-                    PERCENT: 'Tracker antal salg mod mål. Sælger angiver ordrebeløbet — omsætning = % af det.',
-                    PACKAGE: 'Tracker antal salg. Sælger vælger en pakke ved hvert salg.',
-                  },
-                  AMOUNT: {
-                    FIXED:   'Tracker samlet omsætning. Sælger angiver antal units — omsætning = fast pris × antal.',
-                    PERCENT: 'Tracker beløb lukket. Sælger angiver ordrebeløbet — omsætning = % af det.',
-                    PACKAGE: 'Tracker beløb lukket. Sælger vælger en pakke ved hvert salg.',
-                  },
-                };
-                const hint = hints[form.display_mode]?.[form.compensation_model];
-                return hint ? (
-                  <div style={{ background: 'rgba(24,95,165,0.1)', border: '1px solid rgba(24,95,165,0.2)', borderRadius: 7, padding: '10px 14px', fontSize: 12, color: '#8EB8E0', lineHeight: 1.5 }}>
-                    {hint}
-                  </div>
-                ) : null;
-              })()}
+              {hints[form.display_mode]?.[form.compensation_model] && (
+                <div className="alert-info">{hints[form.display_mode][form.compensation_model]}</div>
+              )}
+
               {form.compensation_model === 'FIXED' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
+                <div className="form-grid-2">
+                  <div className="form-group">
                     <label>Pris pr. unit (kr)</label>
                     <input type="number" min="0" value={form.price_per_unit} onChange={e => setForm(f => ({ ...f, price_per_unit: e.target.value }))} required placeholder="0" />
                   </div>
-                  <div>
+                  <div className="form-group">
                     <label>Sælgerlabel</label>
                     <input value={form.units_label} onChange={e => setForm(f => ({ ...f, units_label: e.target.value }))} placeholder="Antal møder" />
                   </div>
                 </div>
               )}
               {form.compensation_model === 'PERCENT' && (
-                <div>
+                <div className="form-group">
                   <label>Procent af deal (%)</label>
                   <input type="number" min="0" max="100" step="0.01" value={form.percent_value} onChange={e => setForm(f => ({ ...f, percent_value: e.target.value }))} required placeholder="0.00" />
                 </div>
               )}
               {form.compensation_model === 'PACKAGE' && (
-                <div>
+                <div className="form-group">
                   <label>Pakker</label>
                   {form.packages.map((pkg, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       <input value={pkg.name} onChange={e => updatePackage(i, 'name', e.target.value)} placeholder="Pakkenavn" style={{ flex: 2 }} />
                       <input type="number" value={pkg.price} onChange={e => updatePackage(i, 'price', e.target.value)} placeholder="Pris" style={{ flex: 1 }} />
-                      <button type="button" onClick={() => removePackage(i)} style={{ background: 'rgba(231,76,60,0.15)', color: '#E74C3C', padding: '0 10px', borderRadius: 6, fontSize: 16, lineHeight: 1 }}>×</button>
+                      <button type="button" onClick={() => removePackage(i)} className="btn btn-danger btn-sm">×</button>
                     </div>
                   ))}
-                  <button type="button" onClick={addPackage} style={{ background: 'rgba(255,255,255,0.06)', color: '#667788', padding: '7px 14px', borderRadius: 6, fontSize: 12 }}>+ Tilføj pakke</button>
+                  <button type="button" onClick={addPackage} className="btn btn-ghost btn-sm">+ Tilføj pakke</button>
                 </div>
               )}
 
-              {/* Seller assignment */}
-              <div>
+              <div className="form-group">
                 <label>Tilknyttede sælgere</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-                  {allSellers.filter(u => u.role === 'SELLER').map((s) => {
+                  {allSellers.filter(u => u.role === 'SELLER').map(s => {
                     const selected = form.seller_ids.includes(s.id);
                     return (
                       <button key={s.id} type="button" onClick={() => toggleSeller(s.id)} style={{
                         padding: '5px 12px', borderRadius: 6, fontSize: 12,
-                        background: selected ? 'rgba(24,95,165,0.25)' : 'rgba(255,255,255,0.06)',
-                        border: selected ? '1px solid #185FA5' : '1px solid rgba(255,255,255,0.08)',
-                        color: selected ? '#185FA5' : '#667788',
+                        background: selected ? 'var(--bl2)' : 'var(--bd)',
+                        border: `1px solid ${selected ? 'var(--bl)' : 'var(--bd2)'}`,
+                        color: selected ? 'var(--bl)' : 'var(--t3)',
+                        cursor: 'pointer',
                       }}>{s.name}</button>
                     );
                   })}
                 </div>
               </div>
 
-              {error && <div style={{ color: '#E74C3C', fontSize: 12, padding: '8px 12px', background: 'rgba(231,76,60,0.1)', borderRadius: 6 }}>{error}</div>}
+              {error && <div className="alert-error">{error}</div>}
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => setModal(null)} style={{ flex: 1, padding: '10px 0', borderRadius: 7, background: 'rgba(255,255,255,0.06)', color: '#667788' }}>Annuller</button>
-                <button type="submit" disabled={loading} style={{ flex: 2, padding: '10px 0', borderRadius: 7, background: '#185FA5', color: '#fff', fontWeight: 600 }}>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setModal(null)} className="btn btn-ghost" style={{ flex: 1 }}>Annuller</button>
+                <button type="submit" disabled={loading} className="btn btn-primary" style={{ flex: 2 }}>
                   {loading ? 'Gemmer…' : modal === 'create' ? 'Opret opgave' : 'Gem ændringer'}
                 </button>
               </div>
