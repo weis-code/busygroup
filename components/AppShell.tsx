@@ -40,19 +40,22 @@ function sectionItem(section: string, href: string, label: string, icon: React.R
 /* ── Nav arrays per company ─────────────────────────── */
 const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
   nls: [
-    sectionItem('OVERSIGT',   '/admin/nls',          'Oversigt',        <GridIcon />),
-    sectionItem('STYRING',    '/admin/sitreps',      'Sitreps',         <NoteIcon />),
-    sectionItem('',           '/admin/followups',    'Follow-ups',      <FollowIcon />),
-    sectionItem('',           '/admin/presence',     'Tilstedeværelse', <UserCheckIcon />),
-    sectionItem('',           '/admin/targets',      'Targets',         <TargetIcon />),
-    sectionItem('',           '/admin/daily',        'Daglige mål',     <BarIcon />),
-    sectionItem('',           '/admin/nls/absence',  'Fravær',          <CalendarIcon />),
-    sectionItem('TEAM',       '/admin/sellers',      'Sælgere',         <TeamIcon />),
-    sectionItem('',           '/admin/sales',        'Mine salg',       <SalesIcon />),
-    sectionItem('',           '/admin/periods',      'Lønperioder',     <CalendarIcon />),
-    sectionItem('',           '/admin/revenue',      'Revenue',         <BarIcon />),
-    sectionItem('PLATFORM',   '/admin/nls/board',    'Board',           <BoardIcon />),
-    sectionItem('',           '/admin/nls/messages', 'Beskeder',        <ChatIcon />),
+    sectionItem('OVERSIGT',   '/admin/nls',              'Oversigt',        <GridIcon />),
+    sectionItem('CRM',        '/admin/crm',              'Pipeline',        <CrmIcon />),
+    sectionItem('',           '/admin/crm/contacts',     'Kontakter',       <PeopleIcon />),
+    sectionItem('',           '/admin/crm/activity',     'Aktivitetsfeed',  <SalesIcon />),
+    sectionItem('STYRING',    '/admin/sitreps',          'Sitreps',         <NoteIcon />),
+    sectionItem('',           '/admin/followups',        'Follow-ups',      <FollowIcon />),
+    sectionItem('',           '/admin/presence',         'Tilstedeværelse', <UserCheckIcon />),
+    sectionItem('',           '/admin/targets',          'Targets',         <TargetIcon />),
+    sectionItem('',           '/admin/daily',            'Daglige mål',     <BarIcon />),
+    sectionItem('',           '/admin/nls/absence',      'Fravær',          <CalendarIcon />),
+    sectionItem('TEAM',       '/admin/sellers',          'Sælgere',         <TeamIcon />),
+    sectionItem('',           '/admin/sales',            'Mine salg',       <SalesIcon />),
+    sectionItem('',           '/admin/periods',          'Lønperioder',     <CalendarIcon />),
+    sectionItem('',           '/admin/revenue',          'Revenue',         <BarIcon />),
+    sectionItem('PLATFORM',   '/admin/nls/board',        'Board',           <BoardIcon />),
+    sectionItem('',           '/admin/nls/messages',     'Beskeder',        <ChatIcon />),
   ],
   meridian: [
     sectionItem('OVERSIGT',   '/admin/meridian',          'Overblik',       <GridIcon />),
@@ -102,8 +105,8 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
 const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; icon: React.ReactNode }[]> = {
   nls: [
     { href: '/admin/nls',          label: 'Oversigt', icon: <GridIcon /> },
+    { href: '/admin/crm',          label: 'CRM',      icon: <CrmIcon /> },
     { href: '/admin/nls/board',    label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/sitreps',      label: 'Sitreps',  icon: <NoteIcon /> },
     { href: '/admin/nls/messages', label: 'Beskeder', icon: <ChatIcon /> },
   ],
   meridian: [
@@ -166,6 +169,9 @@ function inferCompany(pathname: string): CompanySlug {
   if (pathname.startsWith('/admin/group'))       return 'group';
   if (pathname.startsWith('/admin/creatorrate')) return 'creatorrate';
 
+  // CRM belongs to NLS
+  if (pathname.startsWith('/admin/crm'))         return 'nls';
+
   // Shared pages that belong to specific company contexts
   if (pathname.startsWith('/admin/customers'))   return 'meridian';
   if (pathname.startsWith('/admin/handover'))    return 'meridian';
@@ -192,6 +198,7 @@ const PAGE_LABELS: Record<string, string> = {
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
   periods: 'Lønperioder', settings: 'Indstillinger', companies: 'Virksomheder',
   customers: 'Kunder', handover: 'Handovers', portal: 'Klientportal',
+  crm: 'CRM Pipeline', contacts: 'Kontakter', activity: 'Aktivitetsfeed',
   finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
   mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
   employees: 'Medarbejdere',
@@ -543,3 +550,4 @@ function HandoverIcon()  { return <svg width="15" height="15" viewBox="0 0 15 15
 function PortalIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="2" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><line x1="7.5" y1="2" x2="7.5" y2="5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="7.5" y1="10" x2="7.5" y2="13" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="2" y1="7.5" x2="5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="10" y1="7.5" x2="13" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg> }
 function TeamIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2 13c0-2.5 2.5-4.5 5.5-4.5S13 10.5 13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg> }
 function TaskIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="2" width="10" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> }
+function CrmIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M10 3l1.5 1.5L14 2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="7" x2="14" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="10" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
