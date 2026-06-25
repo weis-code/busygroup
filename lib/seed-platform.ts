@@ -1,6 +1,13 @@
 import sql from './db';
 
 export async function seedPlatform() {
+  // Ensure CreatorRate exists before seeding boards/channels
+  await sql`
+    INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
+    VALUES ('CreatorRate', 'creatorrate', 'saas', '#f43f5e', 'CR', 25, false)
+    ON CONFLICT (slug) DO NOTHING
+  `;
+
   // Seed kanban boards + columns per company
   const companies = await sql`SELECT id, slug FROM companies`;
   const admins = await sql`SELECT id FROM users WHERE role = 'ADMIN'`;

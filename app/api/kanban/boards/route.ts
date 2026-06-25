@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   // Admin: all boards
   const boards = await sql`
-    SELECT kb.*, c.name AS company_name, c.color AS company_color
+    SELECT kb.*, c.name AS company_name, c.color AS company_color, c.slug AS company_slug
     FROM kanban_boards kb
     LEFT JOIN companies c ON c.id = kb.company_id
     ORDER BY kb.id

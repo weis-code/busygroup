@@ -18,9 +18,7 @@ interface KanbanCard {
 }
 
 function fmt(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.', ',') + 'M';
-  if (n >= 1_000) return Math.round(n / 1_000) + 'k';
-  return String(Math.round(n));
+  return new Intl.NumberFormat('da-DK').format(Math.round(n)) + ' kr.';
 }
 
 function KpiTile({ label, value, color = 'var(--t1)', suffix }: { label: string; value: string | number; color?: string; suffix?: string }) {
@@ -131,7 +129,7 @@ export default function GroupPage() {
           <div style={{ maxWidth: 1060 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <div>
-                <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>Finansoverblik</h1>
+                <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>Koncern Overblik</h1>
                 <div style={{ fontSize: 12, color: 'var(--t2)' }}>NextLevel Group — konsolideret</div>
               </div>
               <button onClick={loadOverview}
@@ -148,11 +146,11 @@ export default function GroupPage() {
               <>
                 {/* KPI tiles */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-                  <KpiTile label="Omsætning MTD"  value={`DKK ${fmt(overview.kpis.revenue)}`}   color="var(--t1)" />
-                  <KpiTile label="MRR (SaaS)"      value={`DKK ${fmt(overview.kpis.mrr)}`}       color="var(--bl)" />
+                  <KpiTile label="Omsætning MTD"  value={fmt(overview.kpis.revenue)}   color="var(--t1)" />
+                  <KpiTile label="MRR (SaaS)"      value={fmt(overview.kpis.mrr)}       color="var(--bl)" />
                   <KpiTile
                     label="EBITDA"
-                    value={`DKK ${fmt(overview.kpis.ebitda)}`}
+                    value={fmt(overview.kpis.ebitda)}
                     color={overview.kpis.ebitda >= 0 ? 'var(--gr)' : 'var(--re)'}
                   />
                   <KpiTile label="Headcount" value={overview.kpis.headcount} suffix="FTE" color="var(--pu)" />
@@ -246,15 +244,15 @@ export default function GroupPage() {
                             <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>
                               {c.type === 'sales' ? 'Omsætning' : 'MRR'}
                             </div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>DKK {fmt(c.revenue)}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{fmt(c.revenue)}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Faste omk.</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t2)' }}>DKK {fmt(c.fixed_costs)}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t2)' }}>{fmt(c.fixed_costs)}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>EBITDA</div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: c.ebitda >= 0 ? 'var(--gr)' : 'var(--re)' }}>DKK {fmt(c.ebitda)}</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: c.ebitda >= 0 ? 'var(--gr)' : 'var(--re)' }}>{fmt(c.ebitda)}</div>
                           </div>
                         </div>
                       </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Board, BoardCanvas, Card, Column } from '@/components/kanban/BoardCanvas';
 
-export default function MeridianBoardPage() {
+export default function CreatorRateBoardPage() {
   const [boards, setBoards]               = useState<Board[]>([]);
   const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
   const [columns, setColumns]             = useState<Column[]>([]);
@@ -11,7 +11,7 @@ export default function MeridianBoardPage() {
 
   async function loadBoards() {
     const data = await fetch('/api/kanban/boards').then(r => r.json()) as (Board & { company_slug?: string })[];
-    const co   = data.filter(b => !b.owner_user_id && b.company_slug === 'meridian');
+    const co   = data.filter(b => !b.owner_user_id && b.company_slug === 'creatorrate');
     setBoards(co);
     if (co.length > 0 && !activeBoardId) setActiveBoardId(co[0].id);
   }

@@ -1,13 +1,41 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { Board, BoardCanvas, Card, Column } from '@/components/kanban/BoardCanvas';
+
 export default function QuorexBoardPage() {
+  const [boards, setBoards]               = useState<Board[]>([]);
+  const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
+  const [columns, setColumns]             = useState<Column[]>([]);
+  const [cards, setCards]                 = useState<Card[]>([]);
+
+  async function loadBoards() {
+    const data = await fetch('/api/kanban/boards').then(r => r.json()) as (Board & { company_slug?: string })[];
+    const co   = data.filter(b => !b.owner_user_id && b.company_slug === 'quorex');
+    setBoards(co);
+    if (co.length > 0 && !activeBoardId) setActiveBoardId(co[0].id);
+  }
+
+  async function loadBoard(id: number) {
+    const [cols, cds] = await Promise.all([
+      fetch(`/api/kanban/boards/${id}/columns`).then(r => r.json()) as Promise<Column[]>,
+      fetch(`/api/kanban/cards?boardId=${id}`).then(r => r.json()) as Promise<Card[]>,
+    ]);
+    setColumns(cols); setCards(cds);
+  }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadBoards(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (activeBoardId) loadBoard(activeBoardId); }, [activeBoardId]);
+
   return (
-    <div style={{ padding: '28px 32px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Quorex Board</h1>
-      <p style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 24 }}>Projektstyring for Quorex</p>
-      <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '60px 40px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
-        Board under opbygning
-      </div>
-    </div>
+    <BoardCanvas
+      boards={boards} activeBoardId={activeBoardId} onBoardChange={setActiveBoardId}
+      columns={columns} cards={cards}
+      onReload={() => activeBoardId && loadBoard(activeBoardId)}
+      onColumnReload={() => activeBoardId && fetch(`/api/kanban/boards/${activeBoardId}/columns`).then(r => r.json()).then(setColumns)}
+      setColumns={setColumns} setCards={setCards} showBoardPicker={boards.length > 1}
+    />
   );
 }

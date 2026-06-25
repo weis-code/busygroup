@@ -249,7 +249,8 @@ export async function register() {
       ('Meridian Consulting', 'meridian', 'consulting', '#2dd4a0', 'MC', 100, false),
       ('Quorex', 'quorex', 'saas', '#a78bfa', 'QX', 100, true),
       ('BusyReminder', 'reminder', 'saas', '#f59e0b', 'BR', 75, true),
-      ('NextLevel Group', 'group', 'group', '#4f8ef7', 'NL', 100, false)
+      ('NextLevel Group', 'group', 'group', '#4f8ef7', 'NL', 100, false),
+      ('CreatorRate', 'creatorrate', 'saas', '#f43f5e', 'CR', 25, false)
     ON CONFLICT (slug) DO NOTHING
   `;
 
@@ -289,6 +290,31 @@ export async function register() {
       completed_at TIMESTAMPTZ NULL,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`ALTER TABLE kanban_cards ADD COLUMN IF NOT EXISTS labels TEXT DEFAULT '[]'`;
+  await sql`ALTER TABLE kanban_cards ADD COLUMN IF NOT EXISTS cover_color TEXT NULL`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS kanban_card_checklist (
+      id SERIAL PRIMARY KEY,
+      card_id INTEGER REFERENCES kanban_cards(id) ON DELETE CASCADE,
+      text TEXT NOT NULL,
+      completed BOOLEAN DEFAULT false,
+      position INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS kanban_card_comments (
+      id SERIAL PRIMARY KEY,
+      card_id INTEGER REFERENCES kanban_cards(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) NULL,
+      user_name TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
 

@@ -85,13 +85,14 @@ export default function NlsMessagesPage() {
   async function send() {
     if (!body.trim() || !active || sending) return;
     setSending(true);
+    const trimmed = body.trim();
+    setBody('');
     const url = active.type === 'channel'
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
-    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: body.trim() }) });
-    setBody('');
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: trimmed }) }).then(r => r.json()) as Message;
     setSending(false);
-    await loadMessages();
+    setMessages(prev => [...prev, resp]);
     inputRef.current?.focus();
   }
 

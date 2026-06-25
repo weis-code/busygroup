@@ -18,15 +18,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(absences);
   }
 
-  const absences = await sql`
-    SELECT a.id, a.type, a.start_date::text, a.end_date::text, a.note, a.status,
-           a.created_at, u.name AS user_name, u.id AS user_id,
-           cb.name AS created_by_name
-    FROM absences a
-    JOIN users u ON u.id = a.user_id
-    JOIN users cb ON cb.id = a.created_by
-    ORDER BY a.start_date DESC
-  `;
+  const companySlug = req.nextUrl.searchParams.get('company');
+
+  const absences = companySlug
+    ? await sql`
+        SELECT a.id, a.type, a.start_date::text, a.end_date::text, a.note, a.status,
+               a.created_at, u.name AS user_name, u.id AS user_id,
+               cb.name AS created_by_name, c.name AS company_name, c.slug AS company_slug
+        FROM absences a
+        JOIN users u ON u.id = a.user_id
+        JOIN users cb ON cb.id = a.created_by
+        LEFT JOIN companies c ON c.id = u.company_id
+        WHERE c.slug = ${companySlug}
+        ORDER BY a.start_date DESC
+      `
+    : await sql`
+        SELECT a.id, a.type, a.start_date::text, a.end_date::text, a.note, a.status,
+               a.created_at, u.name AS user_name, u.id AS user_id,
+               cb.name AS created_by_name, c.name AS company_name, c.slug AS company_slug
+        FROM absences a
+        JOIN users u ON u.id = a.user_id
+        JOIN users cb ON cb.id = a.created_by
+        LEFT JOIN companies c ON c.id = u.company_id
+        ORDER BY a.start_date DESC
+      `;
   return NextResponse.json(absences);
 }
 

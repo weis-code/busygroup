@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { CompanyProvider, useCompany } from '@/lib/company-context';
 import type { CompanySlug } from '@/lib/company-context';
 
-interface NavItem  { href: string; label: string; icon: React.ReactNode }
+interface NavItem  { href: string; label: string; icon: React.ReactNode; section?: string }
 interface NavGroup { group: true; label: string; icon: React.ReactNode; adminOnly?: boolean; children: NavItem[] }
 type NavEntry = NavItem | NavGroup
 
@@ -13,94 +13,104 @@ function isGroup(e: NavEntry): e is NavGroup { return 'group' in e && e.group ==
 
 /* ── Company metadata ───────────────────────────────── */
 const COMPANY_META: Record<CompanySlug, { name: string; short: string; color: string }> = {
-  nls:      { name: 'NextLevel Sales', short: 'NLS', color: 'var(--bl)' },
-  meridian: { name: 'Meridian',        short: 'MD',  color: 'var(--gr)' },
-  quorex:   { name: 'Quorex',          short: 'QX',  color: 'var(--pu)' },
-  reminder: { name: 'Reminder',        short: 'RM',  color: 'var(--ye)' },
-  group:    { name: 'NL Group',        short: 'GRP', color: 'var(--t2)' },
+  nls:         { name: 'NextLevel Sales',      short: 'NLS', color: 'var(--bl)' },
+  meridian:    { name: 'Meridian',             short: 'MD',  color: 'var(--gr)' },
+  quorex:      { name: 'Quorex',               short: 'QX',  color: 'var(--pu)' },
+  reminder:    { name: 'BusyReminder',         short: 'BR',  color: 'var(--ye)' },
+  group:       { name: 'NL Group',             short: 'GRP', color: 'var(--t2)' },
+  creatorrate: { name: 'CreatorRate',          short: 'CR',  color: '#f43f5e' },
 };
 
 const COMPANY_HOME: Record<CompanySlug, string> = {
-  nls:      '/admin/nls',
-  meridian: '/admin/meridian',
-  quorex:   '/admin/quorex',
-  reminder: '/admin/reminder',
-  group:    '/admin/group',
+  nls:         '/admin/nls',
+  meridian:    '/admin/meridian',
+  quorex:      '/admin/quorex',
+  reminder:    '/admin/reminder',
+  group:       '/admin/group',
+  creatorrate: '/admin/creatorrate',
 };
 
-const COMPANY_ORDER: CompanySlug[] = ['nls', 'meridian', 'quorex', 'reminder', 'group'];
+const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian', 'quorex', 'reminder', 'creatorrate'];
+
+/* ── Nav section header helper ──────────────────────── */
+function sectionItem(section: string, href: string, label: string, icon: React.ReactNode): NavItem {
+  return { href, label, icon, section };
+}
 
 /* ── Nav arrays per company ─────────────────────────── */
 const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
   nls: [
-    { href: '/admin/nls',         label: 'Oversigt',        icon: <GridIcon /> },
-    { href: '/dashboard/sales',   label: 'Mine salg',       icon: <SalesIcon /> },
-    { href: '/admin/sitreps',     label: 'Sitreps',         icon: <NoteIcon /> },
-    { href: '/admin/followups',   label: 'Follow-ups',      icon: <FollowIcon /> },
-    { href: '/admin/presence',    label: 'Tilstedeværelse', icon: <UserCheckIcon /> },
-    { href: '/admin/targets',     label: 'Targets',         icon: <TargetIcon /> },
-    { href: '/admin/daily',       label: 'Daglige mål',     icon: <BarIcon /> },
-    { href: '/admin/nls/board',   label: 'Board',           icon: <BoardIcon /> },
-    { href: '/admin/nls/messages', label: 'Beskeder',       icon: <ChatIcon /> },
-    {
-      group: true, label: 'Indstillinger', icon: <GearIcon />, adminOnly: true,
-      children: [
-        { href: '/admin/sales',    label: 'Salgslog',      icon: <SalesIcon /> },
-        { href: '/admin/sellers',  label: 'Sælgere',       icon: <TeamIcon /> },
-        { href: '/admin/tasks',    label: 'Opgaver',       icon: <TaskIcon /> },
-        { href: '/admin/periods',  label: 'Lønperioder',   icon: <CalendarIcon /> },
-        { href: '/admin/settings', label: 'Indstillinger', icon: <GearIcon /> },
-      ],
-    },
+    sectionItem('OVERSIGT',   '/admin/nls',          'Oversigt',        <GridIcon />),
+    sectionItem('STYRING',    '/admin/sitreps',      'Sitreps',         <NoteIcon />),
+    sectionItem('',           '/admin/followups',    'Follow-ups',      <FollowIcon />),
+    sectionItem('',           '/admin/presence',     'Tilstedeværelse', <UserCheckIcon />),
+    sectionItem('',           '/admin/targets',      'Targets',         <TargetIcon />),
+    sectionItem('',           '/admin/daily',        'Daglige mål',     <BarIcon />),
+    sectionItem('',           '/admin/nls/absence',  'Fravær',          <CalendarIcon />),
+    sectionItem('TEAM',       '/admin/sellers',      'Sælgere',         <TeamIcon />),
+    sectionItem('',           '/admin/sales',        'Mine salg',       <SalesIcon />),
+    sectionItem('',           '/admin/periods',      'Lønperioder',     <CalendarIcon />),
+    sectionItem('',           '/admin/revenue',      'Revenue',         <BarIcon />),
+    sectionItem('PLATFORM',   '/admin/nls/board',    'Board',           <BoardIcon />),
+    sectionItem('',           '/admin/nls/messages', 'Beskeder',        <ChatIcon />),
   ],
   meridian: [
-    { href: '/admin/meridian',          label: 'Oversigt',  icon: <GridIcon /> },
-    { href: '/admin/meridian/board',    label: 'Board',     icon: <BoardIcon /> },
-    { href: '/admin/meridian/messages', label: 'Beskeder',  icon: <ChatIcon /> },
-    { href: '/admin/meridian/products', label: 'Produkter', icon: <TaskIcon /> },
-    { href: '/admin/meridian/team',     label: 'Team',      icon: <TeamIcon /> },
-    { href: '/admin/meridian/payroll',  label: 'Løn',       icon: <BarIcon /> },
+    sectionItem('OVERSIGT',   '/admin/meridian',          'Overblik',       <GridIcon />),
+    sectionItem('KUNDER',     '/admin/customers',         'Kunder',         <PeopleIcon />),
+    sectionItem('',           '/admin/handover',          'Handover',       <HandoverIcon />),
+    sectionItem('',           '/admin/portal',            'Klientportal',   <PortalIcon />),
+    sectionItem('PRODUKTER',  '/admin/meridian/products', 'Produktkatalog', <TaskIcon />),
+    sectionItem('TEAM',       '/admin/meridian/team',     'AM / KAM',       <TeamIcon />),
+    sectionItem('',           '/admin/meridian/absence',  'Fravær',         <CalendarIcon />),
+    sectionItem('PLATFORM',   '/admin/meridian/board',    'Board',          <BoardIcon />),
+    sectionItem('',           '/admin/meridian/messages', 'Beskeder',       <ChatIcon />),
   ],
   quorex: [
-    { href: '/admin/quorex',           label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/quorex/board',     label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/quorex/messages',  label: 'Beskeder', icon: <ChatIcon /> },
-    { href: '/admin/quorex/mrr',       label: 'MRR',      icon: <BarIcon /> },
-    { href: '/admin/quorex/customers', label: 'Kunder',   icon: <PeopleIcon /> },
-    { href: '/admin/quorex/stripe',    label: 'Stripe',   icon: <PortalIcon /> },
+    sectionItem('OVERSIGT',  '/admin/quorex',           'Overblik', <GridIcon />),
+    sectionItem('VÆKST',     '/admin/quorex/mrr',       'MRR',      <BarIcon />),
+    sectionItem('',          '/admin/quorex/customers', 'Kunder',   <PeopleIcon />),
+    sectionItem('',          '/admin/quorex/stripe',    'Stripe',   <PortalIcon />),
+    sectionItem('PLATFORM',  '/admin/quorex/board',     'Board',    <BoardIcon />),
+    sectionItem('',          '/admin/quorex/messages',  'Beskeder', <ChatIcon />),
   ],
   reminder: [
-    { href: '/admin/reminder',           label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/reminder/board',     label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/reminder/messages',  label: 'Beskeder', icon: <ChatIcon /> },
-    { href: '/admin/reminder/mrr',       label: 'MRR',      icon: <BarIcon /> },
-    { href: '/admin/reminder/customers', label: 'Kunder',   icon: <PeopleIcon /> },
-    { href: '/admin/reminder/stripe',    label: 'Stripe',   icon: <PortalIcon /> },
+    sectionItem('OVERSIGT',  '/admin/reminder',           'Overblik', <GridIcon />),
+    sectionItem('VÆKST',     '/admin/reminder/mrr',       'MRR',      <BarIcon />),
+    sectionItem('',          '/admin/reminder/customers', 'Kunder',   <PeopleIcon />),
+    sectionItem('',          '/admin/reminder/stripe',    'Stripe',   <PortalIcon />),
+    sectionItem('PLATFORM',  '/admin/reminder/board',     'Board',    <BoardIcon />),
+    sectionItem('',          '/admin/reminder/messages',  'Beskeder', <ChatIcon />),
   ],
   group: [
-    { href: '/admin/group',         label: 'Overblik',     icon: <GridIcon /> },
-    { href: '/admin/group/board',   label: 'Board',        icon: <BoardIcon /> },
-    { href: '/admin/group/finance', label: 'Finans',       icon: <BarIcon /> },
-    { href: '/admin/companies',     label: 'Virksomheder', icon: <BuildingIcon /> },
-    { href: '/admin/customers',     label: 'Kunder',       icon: <PeopleIcon /> },
-    { href: '/admin/handover',      label: 'Handovers',    icon: <HandoverIcon /> },
-    { href: '/admin/portal',        label: 'Klientportal', icon: <PortalIcon /> },
-    { href: '/admin/messages',      label: 'Beskeder',     icon: <ChatIcon /> },
+    sectionItem('KONCERN',  '/admin/group',            'Koncern Overblik', <GridIcon />),
+    sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
+    sectionItem('',         '/admin/messages',         'Beskeder',         <ChatIcon />),
+    sectionItem('TEAM',     '/admin/group/employees',  'Medarbejdere',     <TeamIcon />),
+    sectionItem('',         '/admin/group/absence',    'Fravær (alle)',    <CalendarIcon />),
+    sectionItem('FINANS',   '/admin/group/finance',    'Økonomi',          <BarIcon />),
+    sectionItem('SYSTEM',   '/admin/companies',        'Virksomheder',     <BuildingIcon />),
+    sectionItem('',         '/admin/settings',         'Indstillinger',    <GearIcon />),
+  ],
+  creatorrate: [
+    sectionItem('OVERSIGT',  '/admin/creatorrate',          'Overblik', <GridIcon />),
+    sectionItem('PLATFORM',  '/admin/creatorrate/board',    'Board',    <BoardIcon />),
+    sectionItem('',          '/admin/creatorrate/messages', 'Beskeder', <ChatIcon />),
+    sectionItem('',          '/admin/settings',             'Indstillinger', <GearIcon />),
   ],
 };
 
 const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; icon: React.ReactNode }[]> = {
-  nls:      [
+  nls: [
     { href: '/admin/nls',          label: 'Oversigt', icon: <GridIcon /> },
     { href: '/admin/nls/board',    label: 'Board',    icon: <BoardIcon /> },
     { href: '/admin/sitreps',      label: 'Sitreps',  icon: <NoteIcon /> },
     { href: '/admin/nls/messages', label: 'Beskeder', icon: <ChatIcon /> },
   ],
   meridian: [
-    { href: '/admin/meridian',          label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/meridian/board',    label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/meridian/messages', label: 'Beskeder', icon: <ChatIcon /> },
-    { href: '/admin/meridian/team',     label: 'Team',     icon: <TeamIcon /> },
+    { href: '/admin/meridian',          label: 'Oversigt',   icon: <GridIcon /> },
+    { href: '/admin/meridian/board',    label: 'Board',      icon: <BoardIcon /> },
+    { href: '/admin/customers',         label: 'Kunder',     icon: <PeopleIcon /> },
+    { href: '/admin/meridian/messages', label: 'Beskeder',   icon: <ChatIcon /> },
   ],
   quorex: [
     { href: '/admin/quorex',           label: 'Oversigt', icon: <GridIcon /> },
@@ -115,10 +125,16 @@ const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; ico
     { href: '/admin/reminder/customers', label: 'Kunder',   icon: <PeopleIcon /> },
   ],
   group: [
-    { href: '/admin/group',       label: 'Overblik', icon: <GridIcon /> },
-    { href: '/admin/group/board', label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/customers',   label: 'Kunder',   icon: <PeopleIcon /> },
-    { href: '/admin/messages',    label: 'Beskeder', icon: <ChatIcon /> },
+    { href: '/admin/group',           label: 'Overblik',  icon: <GridIcon /> },
+    { href: '/admin/group/board',     label: 'Board',     icon: <BoardIcon /> },
+    { href: '/admin/companies',       label: 'Firmaer',   icon: <BuildingIcon /> },
+    { href: '/admin/messages',        label: 'Beskeder',  icon: <ChatIcon /> },
+  ],
+  creatorrate: [
+    { href: '/admin/creatorrate',          label: 'Overblik', icon: <GridIcon /> },
+    { href: '/admin/creatorrate/board',    label: 'Board',    icon: <BoardIcon /> },
+    { href: '/admin/creatorrate/messages', label: 'Beskeder', icon: <ChatIcon /> },
+    { href: '/admin/settings',             label: 'Indst.',   icon: <GearIcon /> },
   ],
 };
 
@@ -142,12 +158,24 @@ const sellerBottomNav = [
   { href: '/dashboard/settings', label: 'Profil',   icon: <GearIcon /> },
 ];
 
-/* ── Helpers ─────────────────────────────────────────── */
+/* ── inferCompany: map any pathname to a company context ── */
 function inferCompany(pathname: string): CompanySlug {
-  if (pathname.startsWith('/admin/meridian')) return 'meridian';
-  if (pathname.startsWith('/admin/quorex'))   return 'quorex';
-  if (pathname.startsWith('/admin/reminder')) return 'reminder';
-  if (pathname.startsWith('/admin/group'))    return 'group';
+  if (pathname.startsWith('/admin/meridian'))    return 'meridian';
+  if (pathname.startsWith('/admin/quorex'))      return 'quorex';
+  if (pathname.startsWith('/admin/reminder'))    return 'reminder';
+  if (pathname.startsWith('/admin/group'))       return 'group';
+  if (pathname.startsWith('/admin/creatorrate')) return 'creatorrate';
+
+  // Shared pages that belong to specific company contexts
+  if (pathname.startsWith('/admin/customers'))   return 'meridian';
+  if (pathname.startsWith('/admin/handover'))    return 'meridian';
+  if (pathname.startsWith('/admin/portal'))      return 'meridian';
+
+  // Group-level shared pages
+  if (pathname.startsWith('/admin/companies'))   return 'group';
+  if (pathname.startsWith('/admin/messages'))    return 'group';
+  if (pathname.startsWith('/admin/settings'))    return 'group';
+
   return 'nls';
 }
 
@@ -157,14 +185,16 @@ function isActive(href: string, pathname: string): boolean {
 }
 
 const PAGE_LABELS: Record<string, string> = {
-  nls: 'Oversigt', meridian: 'Oversigt', quorex: 'Oversigt', reminder: 'Oversigt',
-  group: 'Overblik', board: 'Board', messages: 'Beskeder', sitreps: 'Sitreps',
+  nls: 'Oversigt', meridian: 'Overblik', quorex: 'Overblik', reminder: 'Overblik',
+  creatorrate: 'Overblik', group: 'Koncern Overblik',
+  board: 'Board', messages: 'Beskeder', sitreps: 'Sitreps',
   followups: 'Follow-ups', presence: 'Tilstedeværelse', targets: 'Targets',
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
   periods: 'Lønperioder', settings: 'Indstillinger', companies: 'Virksomheder',
   customers: 'Kunder', handover: 'Handovers', portal: 'Klientportal',
-  finance: 'Finans', products: 'Produkter', team: 'Team', payroll: 'Løn',
-  mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning',
+  finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
+  mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
+  employees: 'Medarbejdere',
 };
 
 function getPageLabel(pathname: string): string {
@@ -207,34 +237,25 @@ function AppShellInner({ role, name, children }: Props) {
   const displayCompany: CompanySlug = role === 'SELLER' ? 'nls' : inferCompany(pathname);
   const meta = COMPANY_META[displayCompany];
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount]  = useState(0);
 
-  // Sync localStorage when URL changes
   useEffect(() => {
     if (role !== 'SELLER') setActiveCompany(displayCompany);
   }, [displayCompany, role, setActiveCompany]);
 
-  // Poll unread message count every 30 seconds
   useEffect(() => {
     let mounted = true;
     function poll() {
       fetch('/api/messages/unread/count')
         .then(r => r.json())
         .then((d: { count: number }) => { if (mounted) setUnreadCount(d.count || 0); })
-        .catch(() => { /* ignore network errors */ });
+        .catch(() => {});
     }
     poll();
     const id = setInterval(poll, 30_000);
     return () => { mounted = false; clearInterval(id); };
   }, []);
-
-  // Auto-open settings accordion when on a settings sub-page
-  useEffect(() => {
-    const settingsPaths = ['/admin/sales', '/admin/sellers', '/admin/tasks', '/admin/periods', '/admin/settings'];
-    if (settingsPaths.some(p => pathname.startsWith(p))) setSettingsOpen(true);
-  }, [pathname]);
 
   const nav       = role === 'SELLER' ? sellerNav : COMPANY_NAV[displayCompany];
   const bottomNav = role === 'SELLER' ? sellerBottomNav : COMPANY_BOTTOM_NAV[displayCompany];
@@ -250,6 +271,62 @@ function AppShellInner({ role, name, children }: Props) {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
     router.refresh();
+  }
+
+  /* Render nav items with section headers */
+  function renderNav(entries: NavEntry[]) {
+    const result: React.ReactNode[] = [];
+    let lastSection = '__init__';
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      if (isGroup(entry)) {
+        if (entry.adminOnly && role !== 'ADMIN') continue;
+        result.push(
+          <details key={`group-${i}`} style={{ marginBottom: 2 }}>
+            <summary style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 10px', borderRadius: 7, cursor: 'pointer',
+              color: 'var(--t3)', fontSize: 13, fontWeight: 500, listStyle: 'none',
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <span style={{ opacity: 0.7 }}>{entry.icon}</span>
+                {entry.label}
+              </span>
+              <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4 }}>
+                <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </summary>
+            <div style={{ marginLeft: 12, borderLeft: '1px solid var(--bd)', paddingLeft: 8, marginBottom: 4 }}>
+              {entry.children.map(child => (
+                <NavLink key={child.href} href={child.href} label={child.label} icon={child.icon}
+                  active={isActive(child.href, pathname)} badge={child.label === 'Beskeder' && unreadCount > 0} />
+              ))}
+            </div>
+          </details>
+        );
+        continue;
+      }
+
+      const section = entry.section ?? '';
+      if (section !== '' && section !== lastSection) {
+        result.push(
+          <div key={`section-${section}`} style={{
+            padding: '12px 10px 4px', fontSize: 9, fontWeight: 700,
+            color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase',
+          }}>
+            {section}
+          </div>
+        );
+        lastSection = section;
+      }
+
+      result.push(
+        <NavLink key={entry.href} href={entry.href} label={entry.label} icon={entry.icon}
+          active={isActive(entry.href, pathname)} badge={entry.label === 'Beskeder' && unreadCount > 0} />
+      );
+    }
+    return result;
   }
 
   return (
@@ -339,45 +416,7 @@ function AppShellInner({ role, name, children }: Props) {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '8px 10px', overflowY: 'auto' }}>
-          {nav.map((entry, i) => {
-            if (isGroup(entry)) {
-              if (entry.adminOnly && role !== 'ADMIN') return null;
-              const groupActive = entry.children.some(c => isActive(c.href, pathname));
-              return (
-                <div key={i}>
-                  <button
-                    onClick={() => setSettingsOpen(o => !o)}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      width: '100%', padding: '8px 10px', borderRadius: 7, marginBottom: 2,
-                      border: 'none', cursor: 'pointer', background: 'transparent',
-                      color: groupActive && !settingsOpen ? 'var(--bl)' : 'var(--t3)',
-                      fontSize: 13, fontWeight: 500, transition: 'color 0.12s',
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <span style={{ opacity: 0.7 }}>{entry.icon}</span>
-                      {entry.label}
-                    </span>
-                    <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, transform: settingsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                      <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {settingsOpen && (
-                    <div style={{ marginLeft: 12, borderLeft: '1px solid var(--bd)', paddingLeft: 8, marginBottom: 4 }}>
-                      {entry.children.map(child => (
-                        <NavLink key={child.href} href={child.href} label={child.label} icon={child.icon} active={isActive(child.href, pathname)} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
-            return (
-              <NavLink key={entry.href} href={entry.href} label={entry.label} icon={entry.icon} active={isActive(entry.href, pathname)} badge={entry.label === 'Beskeder' && unreadCount > 0} />
-            );
-          })}
+          {renderNav(nav)}
         </nav>
 
         {/* User row */}
@@ -430,7 +469,6 @@ function AppShellInner({ role, name, children }: Props) {
 
         {/* Main content */}
         <main className="main-content" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-          {/* Close switcher when clicking content */}
           {switcherOpen && (
             <div
               style={{ position: 'fixed', inset: 0, zIndex: 99 }}
@@ -470,7 +508,7 @@ function NavLink({ href, label, icon, active, badge }: { href: string; label: st
   return (
     <a href={href} style={{
       display: 'flex', alignItems: 'center', gap: 9,
-      padding: '8px 10px', borderRadius: 7, marginBottom: 1,
+      padding: '7px 10px', borderRadius: 7, marginBottom: 1,
       textDecoration: 'none',
       background: active ? 'var(--bl2)' : 'transparent',
       color: active ? 'var(--bl)' : 'var(--t3)',

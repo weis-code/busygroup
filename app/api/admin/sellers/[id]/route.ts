@@ -50,31 +50,38 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!session || session.role === 'SELLER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { name, email, role, new_password, is_part_time } = body;
+  const { name, email, role, new_password, is_part_time, part_time, company_slug, password } = body;
+  const effectivePassword = new_password ?? password;
 
   // Only ADMIN can change roles or reset passwords
   if (role && session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan ændre roller' }, { status: 403 });
-  if (new_password && session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan nulstille kodeord' }, { status: 403 });
-  if (new_password && new_password.length < 8) return NextResponse.json({ error: 'Kodeord skal være mindst 8 tegn' }, { status: 400 });
+  if (effectivePassword && session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan nulstille kodeord' }, { status: 403 });
+  if (effectivePassword && effectivePassword.length < 8) return NextResponse.json({ error: 'Kodeord skal være mindst 8 tegn' }, { status: 400 });
 
-  const [existing] = await sql`SELECT id, name, email, role, is_part_time FROM users WHERE id = ${params.id}`;
+  const [existing] = await sql`SELECT id, name, email, role, is_part_time, company_id FROM users WHERE id = ${params.id}`;
   if (!existing) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
 
-  const newName       = name  ?? existing.name;
-  const newEmail      = email ? email.toLowerCase().trim() : existing.email;
-  const newRole       = role  ?? existing.role;
-  const newPartTime   = is_part_time !== undefined ? !!is_part_time : existing.is_part_time;
+  const newName     = name  ?? existing.name;
+  const newEmail    = email ? email.toLowerCase().trim() : existing.email;
+  const newRole     = role  ?? existing.role;
+  const newPartTime = (is_part_time !== undefined ? !!is_part_time : (part_time !== undefined ? !!part_time : existing.is_part_time));
 
-  if (new_password) {
+  let newCompanyId = existing.company_id;
+  if (company_slug !== undefined) {
+    if (!company_slug) { newCompanyId = null; }
+    else { const [co] = await sql`SELECT id FROM companies WHERE slug = ${company_slug} LIMIT 1`; newCompanyId = co?.id ?? null; }
+  }
+
+  if (effectivePassword) {
     const bcrypt = await import('bcryptjs');
-    const hash = await bcrypt.hash(new_password, 12);
+    const hash = await bcrypt.hash(effectivePassword, 12);
     await sql`UPDATE users SET password_hash = ${hash} WHERE id = ${params.id}`;
   }
 
   const [updated] = await sql`
-    UPDATE users SET name = ${newName}, email = ${newEmail}, role = ${newRole}, is_part_time = ${newPartTime}
+    UPDATE users SET name = ${newName}, email = ${newEmail}, role = ${newRole}, is_part_time = ${newPartTime}, company_id = ${newCompanyId}
     WHERE id = ${params.id}
-    RETURNING id, name, email, role, is_part_time
+    RETURNING id, name, email, role, is_part_time AS part_time
   `;
 
   return NextResponse.json(updated);

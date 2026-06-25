@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface Channel { id: number; name: string; company_name: string; company_color: string; is_general: boolean }
-interface DmConv { id: number; participant_a: string; participant_b: string; participant_a_name: string; participant_b_name: string; last_message: string | null }
+interface DmConv { id: number; participant_a: string; participant_b: string; participant_a_name: string; participant_b_name: string }
 interface Message { id: number; sender_id: string; sender_name: string; body: string; created_at: string }
 interface User { id: string; name: string; role: string }
+
 type ActiveView = { type: 'channel'; id: number; name: string } | { type: 'dm'; id: number; name: string } | null;
 
-const COMPANY_SLUG = 'quorex';
-const COMPANY_LABEL = 'Quorex';
+const COMPANY_SLUG = 'creatorrate';
+const COMPANY_LABEL = 'CreatorRate';
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -18,10 +19,9 @@ function formatTime(iso: string) {
   return d.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
 }
 
-export default function QuorexMessagesPage() {
+export default function CreatorRateMessagesPage() {
   const [myId, setMyId]         = useState('');
   const [allChannels, setAll]   = useState<Channel[]>([]);
-  const [dms, setDms]           = useState<DmConv[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [active, setActive]     = useState<ActiveView>(null);
   const [body, setBody]         = useState('');
@@ -39,7 +39,7 @@ export default function QuorexMessagesPage() {
   const channels = allChannels.filter(c => c.company_name === COMPANY_LABEL);
 
   async function loadAll() {
-    const [me, chs, dmsData, usersData, comps] = await Promise.all([
+    const [me, chs, , usersData, comps] = await Promise.all([
       fetch('/api/auth/me').then(r => r.json()) as Promise<{ id: string }>,
       fetch('/api/channels').then(r => r.json()) as Promise<Channel[]>,
       fetch('/api/dm').then(r => r.json()) as Promise<DmConv[]>,
@@ -47,12 +47,11 @@ export default function QuorexMessagesPage() {
       fetch('/api/companies').then(r => r.json()) as Promise<{ id: number; name: string; slug: string }[]>,
     ]);
     setMyId(me.id ?? '');
-    setAll(chs);
-    setDms(dmsData);
-    setUsers(usersData);
-    const comp = comps.find(c => c.slug === COMPANY_SLUG);
+    setAll(Array.isArray(chs) ? chs : []);
+    setUsers(Array.isArray(usersData) ? usersData : []);
+    const comp = Array.isArray(comps) ? comps.find(c => c.slug === COMPANY_SLUG) : undefined;
     if (comp) setCompanyId(comp.id);
-    const filtered = chs.filter(c => c.company_name === COMPANY_LABEL);
+    const filtered = Array.isArray(chs) ? chs.filter(c => c.company_name === COMPANY_LABEL) : [];
     if (!active && filtered.length > 0) {
       setActive({ type: 'channel', id: filtered[0].id, name: `#${filtered[0].name}` });
       setShowThread(true);
@@ -74,6 +73,7 @@ export default function QuorexMessagesPage() {
     pollRef.current = setInterval(loadMessages, 5000);
     return () => clearInterval(pollRef.current);
   }, [active]);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   async function send() {
@@ -88,12 +88,6 @@ export default function QuorexMessagesPage() {
     inputRef.current?.focus();
   }
 
-  async function startDm(userId: string) {
-    await fetch('/api/dm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ other_user_id: userId }) });
-    setShowNewDm(false);
-    setDms(await fetch('/api/dm').then(r => r.json()) as DmConv[]);
-  }
-
   async function createChannel() {
     if (!newChName.trim() || !companyId) return;
     await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newChName.trim(), company_id: companyId }) });
@@ -105,7 +99,7 @@ export default function QuorexMessagesPage() {
     <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
       <div className={`msg-list${showThread ? ' hidden-mobile' : ''}`} style={{ width: 240, flexShrink: 0, borderRight: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{COMPANY_LABEL} · Beskeder</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>CR · Beskeder</span>
           <div style={{ display: 'flex', gap: 2 }}>
             <button onClick={() => setShowNewCh(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 17, padding: '0 5px', cursor: 'pointer', minHeight: 44, minWidth: 36 }}>+</button>
             <button onClick={() => setShowNewDm(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 15, padding: '0 5px', cursor: 'pointer', minHeight: 44, minWidth: 36 }}>✉</button>
@@ -125,25 +119,7 @@ export default function QuorexMessagesPage() {
             })}
           </div>
         )}
-        {dms.length > 0 && (
-          <div>
-            <div style={{ padding: '10px 14px 4px', fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase' }}>Direkte</div>
-            {dms.map(dm => {
-              const other = dm.participant_a === myId ? dm.participant_b_name : dm.participant_a_name;
-              const isAct = active?.type === 'dm' && active.id === dm.id;
-              return (
-                <button key={dm.id} onClick={() => { setActive({ type: 'dm', id: dm.id, name: other }); setShowThread(true); }}
-                  style={{ width: '100%', textAlign: 'left', padding: '8px 14px', fontSize: 13, color: isAct ? 'var(--t1)' : 'var(--t2)', background: isAct ? 'var(--bl3)' : 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, minHeight: 44 }}>
-                  <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>{other.charAt(0).toUpperCase()}</span>
-                  <span>{other}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {channels.length === 0 && dms.length === 0 && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', color: 'var(--t3)', fontSize: 12 }}>Ingen kanaler endnu.<br />Klik + for at oprette en.</div>
-        )}
+        {channels.length === 0 && <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', color: 'var(--t3)', fontSize: 12 }}>Ingen kanaler endnu.<br />Klik + for at oprette.</div>}
       </div>
 
       <div className={`msg-thread${showThread ? ' active' : ''}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -173,9 +149,10 @@ export default function QuorexMessagesPage() {
             </div>
             <div style={{ padding: '12px 18px', borderTop: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea ref={inputRef} value={body} onChange={e => setBody(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Skriv en besked…" rows={1} style={{ flex: 1, resize: 'none', borderRadius: 8, padding: '10px 12px', fontSize: 14, lineHeight: 1.4, minHeight: 44 }} />
-              <button onClick={send} disabled={!body.trim() || sending}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
+                placeholder="Skriv en besked…" rows={1}
+                style={{ flex: 1, resize: 'none', borderRadius: 8, padding: '10px 12px', fontSize: 14, lineHeight: 1.4, minHeight: 44 }} />
+              <button onClick={() => void send()} disabled={!body.trim() || sending}
                 style={{ background: 'var(--bl)', color: '#fff', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, flexShrink: 0, minHeight: 44 }}>↑</button>
             </div>
           </>
@@ -187,13 +164,16 @@ export default function QuorexMessagesPage() {
       {showNewDm && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={e => { if (e.target === e.currentTarget) setShowNewDm(false); }}>
-          <div className="modal-box" style={{ background: 'var(--s1)', borderRadius: 13, padding: 24, width: 360, maxWidth: '94vw', boxShadow: '0 40px 80px rgba(0,0,0,0.7)' }}>
+          <div className="modal-box" style={{ background: 'var(--s1)', borderRadius: 13, padding: 24, width: 360, maxWidth: '94vw' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny direkte besked</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 300, overflowY: 'auto' }}>
               {users.filter(u => u.id !== myId).map(u => (
-                <button key={u.id} onClick={() => startDm(u.id)}
-                  style={{ textAlign: 'left', padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 44 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>{u.name.charAt(0).toUpperCase()}</div>
+                <button key={u.id} onClick={async () => {
+                  await fetch('/api/dm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ other_user_id: u.id }) });
+                  setShowNewDm(false);
+                  await fetch('/api/dm').then(r => r.json());
+                }} style={{ textAlign: 'left', padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minHeight: 44 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{u.name.charAt(0).toUpperCase()}</div>
                   <div><div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t1)' }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--t3)' }}>{u.role}</div></div>
                 </button>
               ))}
@@ -206,8 +186,8 @@ export default function QuorexMessagesPage() {
       {showNewCh && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={e => { if (e.target === e.currentTarget) setShowNewCh(false); }}>
-          <div className="modal-box" style={{ background: 'var(--s1)', borderRadius: 13, padding: 24, width: 360, maxWidth: '94vw', boxShadow: '0 40px 80px rgba(0,0,0,0.7)' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny kanal · {COMPANY_LABEL}</div>
+          <div className="modal-box" style={{ background: 'var(--s1)', borderRadius: 13, padding: 24, width: 360, maxWidth: '94vw' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny kanal · CreatorRate</div>
             <div><label>Kanalnavn</label><input value={newChName} onChange={e => setNewChName(e.target.value)} placeholder="e.g. projekter" autoFocus /></div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowNewCh(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
