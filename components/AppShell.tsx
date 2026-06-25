@@ -41,9 +41,6 @@ function sectionItem(section: string, href: string, label: string, icon: React.R
 const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
   nls: [
     sectionItem('OVERSIGT',   '/admin/nls',              'Oversigt',        <GridIcon />),
-    sectionItem('CRM',        '/admin/crm',              'Pipeline',        <CrmIcon />),
-    sectionItem('',           '/admin/crm/contacts',     'Kontakter',       <PeopleIcon />),
-    sectionItem('',           '/admin/crm/activity',     'Aktivitetsfeed',  <SalesIcon />),
     sectionItem('STYRING',    '/admin/sitreps',          'Sitreps',         <NoteIcon />),
     sectionItem('',           '/admin/followups',        'Follow-ups',      <FollowIcon />),
     sectionItem('',           '/admin/presence',         'Tilstedeværelse', <UserCheckIcon />),
@@ -88,6 +85,9 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('KONCERN',  '/admin/group',            'Koncern Overblik', <GridIcon />),
     sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
     sectionItem('',         '/admin/messages',         'Beskeder',         <ChatIcon />),
+    sectionItem('CRM',      '/admin/crm',              'Pipeline',         <CrmIcon />),
+    sectionItem('',         '/admin/crm/contacts',     'Kontakter',        <PeopleIcon />),
+    sectionItem('',         '/admin/crm/activity',     'Aktivitetsfeed',   <SalesIcon />),
     sectionItem('TEAM',     '/admin/group/employees',  'Medarbejdere',     <TeamIcon />),
     sectionItem('',         '/admin/group/absence',    'Fravær (alle)',    <CalendarIcon />),
     sectionItem('FINANS',   '/admin/group/finance',    'Økonomi',          <BarIcon />),
@@ -105,8 +105,8 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
 const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; icon: React.ReactNode }[]> = {
   nls: [
     { href: '/admin/nls',          label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/crm',          label: 'CRM',      icon: <CrmIcon /> },
     { href: '/admin/nls/board',    label: 'Board',    icon: <BoardIcon /> },
+    { href: '/admin/sitreps',      label: 'Sitreps',  icon: <NoteIcon /> },
     { href: '/admin/nls/messages', label: 'Beskeder', icon: <ChatIcon /> },
   ],
   meridian: [
@@ -129,7 +129,7 @@ const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; ico
   ],
   group: [
     { href: '/admin/group',           label: 'Overblik',  icon: <GridIcon /> },
-    { href: '/admin/group/board',     label: 'Board',     icon: <BoardIcon /> },
+    { href: '/admin/crm',             label: 'CRM',       icon: <CrmIcon /> },
     { href: '/admin/companies',       label: 'Firmaer',   icon: <BuildingIcon /> },
     { href: '/admin/messages',        label: 'Beskeder',  icon: <ChatIcon /> },
   ],
@@ -169,8 +169,8 @@ function inferCompany(pathname: string): CompanySlug {
   if (pathname.startsWith('/admin/group'))       return 'group';
   if (pathname.startsWith('/admin/creatorrate')) return 'creatorrate';
 
-  // CRM belongs to NLS
-  if (pathname.startsWith('/admin/crm'))         return 'nls';
+  // CRM belongs to Group
+  if (pathname.startsWith('/admin/crm'))         return 'group';
 
   // Shared pages that belong to specific company contexts
   if (pathname.startsWith('/admin/customers'))   return 'meridian';

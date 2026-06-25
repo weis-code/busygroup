@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const session = sessionFromRequest(req);
-  if (!session || session.role !== 'ADMIN') {
+  if (!session || session.role === 'SELLER') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

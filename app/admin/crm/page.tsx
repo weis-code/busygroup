@@ -666,10 +666,13 @@ export default function CrmPipelinePage() {
 
   async function loadAll() {
     setLoading(true);
-    await Promise.all([loadDeals(), loadUpcoming()]);
-    const c = await fetch('/api/crm/contacts').then(r => r.json()) as Contact[];
-    if (Array.isArray(c)) setContacts(c);
-    setLoading(false);
+    try {
+      await Promise.all([loadDeals(), loadUpcoming()]);
+      const c = await fetch('/api/crm/contacts').then(r => r.json()) as Contact[];
+      if (Array.isArray(c)) setContacts(c);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
