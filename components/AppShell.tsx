@@ -85,8 +85,9 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('KONCERN',  '/admin/group',            'Koncern Overblik', <GridIcon />),
     sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
     sectionItem('',         '/admin/messages',         'Beskeder',         <ChatIcon />),
-    sectionItem('CRM',      '/admin/crm',              'Pipeline',         <CrmIcon />),
-    sectionItem('TEAM',     '/admin/group/employees',  'Medarbejdere',     <TeamIcon />),
+    sectionItem('CRM',      '/admin/crm',                  'Pipeline',         <CrmIcon />),
+    sectionItem('',         '/admin/group/my-customers',  'Mine Kunder',      <EuroIcon />),
+    sectionItem('TEAM',     '/admin/group/employees',     'Medarbejdere',     <TeamIcon />),
     sectionItem('',         '/admin/group/absence',    'Fravær (alle)',    <CalendarIcon />),
     sectionItem('FINANS',   '/admin/group/finance',    'Økonomi',          <BarIcon />),
     sectionItem('SYSTEM',   '/admin/companies',        'Virksomheder',     <BuildingIcon />),
@@ -197,6 +198,7 @@ const PAGE_LABELS: Record<string, string> = {
   periods: 'Lønperioder', settings: 'Indstillinger', companies: 'Virksomheder',
   customers: 'Kunder', handover: 'Handovers', portal: 'Klientportal',
   crm: 'CRM Pipeline', contacts: 'Kontakter', activity: 'Aktivitetsfeed',
+  'my-customers': 'Mine Kunder',
   finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
   mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
   employees: 'Medarbejdere',
@@ -549,3 +551,4 @@ function PortalIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15
 function TeamIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2 13c0-2.5 2.5-4.5 5.5-4.5S13 10.5 13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg> }
 function TaskIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="2" width="10" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> }
 function CrmIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M10 3l1.5 1.5L14 2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="7" x2="14" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="10" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
+function EuroIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M9.5 5.5A2.5 2.5 0 007 8a2.5 2.5 0 002.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="5" y1="7" x2="8.5" y2="7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="5" y1="9" x2="8.5" y2="9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg> }
