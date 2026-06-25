@@ -48,12 +48,12 @@ export default function MeridianMessagesPage() {
       fetch('/api/companies').then(r => r.json()) as Promise<{ id: number; name: string; slug: string }[]>,
     ]);
     setMyId(me.id ?? '');
-    setAll(chs);
-    setDms(dmsData);
-    setUsers(usersData);
-    const comp = comps.find(c => c.slug === COMPANY_SLUG);
+    setAll(Array.isArray(chs) ? chs : []);
+    setDms(Array.isArray(dmsData) ? dmsData : []);
+    setUsers(Array.isArray(usersData) ? usersData : []);
+    const comp = Array.isArray(comps) ? comps.find(c => c.slug === COMPANY_SLUG) : undefined;
     if (comp) setCompanyId(comp.id);
-    const filtered = chs.filter(c => c.company_name === COMPANY_LABEL);
+    const filtered = Array.isArray(chs) ? chs.filter(c => c.company_name === COMPANY_LABEL) : [];
     if (!active && filtered.length > 0) {
       setActive({ type: 'channel', id: filtered[0].id, name: `#${filtered[0].name}` });
       setShowThread(true);

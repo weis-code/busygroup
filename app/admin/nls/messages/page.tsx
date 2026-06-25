@@ -49,11 +49,11 @@ export default function NlsMessagesPage() {
       fetch('/api/companies').then(r => r.json()) as Promise<{ id: number; name: string; slug: string }[]>,
     ]);
     setMyId(me.id ?? '');
-    setAllChannels(chs);
-    setDms(dmsData);
-    setUsers(usersData);
-    setCompanies(comps);
-    const nlsChs = chs.filter(c => c.company_name === COMPANY_NAME);
+    setAllChannels(Array.isArray(chs) ? chs : []);
+    setDms(Array.isArray(dmsData) ? dmsData : []);
+    setUsers(Array.isArray(usersData) ? usersData : []);
+    setCompanies(Array.isArray(comps) ? comps : []);
+    const nlsChs = Array.isArray(chs) ? chs.filter(c => c.company_name === COMPANY_NAME) : [];
     if (!active && nlsChs.length > 0) {
       setActive({ type: 'channel', id: nlsChs[0].id, name: `#${nlsChs[0].name}` });
       setShowThread(true);

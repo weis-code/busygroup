@@ -43,15 +43,16 @@ export default function AdminMessagesPage() {
 
   async function loadChannels() {
     const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
-    setChannels(data);
-    if (!active && data.length > 0) {
-      selectChannel(data[0]);
+    const safe = Array.isArray(data) ? data : [];
+    setChannels(safe);
+    if (!active && safe.length > 0) {
+      selectChannel(safe[0]);
     }
   }
 
   async function loadDms() {
     const data = await fetch('/api/dm').then(r => r.json()) as DmConv[];
-    setDms(data);
+    setDms(Array.isArray(data) ? data : []);
   }
 
   function selectChannel(ch: Channel) {
@@ -99,8 +100,8 @@ export default function AdminMessagesPage() {
     loadMe();
     loadChannels();
     loadDms();
-    fetch('/api/admin/sellers').then(r => r.json()).then(d => setUsers(d as User[]));
-    fetch('/api/companies').then(r => r.json()).then(d => setCompanies(d as { id: number; name: string }[]));
+    fetch('/api/admin/sellers').then(r => r.json()).then(d => setUsers(Array.isArray(d) ? d as User[] : []));
+    fetch('/api/companies').then(r => r.json()).then(d => setCompanies(Array.isArray(d) ? d as { id: number; name: string }[] : []));
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
