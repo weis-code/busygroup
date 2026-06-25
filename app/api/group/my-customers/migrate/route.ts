@@ -10,10 +10,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Migrate owner_id from INTEGER to TEXT on existing tables (idempotent)
+  for (const table of ['owner_products', 'owner_customers']) {
+    try {
+      await sql.unsafe(`ALTER TABLE ${table} ALTER COLUMN owner_id TYPE TEXT USING owner_id::TEXT`);
+    } catch { /* table does not exist yet */ }
+  }
+
   await sql`
     CREATE TABLE IF NOT EXISTS owner_products (
       id         SERIAL PRIMARY KEY,
-      owner_id   INTEGER NOT NULL,
+      owner_id   TEXT NOT NULL,
       name       TEXT NOT NULL,
       price      NUMERIC(10,2) NOT NULL,
       type       TEXT NOT NULL DEFAULT 'onetime' CHECK (type IN ('onetime','mrr')),
@@ -25,7 +32,7 @@ export async function POST(req: NextRequest) {
   await sql`
     CREATE TABLE IF NOT EXISTS owner_customers (
       id           SERIAL PRIMARY KEY,
-      owner_id     INTEGER NOT NULL,
+      owner_id     TEXT NOT NULL,
       name         TEXT NOT NULL,
       company      TEXT,
       email        TEXT,

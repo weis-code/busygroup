@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
                WHERE t.deal_id = d.id AND t.next_action IS NOT NULL AND t.next_action_done = FALSE
                ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry
         FROM crm_deals d
-        LEFT JOIN users u ON u.id = d.owner_id
+        LEFT JOIN users u ON u.id::text = d.owner_id
         WHERE d.status = ${status} AND d.stage = ${stage}
         ORDER BY d.created_at DESC
       `
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
                WHERE t.deal_id = d.id AND t.next_action IS NOT NULL AND t.next_action_done = FALSE
                ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry
         FROM crm_deals d
-        LEFT JOIN users u ON u.id = d.owner_id
+        LEFT JOIN users u ON u.id::text = d.owner_id
         WHERE d.status = ${status}
         ORDER BY d.created_at DESC
       `;
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   const [deal] = await sql`
     INSERT INTO crm_deals (owner_id, title, value, stage, expected_close, notes, product, prospect_name, prospect_company, prospect_phone, prospect_email)
     VALUES (
-      ${Number(session.id)},
+      ${session.id},
       ${title.trim()},
       ${value ? Number(value) : null},
       ${(stage as string) ?? 'lead'},

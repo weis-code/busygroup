@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     SELECT c.*, p.name AS product_name, p.type AS product_type
     FROM owner_customers c
     LEFT JOIN owner_products p ON p.id = c.product_id
-    WHERE c.owner_id = ${Number(session.id)}
+    WHERE c.owner_id = ${session.id}
     ORDER BY c.created_at DESC
   `;
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const [customer] = await sql`
     INSERT INTO owner_customers (owner_id, name, company, email, phone, product_id, amount, type, closed_date, notes)
     VALUES (
-      ${Number(session.id)},
+      ${session.id},
       ${name.trim()},
       ${company?.trim() ?? null},
       ${email?.trim() ?? null},

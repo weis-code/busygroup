@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
            d.title AS deal_title, d.stage AS deal_stage,
            c.name AS contact_name, c.company_name AS contact_company
     FROM crm_touchpoints t
-    LEFT JOIN users u ON u.id = t.owner_id
+    LEFT JOIN users u ON u.id::text = t.owner_id
     LEFT JOIN crm_deals d ON d.id = t.deal_id
     LEFT JOIN crm_contacts c ON c.id = COALESCE(t.contact_id, d.contact_id)
     WHERE 1=1

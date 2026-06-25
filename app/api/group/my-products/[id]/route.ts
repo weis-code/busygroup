@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       price  = COALESCE(${price != null ? Number(price) : null}, price),
       type   = COALESCE(${(type as string) ?? null}, type),
       active = COALESCE(${active != null ? Boolean(active) : null}, active)
-    WHERE id = ${Number(id)} AND owner_id = ${Number(session.id)}
+    WHERE id = ${Number(id)} AND owner_id = ${session.id}
     RETURNING *
   `;
 
@@ -34,6 +34,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   const { id } = await params;
-  await sql`DELETE FROM owner_products WHERE id = ${Number(id)} AND owner_id = ${Number(session.id)}`;
+  await sql`DELETE FROM owner_products WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
   return NextResponse.json({ ok: true });
 }

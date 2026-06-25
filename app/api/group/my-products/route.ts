@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     SELECT p.*,
            (SELECT COUNT(*)::int FROM owner_customers c WHERE c.product_id = p.id) AS customer_count
     FROM owner_products p
-    WHERE p.owner_id = ${Number(session.id)}
+    WHERE p.owner_id = ${session.id}
     ORDER BY p.created_at DESC
   `;
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const [product] = await sql`
     INSERT INTO owner_products (owner_id, name, price, type)
-    VALUES (${Number(session.id)}, ${name.trim()}, ${Number(price)}, ${(type as string) ?? 'onetime'})
+    VALUES (${session.id}, ${name.trim()}, ${Number(price)}, ${(type as string) ?? 'onetime'})
     RETURNING *
   `;
 

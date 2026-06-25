@@ -10,25 +10,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Migrate owner_id columns from INTEGER to TEXT on existing tables (idempotent)
+  for (const table of ['crm_contacts', 'crm_deals', 'crm_touchpoints']) {
+    try {
+      await sql.unsafe(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS ${table}_owner_id_fkey`);
+      await sql.unsafe(`ALTER TABLE ${table} ALTER COLUMN owner_id TYPE TEXT USING owner_id::TEXT`);
+    } catch { /* table does not exist yet — will be created below */ }
+  }
+
   await sql`
     CREATE TABLE IF NOT EXISTS crm_contacts (
-      id          SERIAL PRIMARY KEY,
-      owner_id    INTEGER REFERENCES users(id),
-      name        TEXT NOT NULL,
-      title       TEXT,
+      id           SERIAL PRIMARY KEY,
+      owner_id     TEXT,
+      name         TEXT NOT NULL,
+      title        TEXT,
       company_name TEXT,
-      email       TEXT,
-      phone       TEXT,
-      linkedin    TEXT,
-      notes       TEXT,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      email        TEXT,
+      phone        TEXT,
+      linkedin     TEXT,
+      notes        TEXT,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
 
   await sql`
     CREATE TABLE IF NOT EXISTS crm_deals (
       id             SERIAL PRIMARY KEY,
-      owner_id       INTEGER REFERENCES users(id),
+      owner_id       TEXT,
       contact_id     INTEGER REFERENCES crm_contacts(id) ON DELETE SET NULL,
       title          TEXT NOT NULL,
       value          NUMERIC(12,2),
@@ -42,21 +50,21 @@ export async function POST(req: NextRequest) {
 
   await sql`
     CREATE TABLE IF NOT EXISTS crm_touchpoints (
-      id                SERIAL PRIMARY KEY,
-      owner_id          INTEGER REFERENCES users(id),
-      deal_id           INTEGER REFERENCES crm_deals(id) ON DELETE CASCADE,
-      contact_id        INTEGER REFERENCES crm_contacts(id) ON DELETE SET NULL,
-      type              TEXT NOT NULL,
-      direction         TEXT,
-      title             TEXT,
-      body              TEXT,
-      outcome           TEXT,
-      duration_minutes  INTEGER,
-      next_action       TEXT,
-      next_action_date  DATE,
-      next_action_done  BOOLEAN NOT NULL DEFAULT FALSE,
-      extra             JSONB NOT NULL DEFAULT '{}',
-      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id               SERIAL PRIMARY KEY,
+      owner_id         TEXT,
+      deal_id          INTEGER REFERENCES crm_deals(id) ON DELETE CASCADE,
+      contact_id       INTEGER REFERENCES crm_contacts(id) ON DELETE SET NULL,
+      type             TEXT NOT NULL,
+      direction        TEXT,
+      title            TEXT,
+      body             TEXT,
+      outcome          TEXT,
+      duration_minutes INTEGER,
+      next_action      TEXT,
+      next_action_date DATE,
+      next_action_done BOOLEAN NOT NULL DEFAULT FALSE,
+      extra            JSONB NOT NULL DEFAULT '{}',
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
 

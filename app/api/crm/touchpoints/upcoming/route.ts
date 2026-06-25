@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     FROM crm_touchpoints t
     LEFT JOIN crm_deals d ON d.id = t.deal_id
     LEFT JOIN crm_contacts c ON c.id = COALESCE(t.contact_id, d.contact_id)
-    LEFT JOIN users u ON u.id = t.owner_id
+    LEFT JOIN users u ON u.id::text = t.owner_id
     WHERE t.next_action IS NOT NULL
       AND t.next_action_done = FALSE
       AND t.next_action_date IS NOT NULL

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const rows = await sql`
       SELECT t.*, u.name AS owner_name
       FROM crm_touchpoints t
-      LEFT JOIN users u ON u.id = t.owner_id
+      LEFT JOIN users u ON u.id::text = t.owner_id
       WHERE t.deal_id = ${Number(dealId)}
       ORDER BY t.created_at DESC
     `;
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const rows = await sql`
       SELECT t.*, u.name AS owner_name, d.title AS deal_title
       FROM crm_touchpoints t
-      LEFT JOIN users u ON u.id = t.owner_id
+      LEFT JOIN users u ON u.id::text = t.owner_id
       LEFT JOIN crm_deals d ON d.id = t.deal_id
       WHERE t.contact_id = ${Number(contactId)}
          OR t.deal_id IN (SELECT id FROM crm_deals WHERE contact_id = ${Number(contactId)})
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       owner_id, deal_id, contact_id, type, direction, title, body,
       outcome, duration_minutes, next_action, next_action_date, extra
     ) VALUES (
-      ${Number(session.id)},
+      ${session.id},
       ${Number(deal_id)},
       ${contact_id ? Number(contact_id) : null},
       ${type},

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const [contact] = await sql`
     SELECT c.*, u.name AS owner_name
     FROM crm_contacts c
-    LEFT JOIN users u ON u.id = c.owner_id
+    LEFT JOIN users u ON u.id::text = c.owner_id
     WHERE c.id = ${Number(id)}
   `;
   if (!contact) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const deals = await sql`
     SELECT d.*, u.name AS owner_name
     FROM crm_deals d
-    LEFT JOIN users u ON u.id = d.owner_id
+    LEFT JOIN users u ON u.id::text = d.owner_id
     WHERE d.contact_id = ${Number(id)}
     ORDER BY d.created_at DESC
   `;
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const touchpoints = await sql`
     SELECT t.*, u.name AS owner_name, d.title AS deal_title
     FROM crm_touchpoints t
-    LEFT JOIN users u ON u.id = t.owner_id
+    LEFT JOIN users u ON u.id::text = t.owner_id
     LEFT JOIN crm_deals d ON d.id = t.deal_id
     WHERE t.contact_id = ${Number(id)} OR t.deal_id IN (
       SELECT id FROM crm_deals WHERE contact_id = ${Number(id)}

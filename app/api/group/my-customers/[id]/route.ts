@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       type        = COALESCE(${(type as string) ?? null}, type),
       closed_date = COALESCE(${closed_date ?? null}, closed_date),
       notes       = COALESCE(${notes?.trim() ?? null}, notes)
-    WHERE id = ${Number(id)} AND owner_id = ${Number(session.id)}
+    WHERE id = ${Number(id)} AND owner_id = ${session.id}
     RETURNING *
   `;
 
@@ -39,6 +39,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   const { id } = await params;
-  await sql`DELETE FROM owner_customers WHERE id = ${Number(id)} AND owner_id = ${Number(session.id)}`;
+  await sql`DELETE FROM owner_customers WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
   return NextResponse.json({ ok: true });
 }

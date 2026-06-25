@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         SELECT c.*, u.name AS owner_name,
                COUNT(d.id)::int AS deal_count
         FROM crm_contacts c
-        LEFT JOIN users u ON u.id = c.owner_id
+        LEFT JOIN users u ON u.id::text = c.owner_id
         LEFT JOIN crm_deals d ON d.contact_id = c.id AND d.status = 'open'
         WHERE c.name ILIKE ${'%' + q + '%'} OR c.company_name ILIKE ${'%' + q + '%'}
         GROUP BY c.id, u.name
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         SELECT c.*, u.name AS owner_name,
                COUNT(d.id)::int AS deal_count
         FROM crm_contacts c
-        LEFT JOIN users u ON u.id = c.owner_id
+        LEFT JOIN users u ON u.id::text = c.owner_id
         LEFT JOIN crm_deals d ON d.contact_id = c.id AND d.status = 'open'
         GROUP BY c.id, u.name
         ORDER BY c.created_at DESC
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   const [contact] = await sql`
     INSERT INTO crm_contacts (owner_id, name, title, company_name, email, phone, linkedin, notes)
     VALUES (
-      ${Number(session.id)},
+      ${session.id},
       ${name.trim()},
       ${title?.trim() ?? null},
       ${company_name?.trim() ?? null},
