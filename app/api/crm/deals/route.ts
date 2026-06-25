@@ -16,8 +16,6 @@ export async function GET(req: NextRequest) {
   const deals = stage
     ? await sql`
         SELECT d.*, u.name AS owner_name,
-               c.name AS contact_name, c.company_name AS contact_company,
-               c.phone AS contact_phone, c.email AS contact_email,
                (SELECT COUNT(*)::int FROM crm_touchpoints t WHERE t.deal_id = d.id) AS touchpoint_count,
                (SELECT json_build_object(
                  'id', t.id, 'type', t.type, 'next_action', t.next_action,
@@ -27,14 +25,11 @@ export async function GET(req: NextRequest) {
                ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry
         FROM crm_deals d
         LEFT JOIN users u ON u.id = d.owner_id
-        LEFT JOIN crm_contacts c ON c.id = d.contact_id
         WHERE d.status = ${status} AND d.stage = ${stage}
         ORDER BY d.created_at DESC
       `
     : await sql`
         SELECT d.*, u.name AS owner_name,
-               c.name AS contact_name, c.company_name AS contact_company,
-               c.phone AS contact_phone, c.email AS contact_email,
                (SELECT COUNT(*)::int FROM crm_touchpoints t WHERE t.deal_id = d.id) AS touchpoint_count,
                (SELECT json_build_object(
                  'id', t.id, 'type', t.type, 'next_action', t.next_action,
@@ -44,7 +39,6 @@ export async function GET(req: NextRequest) {
                ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry
         FROM crm_deals d
         LEFT JOIN users u ON u.id = d.owner_id
-        LEFT JOIN crm_contacts c ON c.id = d.contact_id
         WHERE d.status = ${status}
         ORDER BY d.created_at DESC
       `;
@@ -58,19 +52,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { contact_id, title, value, stage, expected_close, notes } = await req.json();
+  const { title, value, stage, expected_close, notes, product, prospect_name, prospect_company, prospect_phone, prospect_email } = await req.json();
   if (!title?.trim()) return NextResponse.json({ error: 'Titel kræves' }, { status: 400 });
 
   const [deal] = await sql`
-    INSERT INTO crm_deals (owner_id, contact_id, title, value, stage, expected_close, notes)
+    INSERT INTO crm_deals (owner_id, title, value, stage, expected_close, notes, product, prospect_name, prospect_company, prospect_phone, prospect_email)
     VALUES (
       ${Number(session.id)},
-      ${contact_id ? Number(contact_id) : null},
       ${title.trim()},
       ${value ? Number(value) : null},
       ${(stage as string) ?? 'lead'},
       ${expected_close ?? null},
-      ${notes?.trim() ?? null}
+      ${notes?.trim() ?? null},
+      ${product?.trim() ?? null},
+      ${prospect_name?.trim() ?? null},
+      ${prospect_company?.trim() ?? null},
+      ${prospect_phone?.trim() ?? null},
+      ${prospect_email?.trim() ?? null}
     )
     RETURNING *
   `;

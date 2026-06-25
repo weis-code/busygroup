@@ -12,12 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const [deal] = await sql`
-    SELECT d.*, u.name AS owner_name,
-           c.name AS contact_name, c.company_name AS contact_company,
-           c.phone AS contact_phone, c.email AS contact_email
+    SELECT d.*, u.name AS owner_name
     FROM crm_deals d
     LEFT JOIN users u ON u.id = d.owner_id
-    LEFT JOIN crm_contacts c ON c.id = d.contact_id
     WHERE d.id = ${Number(id)}
   `;
   if (!deal) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
@@ -41,17 +38,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const { title, contact_id, value, stage, status, expected_close, notes } = await req.json();
+  const { title, value, stage, status, expected_close, notes, product, prospect_name, prospect_company, prospect_phone, prospect_email } = await req.json();
 
   const [deal] = await sql`
     UPDATE crm_deals SET
-      title          = COALESCE(${title?.trim() ?? null}, title),
-      contact_id     = COALESCE(${contact_id != null ? Number(contact_id) : null}, contact_id),
-      value          = COALESCE(${value != null ? Number(value) : null}, value),
-      stage          = COALESCE(${(stage as string) ?? null}, stage),
-      status         = COALESCE(${(status as string) ?? null}, status),
-      expected_close = COALESCE(${expected_close ?? null}, expected_close),
-      notes          = COALESCE(${notes?.trim() ?? null}, notes)
+      title            = COALESCE(${title?.trim() ?? null}, title),
+      value            = COALESCE(${value != null ? Number(value) : null}, value),
+      stage            = COALESCE(${(stage as string) ?? null}, stage),
+      status           = COALESCE(${(status as string) ?? null}, status),
+      expected_close   = COALESCE(${expected_close ?? null}, expected_close),
+      notes            = COALESCE(${notes?.trim() ?? null}, notes),
+      product          = COALESCE(${product?.trim() ?? null}, product),
+      prospect_name    = COALESCE(${prospect_name?.trim() ?? null}, prospect_name),
+      prospect_company = COALESCE(${prospect_company?.trim() ?? null}, prospect_company),
+      prospect_phone   = COALESCE(${prospect_phone?.trim() ?? null}, prospect_phone),
+      prospect_email   = COALESCE(${prospect_email?.trim() ?? null}, prospect_email)
     WHERE id = ${Number(id)}
     RETURNING *
   `;

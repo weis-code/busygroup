@@ -86,8 +86,6 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
     sectionItem('',         '/admin/messages',         'Beskeder',         <ChatIcon />),
     sectionItem('CRM',      '/admin/crm',              'Pipeline',         <CrmIcon />),
-    sectionItem('',         '/admin/crm/contacts',     'Kontakter',        <PeopleIcon />),
-    sectionItem('',         '/admin/crm/activity',     'Aktivitetsfeed',   <SalesIcon />),
     sectionItem('TEAM',     '/admin/group/employees',  'Medarbejdere',     <TeamIcon />),
     sectionItem('',         '/admin/group/absence',    'Fravær (alle)',    <CalendarIcon />),
     sectionItem('FINANS',   '/admin/group/finance',    'Økonomi',          <BarIcon />),
