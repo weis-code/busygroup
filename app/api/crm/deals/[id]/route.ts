@@ -12,9 +12,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const [deal] = await sql`
-    SELECT d.*, u.name AS owner_name
+    SELECT d.*, u.name AS owner_name, co.name AS portfolio_company_name
     FROM crm_deals d
     LEFT JOIN users u ON u.id::text = d.owner_id
+    LEFT JOIN companies co ON co.id = d.company_id
     WHERE d.id = ${Number(id)}
   `;
   if (!deal) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
@@ -28,7 +29,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     LIMIT 200
   `;
 
-  return NextResponse.json({ deal, touchpoints });
+  const products = await sql`
+    SELECT * FROM crm_deal_products WHERE deal_id = ${Number(id)} ORDER BY id ASC
+  `;
+
+  return NextResponse.json({ deal, touchpoints, products });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -38,7 +43,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const { title, value, stage, status, expected_close, notes, product, prospect_name, prospect_company, prospect_phone, prospect_email } = await req.json();
+  const body = await req.json();
+  const {
+    title, value, stage, status, expected_close, notes, product,
+    prospect_name, prospect_company, prospect_phone, prospect_email,
+    country, lost_reason,
+  } = body;
 
   const [deal] = await sql`
     UPDATE crm_deals SET
@@ -52,12 +62,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       prospect_name    = COALESCE(${prospect_name?.trim() ?? null}, prospect_name),
       prospect_company = COALESCE(${prospect_company?.trim() ?? null}, prospect_company),
       prospect_phone   = COALESCE(${prospect_phone?.trim() ?? null}, prospect_phone),
-      prospect_email   = COALESCE(${prospect_email?.trim() ?? null}, prospect_email)
+      prospect_email   = COALESCE(${prospect_email?.trim() ?? null}, prospect_email),
+      country          = COALESCE(${(country as string) ?? null}, country),
+      lost_reason      = COALESCE(${lost_reason?.trim() ?? null}, lost_reason)
     WHERE id = ${Number(id)}
     RETURNING *
   `;
 
   if (!deal) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
+
+  // company_id can be explicitly null to clear it
+  if ('company_id' in body) {
+    const companyId: number | null = body.company_id != null ? Number(body.company_id) : null;
+    await sql`UPDATE crm_deals SET company_id = ${companyId} WHERE id = ${Number(id)}`;
+    deal.company_id = companyId;
+  }
+
+  // Auto-set won_at / lost_at on stage transition
+  if (stage === 'vundet') {
+    const ts = new Date().toISOString();
+    await sql`UPDATE crm_deals SET won_at = ${ts} WHERE id = ${Number(id)}`;
+    deal.won_at = ts;
+  }
+  if (stage === 'tabt') {
+    const ts = new Date().toISOString();
+    await sql`UPDATE crm_deals SET lost_at = ${ts} WHERE id = ${Number(id)}`;
+    deal.lost_at = ts;
+  }
+
   return NextResponse.json(deal);
 }
 

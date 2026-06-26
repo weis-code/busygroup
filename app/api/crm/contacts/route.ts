@@ -10,29 +10,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const q = req.nextUrl.searchParams.get('q') ?? '';
-  const contacts = q
-    ? await sql`
-        SELECT c.*, u.name AS owner_name,
-               COUNT(d.id)::int AS deal_count
-        FROM crm_contacts c
-        LEFT JOIN users u ON u.id::text = c.owner_id
-        LEFT JOIN crm_deals d ON d.contact_id = c.id AND d.status = 'open'
-        WHERE c.name ILIKE ${'%' + q + '%'} OR c.company_name ILIKE ${'%' + q + '%'}
-        GROUP BY c.id, u.name
-        ORDER BY c.name
-        LIMIT 50
-      `
-    : await sql`
-        SELECT c.*, u.name AS owner_name,
-               COUNT(d.id)::int AS deal_count
-        FROM crm_contacts c
-        LEFT JOIN users u ON u.id::text = c.owner_id
-        LEFT JOIN crm_deals d ON d.contact_id = c.id AND d.status = 'open'
-        GROUP BY c.id, u.name
-        ORDER BY c.created_at DESC
-        LIMIT 200
-      `;
+  const q        = req.nextUrl.searchParams.get('q') ?? '';
+  const country  = req.nextUrl.searchParams.get('country');
+  const industry = req.nextUrl.searchParams.get('industry');
+
+  const contacts = await sql`
+    SELECT c.*, u.name AS owner_name,
+           COUNT(DISTINCT d.id)::int AS deal_count,
+           MAX(tp.created_at) AS last_activity
+    FROM crm_contacts c
+    LEFT JOIN users u ON u.id::text = c.owner_id
+    LEFT JOIN crm_deals d ON d.contact_id = c.id AND d.status = 'open'
+    LEFT JOIN crm_touchpoints tp ON tp.contact_id = c.id
+      OR tp.deal_id IN (SELECT id FROM crm_deals WHERE contact_id = c.id)
+    WHERE c.owner_id = ${session.id}
+      AND (${q} = '' OR c.name ILIKE ${'%' + q + '%'} OR c.company_name ILIKE ${'%' + q + '%'})
+      AND (${country ?? ''} = '' OR c.country = ${country ?? ''})
+      AND (${industry ?? ''} = '' OR c.industry = ${industry ?? ''})
+    GROUP BY c.id, u.name
+    ORDER BY c.created_at DESC
+    LIMIT 200
+  `;
 
   return NextResponse.json(contacts);
 }
@@ -43,11 +41,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { name, title, company_name, email, phone, linkedin, notes } = await req.json();
-  if (!name?.trim()) return NextResponse.json({ error: 'Navn kræves' }, { status: 400 });
+  const { name, title, company_name, email, phone, linkedin, notes, country, industry, website } = await req.json();
+  if (!name?.trim()) return NextResponse.json({ error: 'Firmanavn kræves' }, { status: 400 });
 
   const [contact] = await sql`
-    INSERT INTO crm_contacts (owner_id, name, title, company_name, email, phone, linkedin, notes)
+    INSERT INTO crm_contacts (owner_id, name, title, company_name, email, phone, linkedin, notes, country, industry, website)
     VALUES (
       ${session.id},
       ${name.trim()},
@@ -56,7 +54,10 @@ export async function POST(req: NextRequest) {
       ${email?.trim() ?? null},
       ${phone?.trim() ?? null},
       ${linkedin?.trim() ?? null},
-      ${notes?.trim() ?? null}
+      ${notes?.trim() ?? null},
+      ${(country as string) ?? 'DK'},
+      ${industry?.trim() ?? null},
+      ${website?.trim() ?? null}
     )
     RETURNING *
   `;
