@@ -10,19 +10,33 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // Merge own product catalogue (crm_products) + Mine Kunder products (owner_products)
-  // Use negative IDs for owner_products to distinguish the two sources
-  const products = await sql`
-    SELECT id, name, price, type FROM crm_products
-    WHERE owner_id = ${session.id} AND active = TRUE
-    UNION ALL
-    SELECT (-id) AS id, name, price,
-      CASE WHEN type = 'onetime' THEN 'one_time' ELSE type END AS type
-    FROM owner_products
-    WHERE owner_id = ${session.id}
-    ORDER BY name ASC
-  `;
-  return NextResponse.json(products);
+  // Merge crm_products + Mine Kunder (owner_products)
+  // Negative IDs mark owner_products so the deals API can look them up in the right table
+  type PRow = { id: number; name: string; price: number | null; type: string };
+
+  let crmRows: PRow[] = [];
+  try {
+    crmRows = (await sql`
+      SELECT id, name, price, type FROM crm_products
+      WHERE owner_id = ${session.id} AND active = TRUE
+    `) as unknown as PRow[];
+  } catch { /* table not yet created — migration pending */ }
+
+  let ownerRows: PRow[] = [];
+  try {
+    const raw = (await sql`
+      SELECT id, name, price, type FROM owner_products
+      WHERE owner_id = ${session.id}
+    `) as unknown as PRow[];
+    ownerRows = raw.map(p => ({
+      ...p,
+      id: -p.id,
+      type: p.type === 'onetime' ? 'one_time' : p.type,
+    }));
+  } catch { /* table not yet created */ }
+
+  const all = [...crmRows, ...ownerRows].sort((a, b) => a.name.localeCompare(b.name, 'da'));
+  return NextResponse.json(all);
 }
 
 export async function POST(req: NextRequest) {

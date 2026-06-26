@@ -55,29 +55,50 @@ export async function POST(req: NextRequest) {
 
   if (!title?.trim()) return NextResponse.json({ error: 'Titel kræves' }, { status: 400 });
 
-  const [deal] = await sql`
-    INSERT INTO crm_deals (
-      owner_id, title, value, stage, expected_close, notes, product,
-      prospect_name, prospect_company, prospect_phone, prospect_email,
-      country, company_id
-    )
-    VALUES (
-      ${session.id},
-      ${title.trim()},
-      ${value ? Number(value) : null},
-      ${(stage as string) ?? 'lead'},
-      ${expected_close ?? null},
-      ${notes?.trim() ?? null},
-      ${product?.trim() ?? null},
-      ${prospect_name?.trim() ?? null},
-      ${prospect_company?.trim() ?? null},
-      ${prospect_phone?.trim() ?? null},
-      ${prospect_email?.trim() ?? null},
-      ${(country as string) ?? 'DK'},
-      ${company_id ? Number(company_id) : null}
-    )
-    RETURNING *
-  `;
+  // Ensure new columns exist before inserting (in case migration hasn't run yet)
+  try {
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS country TEXT DEFAULT 'DK'`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS company_id INTEGER`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS won_at TIMESTAMPTZ`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS lost_at TIMESTAMPTZ`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS lost_reason TEXT`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS product TEXT`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS prospect_name TEXT`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS prospect_company TEXT`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS prospect_phone TEXT`;
+    await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS prospect_email TEXT`;
+  } catch { /* columns already exist */ }
+
+  let deal: Record<string, unknown>;
+  try {
+    const [row] = await sql`
+      INSERT INTO crm_deals (
+        owner_id, title, value, stage, expected_close, notes, product,
+        prospect_name, prospect_company, prospect_phone, prospect_email,
+        country, company_id
+      )
+      VALUES (
+        ${session.id},
+        ${title.trim()},
+        ${value ? Number(value) : null},
+        ${(stage as string) ?? 'lead'},
+        ${expected_close ?? null},
+        ${notes?.trim() ?? null},
+        ${product?.trim() ?? null},
+        ${prospect_name?.trim() ?? null},
+        ${prospect_company?.trim() ?? null},
+        ${prospect_phone?.trim() ?? null},
+        ${prospect_email?.trim() ?? null},
+        ${(country as string) ?? 'DK'},
+        ${company_id ? Number(company_id) : null}
+      )
+      RETURNING *
+    `;
+    deal = row as Record<string, unknown>;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Database fejl: ${msg}` }, { status: 500 });
+  }
 
   // Link products if provided (positive IDs = crm_products, negative IDs = owner_products)
   if (Array.isArray(product_ids) && product_ids.length > 0) {
@@ -87,31 +108,35 @@ export async function POST(req: NextRequest) {
     let allLinked: { price: number | null }[] = [];
 
     if (positiveIds.length > 0) {
-      const crmProds = await sql`
-        SELECT * FROM crm_products WHERE id = ANY(${positiveIds}::int[]) AND owner_id = ${session.id}
-      `;
-      for (const p of crmProds) {
-        await sql`INSERT INTO crm_deal_products (deal_id, product_id, name, price, type) VALUES (${deal.id}, ${p.id}, ${p.name}, ${p.price}, ${p.type})`;
-      }
-      allLinked = allLinked.concat(crmProds as unknown as { price: number | null }[]);
+      try {
+        const crmProds = await sql`
+          SELECT * FROM crm_products WHERE id = ANY(${positiveIds}::int[]) AND owner_id = ${session.id}
+        `;
+        for (const p of crmProds) {
+          await sql`INSERT INTO crm_deal_products (deal_id, product_id, name, price, type) VALUES (${deal.id as number}, ${p.id}, ${p.name}, ${p.price}, ${p.type})`;
+        }
+        allLinked = allLinked.concat(crmProds as unknown as { price: number | null }[]);
+      } catch { /* crm_products table missing — skip */ }
     }
 
     if (negativeIds.length > 0) {
-      const ownerProds = await sql`
-        SELECT * FROM owner_products WHERE id = ANY(${negativeIds}::int[]) AND owner_id = ${session.id}
-      `;
-      for (const p of ownerProds) {
-        const type = (p.type as string) === 'onetime' ? 'one_time' : (p.type as string);
-        await sql`INSERT INTO crm_deal_products (deal_id, product_id, name, price, type) VALUES (${deal.id}, NULL, ${p.name}, ${p.price}, ${type})`;
-      }
-      allLinked = allLinked.concat(ownerProds as unknown as { price: number | null }[]);
+      try {
+        const ownerProds = await sql`
+          SELECT * FROM owner_products WHERE id = ANY(${negativeIds}::int[]) AND owner_id = ${session.id}
+        `;
+        for (const p of ownerProds) {
+          const type = (p.type as string) === 'onetime' ? 'one_time' : (p.type as string);
+          await sql`INSERT INTO crm_deal_products (deal_id, product_id, name, price, type) VALUES (${deal.id as number}, NULL, ${p.name}, ${p.price}, ${type})`;
+        }
+        allLinked = allLinked.concat(ownerProds as unknown as { price: number | null }[]);
+      } catch { /* owner_products table missing — skip */ }
     }
 
     // Auto-calculate value from products if no value given
     if (!value && allLinked.length > 0) {
       const total = allLinked.reduce((s, p) => s + Number(p.price ?? 0), 0);
       if (total > 0) {
-        await sql`UPDATE crm_deals SET value = ${total} WHERE id = ${deal.id}`;
+        await sql`UPDATE crm_deals SET value = ${total} WHERE id = ${deal.id as number}`;
         deal.value = total;
       }
     }
