@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
         ${title.trim()},
         ${value ? Number(value) : null},
         ${(stage as string) ?? 'lead'},
-        ${expected_close ?? null},
+        ${expected_close || null},
         ${notes?.trim() ?? null},
         ${product?.trim() ?? null},
         ${prospect_name?.trim() ?? null},

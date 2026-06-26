@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       value            = COALESCE(${value != null ? Number(value) : null}, value),
       stage            = COALESCE(${(stage as string) ?? null}, stage),
       status           = COALESCE(${(status as string) ?? null}, status),
-      expected_close   = COALESCE(${expected_close ?? null}, expected_close),
+      expected_close   = COALESCE(${expected_close || null}, expected_close),
       notes            = COALESCE(${notes?.trim() ?? null}, notes),
       product          = COALESCE(${product?.trim() ?? null}, product),
       prospect_name    = COALESCE(${prospect_name?.trim() ?? null}, prospect_name),
