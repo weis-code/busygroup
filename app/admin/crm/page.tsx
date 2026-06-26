@@ -740,6 +740,35 @@ function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onS
   const [loading, setLoading]         = useState(true);
   const [lostReason, setLostReason]   = useState('');
   const [showLostPrompt, setShowLostPrompt] = useState(false);
+  const [editing, setEditing]         = useState(false);
+  const [editSaving, setEditSaving]   = useState(false);
+  const [editForm, setEditForm]       = useState({
+    title: deal.title, prospect_name: deal.prospect_name ?? '',
+    prospect_company: deal.prospect_company ?? '', prospect_phone: deal.prospect_phone ?? '',
+    prospect_email: deal.prospect_email ?? '', value: deal.value != null ? String(deal.value) : '',
+    expected_close: '', notes: '',
+  });
+
+  function setEF(k: keyof typeof editForm, v: string) { setEditForm(f => ({ ...f, [k]: v })); }
+
+  async function saveEdit() {
+    setEditSaving(true);
+    await fetch(`/api/crm/deals/${deal.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: editForm.title || undefined,
+        prospect_name: editForm.prospect_name || undefined,
+        prospect_company: editForm.prospect_company || undefined,
+        prospect_phone: editForm.prospect_phone || undefined,
+        prospect_email: editForm.prospect_email || undefined,
+        value: editForm.value !== '' ? Number(editForm.value) : undefined,
+      }),
+    });
+    setEditSaving(false);
+    setEditing(false);
+    onUpdated();
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -794,28 +823,59 @@ function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onS
 
       {/* Header */}
       <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--bd)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 2 }}>{deal.title}</div>
-            {(deal.prospect_name || deal.prospect_company) && (
-              <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                {deal.prospect_name}{deal.prospect_company ? ` · ${deal.prospect_company}` : ''}
-              </div>
-            )}
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rediger deal</span>
+              <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bd)', flexShrink: 0 }}>×</button>
+            </div>
+            <div><label>Titel</label><input value={editForm.title} onChange={e => setEF('title', e.target.value)} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div><label>Kontaktnavn</label><input value={editForm.prospect_name} onChange={e => setEF('prospect_name', e.target.value)} placeholder="Jens Jensen" /></div>
+              <div><label>Firma</label><input value={editForm.prospect_company} onChange={e => setEF('prospect_company', e.target.value)} placeholder="Firma A/S" /></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div><label>Telefon</label><input value={editForm.prospect_phone} onChange={e => setEF('prospect_phone', e.target.value)} placeholder="+45 12 34 56 78" /></div>
+              <div><label>Email</label><input type="email" value={editForm.prospect_email} onChange={e => setEF('prospect_email', e.target.value)} placeholder="jens@firma.dk" /></div>
+            </div>
+            <div><label>Værdi (kr)</label><input type="number" value={editForm.value} onChange={e => setEF('value', e.target.value)} placeholder="0" /></div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={saveEdit} disabled={editSaving} style={{ flex: 1, background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 0', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', opacity: editSaving ? 0.6 : 1 }}>{editSaving ? 'Gemmer…' : 'Gem'}</button>
+              <button onClick={() => { setEditing(false); setEditForm({ title: deal.title, prospect_name: deal.prospect_name ?? '', prospect_company: deal.prospect_company ?? '', prospect_phone: deal.prospect_phone ?? '', prospect_email: deal.prospect_email ?? '', value: deal.value != null ? String(deal.value) : '', expected_close: '', notes: '' }); }} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>Annuller</button>
+            </div>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bd)', flexShrink: 0 }}>×</button>
-        </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 2 }}>{deal.title}</div>
+                {(deal.prospect_name || deal.prospect_company) && (
+                  <div style={{ fontSize: 12, color: 'var(--t2)' }}>
+                    {deal.prospect_name}{deal.prospect_company ? ` · ${deal.prospect_company}` : ''}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button onClick={() => setEditing(true)} style={{ height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 11, padding: '0 10px', border: '1px solid var(--bd)', cursor: 'pointer' }}>Rediger</button>
+                <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bd)', flexShrink: 0 }}>×</button>
+              </div>
+            </div>
 
-        {/* Meta row */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select value={deal.stage} onChange={e => changeStage(e.target.value)} style={{ fontSize: 11, padding: '4px 8px', background: stageInfo ? `${stageInfo.color}22` : 'var(--s2)', border: `1px solid ${stageInfo?.color ?? 'var(--bd2)'}44`, borderRadius: 6, color: stageInfo?.color ?? 'var(--t2)', fontWeight: 700, width: 'auto' }}>
-            {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
-          {deal.value && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gr)' }}>{fmt(Number(deal.value))}</span>}
-          {deal.prospect_phone && (
-            <a href={`tel:${deal.prospect_phone}`} style={{ fontSize: 11, color: 'var(--bl)', textDecoration: 'none', padding: '4px 8px', background: 'var(--bl2)', borderRadius: 6 }}>📞 {deal.prospect_phone}</a>
-          )}
-        </div>
+            {/* Meta row */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={deal.stage} onChange={e => changeStage(e.target.value)} style={{ fontSize: 11, padding: '4px 8px', background: stageInfo ? `${stageInfo.color}22` : 'var(--s2)', border: `1px solid ${stageInfo?.color ?? 'var(--bd2)'}44`, borderRadius: 6, color: stageInfo?.color ?? 'var(--t2)', fontWeight: 700, width: 'auto' }}>
+                {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+              {deal.value && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gr)' }}>{fmt(Number(deal.value))}</span>}
+              {deal.prospect_phone && (
+                <a href={`tel:${deal.prospect_phone}`} style={{ fontSize: 11, color: 'var(--bl)', textDecoration: 'none', padding: '4px 8px', background: 'var(--bl2)', borderRadius: 6 }}>📞 {deal.prospect_phone}</a>
+              )}
+              {deal.prospect_email && (
+                <a href={`mailto:${deal.prospect_email}`} style={{ fontSize: 11, color: 'var(--bl)', textDecoration: 'none', padding: '4px 8px', background: 'var(--bl2)', borderRadius: 6 }}>✉ {deal.prospect_email}</a>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Country + Portfolio company */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10 }}>
@@ -1152,7 +1212,10 @@ export default function CrmPipelinePage() {
     if (filterCountry) sp.set('country', filterCountry);
     if (filterCompany) sp.set('company_id', filterCompany);
     const rows = await fetch(`/api/crm/deals?${sp}`).then(r => r.json()) as Deal[];
-    if (Array.isArray(rows)) setDeals(rows);
+    if (Array.isArray(rows)) {
+      setDeals(rows);
+      setSelectedDeal(prev => prev ? (rows.find(d => d.id === prev.id) ?? prev) : null);
+    }
   }
   async function loadUpcoming() {
     const u = await fetch('/api/crm/touchpoints/upcoming').then(r => r.json()) as Upcoming;
