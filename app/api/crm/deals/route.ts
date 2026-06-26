@@ -79,21 +79,37 @@ export async function POST(req: NextRequest) {
     RETURNING *
   `;
 
-  // Link products if provided
+  // Link products if provided (positive IDs = crm_products, negative IDs = owner_products)
   if (Array.isArray(product_ids) && product_ids.length > 0) {
-    const products = await sql`
-      SELECT * FROM crm_products
-      WHERE id = ANY(${product_ids}::int[]) AND owner_id = ${session.id}
-    `;
-    for (const p of products) {
-      await sql`
-        INSERT INTO crm_deal_products (deal_id, product_id, name, price, type)
-        VALUES (${deal.id}, ${p.id}, ${p.name}, ${p.price}, ${p.type})
+    const positiveIds = (product_ids as number[]).filter(id => id > 0);
+    const negativeIds = (product_ids as number[]).filter(id => id < 0).map(id => -id);
+
+    let allLinked: { price: number | null }[] = [];
+
+    if (positiveIds.length > 0) {
+      const crmProds = await sql`
+        SELECT * FROM crm_products WHERE id = ANY(${positiveIds}::int[]) AND owner_id = ${session.id}
       `;
+      for (const p of crmProds) {
+        await sql`INSERT INTO crm_deal_products (deal_id, product_id, name, price, type) VALUES (${deal.id}, ${p.id}, ${p.name}, ${p.price}, ${p.type})`;
+      }
+      allLinked = allLinked.concat(crmProds as unknown as { price: number | null }[]);
     }
+
+    if (negativeIds.length > 0) {
+      const ownerProds = await sql`
+        SELECT * FROM owner_products WHERE id = ANY(${negativeIds}::int[]) AND owner_id = ${session.id}
+      `;
+      for (const p of ownerProds) {
+        const type = (p.type as string) === 'onetime' ? 'one_time' : (p.type as string);
+        await sql`INSERT INTO crm_deal_products (deal_id, product_id, name, price, type) VALUES (${deal.id}, NULL, ${p.name}, ${p.price}, ${type})`;
+      }
+      allLinked = allLinked.concat(ownerProds as unknown as { price: number | null }[]);
+    }
+
     // Auto-calculate value from products if no value given
-    if (!value) {
-      const total = (products as unknown as { price: number | null }[]).reduce((s, p) => s + Number(p.price ?? 0), 0);
+    if (!value && allLinked.length > 0) {
+      const total = allLinked.reduce((s, p) => s + Number(p.price ?? 0), 0);
       if (total > 0) {
         await sql`UPDATE crm_deals SET value = ${total} WHERE id = ${deal.id}`;
         deal.value = total;

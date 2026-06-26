@@ -10,9 +10,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Merge own product catalogue (crm_products) + Mine Kunder products (owner_products)
+  // Use negative IDs for owner_products to distinguish the two sources
   const products = await sql`
-    SELECT * FROM crm_products
+    SELECT id, name, price, type FROM crm_products
     WHERE owner_id = ${session.id} AND active = TRUE
+    UNION ALL
+    SELECT (-id) AS id, name, price,
+      CASE WHEN type = 'onetime' THEN 'one_time' ELSE type END AS type
+    FROM owner_products
+    WHERE owner_id = ${session.id}
     ORDER BY name ASC
   `;
   return NextResponse.json(products);

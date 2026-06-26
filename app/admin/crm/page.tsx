@@ -927,12 +927,12 @@ function NewDealModal({ stages, ownProducts, portfolioCompanies, onClose, onCrea
   });
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   function set(k: keyof typeof form, v: string) { setForm(f => ({ ...f, [k]: v })); }
 
   function toggleProduct(id: number) {
     setSelectedProductIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
-    // Auto-calc value
   }
 
   const calcValue = ownProducts
@@ -943,17 +943,30 @@ function NewDealModal({ stages, ownProducts, portfolioCompanies, onClose, onCrea
     e.preventDefault();
     if (!form.title.trim()) return;
     setSaving(true);
-    const deal = await fetch('/api/crm/deals', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        value: form.value ? Number(form.value) : (calcValue || null),
-        company_id: form.company_id ? Number(form.company_id) : null,
-        product_ids: selectedProductIds,
-      }),
-    }).then(r => r.json()) as Deal;
-    setSaving(false);
-    onCreated(deal);
+    setError('');
+    try {
+      const res = await fetch('/api/crm/deals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          value: form.value ? Number(form.value) : (calcValue || null),
+          company_id: form.company_id ? Number(form.company_id) : null,
+          product_ids: selectedProductIds,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Ukendt fejl' }));
+        setError(body.error ?? 'Noget gik galt');
+        setSaving(false);
+        return;
+      }
+      const deal = await res.json() as Deal;
+      setSaving(false);
+      onCreated(deal);
+    } catch {
+      setError('Netværksfejl — prøv igen');
+      setSaving(false);
+    }
   }
 
   return (
@@ -1037,7 +1050,10 @@ function NewDealModal({ stages, ownProducts, portfolioCompanies, onClose, onCrea
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'space-between' }}>
+          {error && (
+            <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 7, fontSize: 12, color: 'var(--re)' }}>{error}</div>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 6 }}>
               {step > 1 && <button type="button" onClick={() => setStep(s => s - 1)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>← Forrige</button>}
             </div>
