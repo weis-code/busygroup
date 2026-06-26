@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
   await sql`CREATE INDEX IF NOT EXISTS crm_touchpoints_next_action_date_idx ON crm_touchpoints(next_action_date) WHERE next_action_done = FALSE`;
 
   // Existing deal columns
+  await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'open'`;
   await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS product TEXT`;
   await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS prospect_name TEXT`;
   await sql`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS prospect_company TEXT`;

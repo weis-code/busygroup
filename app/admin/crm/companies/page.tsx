@@ -118,7 +118,9 @@ export default function CrmCompaniesPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetch('/api/crm/migrate', { method: 'POST' }).then(() => load());
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const t = setTimeout(() => load(), 300);
@@ -129,12 +131,17 @@ export default function CrmCompaniesPage() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
-    await fetch('/api/crm/contacts', {
+    const res = await fetch('/api/crm/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
     setSaving(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Ukendt fejl' }));
+      setToast(`Fejl: ${body.error ?? 'Kunne ikke oprette virksomhed'}`);
+      return;
+    }
     setModal(false);
     setForm({ name: '', title: '', company_name: '', email: '', phone: '', linkedin: '', notes: '', country: 'DK', industry: '', website: '' });
     setToast('Virksomhed oprettet');
