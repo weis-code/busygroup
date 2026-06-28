@@ -1,10 +1,15 @@
 import sql from './db';
 
 export async function seedPlatform() {
-  // Ensure CreatorRate exists before seeding boards/channels
+  // Ensure core companies exist before seeding boards/channels
   await sql`
     INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
     VALUES ('CreatorRate', 'creatorrate', 'saas', '#f43f5e', 'CR', 25, false)
+    ON CONFLICT (slug) DO NOTHING
+  `;
+  await sql`
+    INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
+    VALUES ('Next level Creator', 'nlc', 'sales', '#8b5cf6', 'NLC', 0, false)
     ON CONFLICT (slug) DO NOTHING
   `;
 

@@ -161,5 +161,12 @@ export async function POST(req: NextRequest) {
     `;
   }
 
+  // Ensure Next level Creator company exists
+  await sql`
+    INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
+    VALUES ('Next level Creator', 'nlc', 'sales', '#8b5cf6', 'NLC', 0, false)
+    ON CONFLICT (slug) DO NOTHING
+  `;
+
   return NextResponse.json({ ok: true });
 }
