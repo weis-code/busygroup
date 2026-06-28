@@ -39,9 +39,10 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
 }
 
 /* ── Card item ──────────────────────────────────────────── */
-function CardItem({ card, onClick }: { card: Card; onClick: () => void }) {
+function CardItem({ card, onClick, onToggleDone }: { card: Card; onClick: () => void; onToggleDone: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `card-${card.id}` });
   const labels = parseLabels(card.labels);
+  const done = !!card.completed_at;
   return (
     <div ref={setNodeRef} style={{
       transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1,
@@ -59,18 +60,36 @@ function CardItem({ card, onClick }: { card: Card; onClick: () => void }) {
             ))}
           </div>
         )}
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', marginBottom: card.description ? 4 : 0 }}>
-          {card.completed_at && <span style={{ color: 'var(--gr)', marginRight: 6 }}>✓</span>}
-          {card.title}
-        </div>
-        {card.description && (
-          <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 6, lineHeight: 1.4 }}>
-            {card.description.slice(0, 80)}{card.description.length > 80 ? '…' : ''}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleDone(); }}
+            title={done ? 'Markér som ikke færdig' : 'Markér som færdig'}
+            style={{
+              flexShrink: 0, marginTop: 1,
+              width: 16, height: 16, borderRadius: '50%',
+              border: `2px solid ${done ? 'var(--gr)' : 'var(--bd2)'}`,
+              background: done ? 'var(--gr)' : 'transparent',
+              cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: 9, fontWeight: 700, lineHeight: 1,
+              transition: 'all 0.15s',
+            }}>
+            {done ? '✓' : ''}
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: done ? 'var(--t3)' : 'var(--t1)', marginBottom: card.description ? 4 : 0, textDecoration: done ? 'line-through' : 'none' }}>
+              {card.title}
+            </div>
+            {card.description && (
+              <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 6, lineHeight: 1.4 }}>
+                {card.description.slice(0, 80)}{card.description.length > 80 ? '…' : ''}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {card.due_date && <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4 }}>📅 {new Date(card.due_date + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}</span>}
+              {card.assigned_name && <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4 }}>👤 {card.assigned_name}</span>}
+            </div>
           </div>
-        )}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {card.due_date && <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4 }}>📅 {new Date(card.due_date + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}</span>}
-          {card.assigned_name && <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4 }}>👤 {card.assigned_name}</span>}
         </div>
       </div>
     </div>
@@ -538,6 +557,13 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
     setModal(null); setToast('Kort slettet'); onReload();
   }
 
+  async function toggleDone(card: Card) {
+    const completed_at = card.completed_at ? null : new Date().toISOString();
+    setCards(prev => prev.map(c => c.id === card.id ? { ...c, completed_at } : c));
+    await fetch(`/api/kanban/cards/${card.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed_at }) });
+    setToast(completed_at ? 'Kort markeret som færdigt' : 'Markering fjernet');
+  }
+
   async function addColumn() {
     if (!newColName.trim() || !activeBoardId) return;
     await fetch(`/api/kanban/boards/${activeBoardId}/columns`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newColName.trim() }) });
@@ -660,10 +686,10 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
                         collapsed={false} />
                       <SortableContext items={visible.map(c => `card-${c.id}`)} strategy={verticalListSortingStrategy}>
                         <div id={`col-${col.id}`} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                          {visible.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} />)}
+                          {visible.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} onToggleDone={() => toggleDone(card)} />)}
                           {showDone && donePile.length > 0 && (
                             <div style={{ borderTop: '1px dashed var(--bd)', paddingTop: 6, marginTop: 4 }}>
-                              {donePile.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} />)}
+                              {donePile.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} onToggleDone={() => toggleDone(card)} />)}
                             </div>
                           )}
                         </div>
