@@ -80,12 +80,14 @@ function CardItem({ card, onClick }: { card: Card; onClick: () => void }) {
 /* ── Card Modal ─────────────────────────────────────────── */
 interface CardModalProps {
   card: Partial<Card>; columns: Column[]; boardId: number;
+  companyName?: string; companyColor?: string;
   onSave: (d: Partial<Card>) => void; onDelete?: () => void; onClose: () => void;
 }
 
-function CardModal({ card, columns, boardId, onSave, onDelete, onClose }: CardModalProps) {
+function CardModal({ card, columns, boardId, companyName, companyColor, onSave, onDelete, onClose }: CardModalProps) {
   type ModalTab = 'main' | 'checklist' | 'comments';
   const [tab, setTab]           = useState<ModalTab>('main');
+  const [editing, setEditing]   = useState(!card.id); // new cards start in edit mode
   const [title, setTitle]       = useState(card.title ?? '');
   const [desc, setDesc]         = useState(card.description ?? '');
   const [priority, setPriority] = useState(card.priority ?? 'normal');
@@ -185,9 +187,19 @@ function CardModal({ card, columns, boardId, onSave, onDelete, onClose }: CardMo
 
         {/* Header */}
         <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{card.id ? 'Rediger kort' : 'Nyt kort'}</div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>✕</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: companyName ? 4 : 0 }}>
+                {card.id ? (editing ? 'Rediger kort' : card.title) : 'Nyt kort'}
+              </div>
+              {companyName && !editing && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, padding: '2px 8px' }}>
+                  {companyColor && <span style={{ width: 7, height: 7, borderRadius: '50%', background: companyColor, display: 'inline-block', flexShrink: 0 }} />}
+                  <span style={{ fontSize: 11, color: 'var(--t2)', fontWeight: 600 }}>{companyName}</span>
+                </div>
+              )}
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1, flexShrink: 0 }}>✕</button>
           </div>
           <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--bd)', marginBottom: 0 }}>
             {TABS.map(t => (
@@ -204,7 +216,57 @@ function CardModal({ card, columns, boardId, onSave, onDelete, onClose }: CardMo
 
         {/* Scrollable body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-          {tab === 'main' && (
+          {tab === 'main' && !editing && card.id && (
+            /* ── View mode ── */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {labels.length > 0 && (
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {labels.map((l, i) => (
+                    <span key={i} style={{ background: l.color, borderRadius: 4, padding: '3px 10px', fontSize: 11, color: '#fff', fontWeight: 600 }}>{l.text}</span>
+                  ))}
+                </div>
+              )}
+              {desc && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Beskrivelse</div>
+                  <div style={{ fontSize: 13, color: 'var(--t1)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{desc}</div>
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Prioritet</div>
+                  <span style={{ display: 'inline-block', background: `${PRIORITY_COLOR[priority]}22`, color: PRIORITY_COLOR[priority], borderRadius: 5, padding: '3px 10px', fontSize: 12, fontWeight: 600 }}>
+                    {{ low: 'Lav', normal: 'Normal', high: 'Høj', urgent: 'Urgent' }[priority] ?? priority}
+                  </span>
+                </div>
+                {dueDate && (
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Deadline</div>
+                    <div style={{ fontSize: 13, color: 'var(--t1)' }}>📅 {new Date(dueDate + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  </div>
+                )}
+              </div>
+              {assignedTo && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Tildelt til</div>
+                  <div style={{ fontSize: 13, color: 'var(--t1)' }}>👤 {users.find(u => u.id === assignedTo)?.name ?? assignedTo}</div>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Kolonne</div>
+                <div style={{ fontSize: 13, color: 'var(--t1)' }}>{columns.find(c => c.id === colId)?.name ?? '—'}</div>
+              </div>
+              {done && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: 'var(--gr)', fontSize: 14 }}>✓</span>
+                  <span style={{ fontSize: 12, color: 'var(--gr)', fontWeight: 600 }}>Markeret som færdig</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'main' && editing && (
+            /* ── Edit mode ── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><label>Titel</label><input value={title} onChange={e => setTitle(e.target.value)} autoFocus /></div>
               <div><label>Beskrivelse</label><textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} style={{ resize: 'vertical' }} /></div>
@@ -337,13 +399,17 @@ function CardModal({ card, columns, boardId, onSave, onDelete, onClose }: CardMo
 
         {/* Footer */}
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--bd)', display: 'flex', gap: 8, justifyContent: 'flex-end', flexShrink: 0, background: 'var(--s1)' }}>
-          {card.id && onDelete && (
+          {editing && card.id && onDelete && (
             <button onClick={onDelete} style={{ background: 'var(--re2)', color: 'var(--re)', border: '1px solid var(--re)', borderRadius: 7, padding: '8px 14px', fontSize: 12, marginRight: 'auto', cursor: 'pointer' }}>Slet</button>
           )}
           <button onClick={onClose} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>Luk</button>
-          <button onClick={save} disabled={saving} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-            {saving ? 'Gemmer…' : 'Gem'}
-          </button>
+          {!editing && card.id ? (
+            <button onClick={() => setEditing(true)} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>Rediger</button>
+          ) : (
+            <button onClick={save} disabled={saving} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+              {saving ? 'Gemmer…' : 'Gem'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -644,6 +710,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
 
       {modal && activeBoardId && (
         <CardModal card={modal.card} columns={columns} boardId={activeBoardId}
+          companyName={board?.company_name} companyColor={board?.company_color}
           onSave={saveCard} onDelete={modal.card.id ? deleteCard : undefined} onClose={() => setModal(null)} />
       )}
     </div>
