@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       completed_at = ${body.completed_at !== undefined ? (body.completed_at ?? null) : sql`completed_at`},
       labels       = COALESCE(${body.labels ?? null}, labels),
       cover_color  = ${body.cover_color !== undefined ? (body.cover_color ?? null) : sql`cover_color`},
+      company_id   = ${'company_id' in body ? (body.company_id ?? null) : sql`company_id`},
       updated_at   = NOW()
     WHERE id = ${cardId}
     RETURNING *

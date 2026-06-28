@@ -18,6 +18,7 @@ export interface Card {
   description: string | null; priority: string; due_date: string | null;
   assigned_to: string | null; assigned_name: string | null; completed_at: string | null;
   labels: string; cover_color: string | null;
+  company_id: number | null; company_name: string | null; company_color: string | null;
 }
 interface CheckItem { id: number; card_id: number; text: string; completed: boolean; position: number }
 interface Comment    { id: number; card_id: number; user_name: string; body: string; created_at: string }
@@ -86,6 +87,12 @@ function CardItem({ card, onClick, onToggleDone }: { card: Card; onClick: () => 
               </div>
             )}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {card.company_name && (
+                <span style={{ fontSize: 10, color: 'var(--t2)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                  {card.company_color && <span style={{ width: 6, height: 6, borderRadius: '50%', background: card.company_color, display: 'inline-block', flexShrink: 0 }} />}
+                  {card.company_name}
+                </span>
+              )}
               {card.due_date && <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4 }}>📅 {new Date(card.due_date + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}</span>}
               {card.assigned_name && <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 6px', borderRadius: 4 }}>👤 {card.assigned_name}</span>}
             </div>
@@ -120,6 +127,9 @@ function CardModal({ card, columns, boardId, companyName, companyColor, onSave, 
   const [newLabelColor, setNewLabelColor] = useState(LABEL_PALETTE[0]);
   const [users, setUsers]       = useState<BoardUser[]>([]);
 
+  const [companyId, setCompanyId]     = useState<number | ''>(card.company_id ?? '');
+  const [companies, setCompanies]     = useState<{ id: number; name: string; color: string }[]>([]);
+
   const [checkItems, setCheckItems]   = useState<CheckItem[]>([]);
   const [newCheckText, setNewCheckText] = useState('');
   const [comments, setComments]       = useState<Comment[]>([]);
@@ -128,6 +138,7 @@ function CardModal({ card, columns, boardId, companyName, companyColor, onSave, 
 
   useEffect(() => {
     fetch(`/api/kanban/boards/${boardId}/users`).then(r => r.json()).then(setUsers);
+    fetch('/api/companies').then(r => r.json()).then(setCompanies).catch(() => {});
     if (card.id) {
       fetch(`/api/kanban/cards/${card.id}/checklist`).then(r => r.json()).then(setCheckItems);
       fetch(`/api/kanban/cards/${card.id}/comments`).then(r => r.json()).then(setComments);
@@ -144,6 +155,7 @@ function CardModal({ card, columns, boardId, companyName, companyColor, onSave, 
       assigned_to: assignedTo || null,
       labels: JSON.stringify(labels),
       cover_color: coverColor || null,
+      company_id: companyId || null,
     });
     setSaving(false);
   }
@@ -275,6 +287,15 @@ function CardModal({ card, columns, boardId, companyName, companyColor, onSave, 
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Kolonne</div>
                 <div style={{ fontSize: 13, color: 'var(--t1)' }}>{columns.find(c => c.id === colId)?.name ?? '—'}</div>
               </div>
+              {companyId && (() => { const co = companies.find(c => c.id === companyId); return co ? (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Virksomhed</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, padding: '3px 10px' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: co.color, display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: 'var(--t1)', fontWeight: 600 }}>{co.name}</span>
+                  </div>
+                </div>
+              ) : null; })()}
               {done && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: 'var(--gr)', fontSize: 14 }}>✓</span>
@@ -312,6 +333,15 @@ function CardModal({ card, columns, boardId, companyName, companyColor, onSave, 
                   {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+
+              {companies.length > 0 && (
+                <div><label>Virksomhed</label>
+                  <select value={companyId} onChange={e => setCompanyId(e.target.value ? Number(e.target.value) : '')}>
+                    <option value="">— ingen —</option>
+                    {companies.map(co => <option key={co.id} value={co.id}>{co.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               {card.id && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
