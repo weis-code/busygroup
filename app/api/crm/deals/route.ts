@@ -15,28 +15,48 @@ export async function GET(req: NextRequest) {
   const country   = req.nextUrl.searchParams.get('country');
   const companyId = req.nextUrl.searchParams.get('company_id');
 
-  const deals = await sql`
-    SELECT d.*,
-           u.name AS owner_name,
-           co.name AS portfolio_company_name,
-           (SELECT COUNT(*)::int FROM crm_touchpoints t WHERE t.deal_id = d.id) AS touchpoint_count,
-           (SELECT json_build_object(
-             'id', t.id, 'type', t.type, 'next_action', t.next_action,
-             'next_action_date', t.next_action_date::text
-           ) FROM crm_touchpoints t
-           WHERE t.deal_id = d.id AND t.next_action IS NOT NULL AND t.next_action_done = FALSE
-           ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry,
-           (SELECT json_agg(json_build_object('id', dp.id, 'name', dp.name, 'price', dp.price, 'type', dp.type))
-            FROM crm_deal_products dp WHERE dp.deal_id = d.id) AS products
-    FROM crm_deals d
-    LEFT JOIN users u ON u.id::text = d.owner_id
-    LEFT JOIN companies co ON co.id = d.company_id
-    WHERE d.status = ${status}
-      AND (${stage} IS NULL OR d.stage = ${stage})
-      AND (${country} IS NULL OR d.country = ${country})
-      AND (${companyId} IS NULL OR d.company_id = ${companyId}::int)
-    ORDER BY d.created_at DESC
-  `;
+  let deals;
+  try {
+    deals = await sql`
+      SELECT d.*,
+             u.name AS owner_name,
+             co.name AS portfolio_company_name,
+             (SELECT COUNT(*)::int FROM crm_touchpoints t WHERE t.deal_id = d.id) AS touchpoint_count,
+             (SELECT json_build_object(
+               'id', t.id, 'type', t.type, 'next_action', t.next_action,
+               'next_action_date', t.next_action_date::text
+             ) FROM crm_touchpoints t
+             WHERE t.deal_id = d.id AND t.next_action IS NOT NULL AND t.next_action_done = FALSE
+             ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry,
+             (SELECT json_agg(json_build_object('id', dp.id, 'name', dp.name, 'price', dp.price, 'type', dp.type))
+              FROM crm_deal_products dp WHERE dp.deal_id = d.id) AS products
+      FROM crm_deals d
+      LEFT JOIN users u ON u.id::text = d.owner_id
+      LEFT JOIN companies co ON co.id = d.company_id
+      WHERE d.status = ${status}
+        AND (${stage} IS NULL OR d.stage = ${stage})
+        AND (${country} IS NULL OR d.country = ${country})
+        AND (${companyId} IS NULL OR d.company_id = ${companyId}::int)
+      ORDER BY d.created_at DESC
+    `;
+  } catch {
+    // crm_deal_products or other new table might not exist yet — fall back to simpler query
+    deals = await sql`
+      SELECT d.*,
+             u.name AS owner_name,
+             (SELECT COUNT(*)::int FROM crm_touchpoints t WHERE t.deal_id = d.id) AS touchpoint_count,
+             (SELECT json_build_object(
+               'id', t.id, 'type', t.type, 'next_action', t.next_action,
+               'next_action_date', t.next_action_date::text
+             ) FROM crm_touchpoints t
+             WHERE t.deal_id = d.id AND t.next_action IS NOT NULL AND t.next_action_done = FALSE
+             ORDER BY t.next_action_date ASC NULLS LAST LIMIT 1) AS next_action_entry
+      FROM crm_deals d
+      LEFT JOIN users u ON u.id::text = d.owner_id
+      WHERE d.status = ${status}
+      ORDER BY d.created_at DESC
+    `;
+  }
 
   return NextResponse.json(deals);
 }

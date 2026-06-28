@@ -1208,30 +1208,41 @@ export default function CrmPipelinePage() {
   const [lostCollapsed, setLostCollapsed]   = useState(true);
 
   async function loadDeals() {
-    const sp = new URLSearchParams({ status: 'open' });
-    if (filterCountry) sp.set('country', filterCountry);
-    if (filterCompany) sp.set('company_id', filterCompany);
-    const rows = await fetch(`/api/crm/deals?${sp}`).then(r => r.json()) as Deal[];
-    if (Array.isArray(rows)) {
-      setDeals(rows);
-      setSelectedDeal(prev => prev ? (rows.find(d => d.id === prev.id) ?? prev) : null);
-    }
+    try {
+      const sp = new URLSearchParams({ status: 'open' });
+      if (filterCountry) sp.set('country', filterCountry);
+      if (filterCompany) sp.set('company_id', filterCompany);
+      const res = await fetch(`/api/crm/deals?${sp}`);
+      const rows = await res.json() as Deal[];
+      if (Array.isArray(rows)) {
+        setDeals(rows);
+        setSelectedDeal(prev => prev ? (rows.find(d => d.id === prev.id) ?? prev) : null);
+      }
+    } catch { /* ignore — page stays empty until next reload */ }
   }
   async function loadUpcoming() {
-    const u = await fetch('/api/crm/touchpoints/upcoming').then(r => r.json()) as Upcoming;
-    if (u?.overdue) setUpcoming(u);
+    try {
+      const u = await fetch('/api/crm/touchpoints/upcoming').then(r => r.json()) as Upcoming;
+      if (u?.overdue) setUpcoming(u);
+    } catch { /* ignore */ }
   }
   async function loadStages() {
-    const rows = await fetch('/api/crm/stages').then(r => r.json()) as Stage[];
-    if (Array.isArray(rows)) setStages(rows);
+    try {
+      const rows = await fetch('/api/crm/stages').then(r => r.json()) as Stage[];
+      if (Array.isArray(rows)) setStages(rows);
+    } catch { /* ignore */ }
   }
   async function loadProducts() {
-    const rows = await fetch('/api/crm/products').then(r => r.json()) as CrmProduct[];
-    if (Array.isArray(rows)) setOwnProducts(rows);
+    try {
+      const rows = await fetch('/api/crm/products').then(r => r.json()) as CrmProduct[];
+      if (Array.isArray(rows)) setOwnProducts(rows);
+    } catch { /* ignore */ }
   }
   async function loadCompanies() {
-    const rows = await fetch('/api/companies').then(r => r.json()) as PortfolioCompany[];
-    if (Array.isArray(rows)) setPortfolioCompanies(rows);
+    try {
+      const rows = await fetch('/api/companies').then(r => r.json()) as PortfolioCompany[];
+      if (Array.isArray(rows)) setPortfolioCompanies(rows);
+    } catch { /* ignore */ }
   }
 
   async function loadAll() {

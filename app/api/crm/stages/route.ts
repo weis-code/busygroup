@@ -14,12 +14,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const stages = await sql`
-    SELECT * FROM crm_pipeline_stages
-    WHERE owner_id = ${session.id}
-    ORDER BY position ASC, id ASC
-  `;
-  return NextResponse.json(stages);
+  try {
+    const stages = await sql`
+      SELECT * FROM crm_pipeline_stages
+      WHERE owner_id = ${session.id}
+      ORDER BY position ASC, id ASC
+    `;
+    return NextResponse.json(stages);
+  } catch {
+    // Table might not exist yet — migration will create it on next page load
+    return NextResponse.json([]);
+  }
 }
 
 export async function POST(req: NextRequest) {
