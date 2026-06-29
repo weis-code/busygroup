@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 
 interface Sale {
   id: string; date: string; created_at: string;
@@ -8,6 +8,8 @@ interface Sale {
   units: number | null; deal_size: number | null; package_name: string | null;
   house_revenue: number; status: string; cvr: string | null; company_name: string | null; note: string | null;
 }
+interface Task    { id: string; name: string; client: string; compensation_model: string; price_per_unit: number | null; percent_value: number | null; units_label: string }
+interface Package { id: string; task_id: string; name: string; price: number }
 
 const STATUS_CLR: Record<string, string> = { PENDING: 'var(--ye)', CONFIRMED: 'var(--gr)', PAID: 'var(--bl)' };
 const STATUS_BG:  Record<string, string> = { PENDING: 'var(--ye2)', CONFIRMED: 'var(--gr2)', PAID: 'var(--bl2)' };
@@ -24,6 +26,22 @@ export default function AdminSalesPage() {
   const [loading, setLoading]   = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
 
+  // New sale form state
+  const [tasks, setTasks]       = useState<Task[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [open, setOpen]         = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError]   = useState('');
+
+  const [taskId, setTaskId]           = useState('');
+  const [saleDate, setSaleDate]       = useState(() => new Date().toISOString().slice(0, 10));
+  const [cvr, setCvr]                 = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [units, setUnits]             = useState('');
+  const [dealSize, setDealSize]       = useState('');
+  const [packageId, setPackageId]     = useState('');
+  const [note, setNote]               = useState('');
+
   async function load(d: string) {
     setLoading(true);
     const res = await fetch(`/api/admin/sales?date=${d}`).then(r => r.json());
@@ -31,7 +49,14 @@ export default function AdminSalesPage() {
     setLoading(false);
   }
 
+  async function loadTasks() {
+    const t = await fetch('/api/my-tasks').then(r => r.json());
+    setTasks(t.tasks || []);
+    setPackages(t.packages || []);
+  }
+
   useEffect(() => { load(date); }, [date]);
+  useEffect(() => { loadTasks(); }, []);
 
   async function changeStatus(id: string, status: string) {
     setUpdating(id);
@@ -48,6 +73,45 @@ export default function AdminSalesPage() {
     setDate(d.toISOString().slice(0, 10));
   }
 
+  function resetForm() {
+    setTaskId(''); setSaleDate(new Date().toISOString().slice(0, 10));
+    setCvr(''); setCompanyName('');
+    setUnits(''); setDealSize(''); setPackageId(''); setNote(''); setFormError('');
+  }
+
+  const selectedTask  = tasks.find(t => t.id === taskId);
+  const taskPackages  = packages.filter(p => p.task_id === taskId);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setFormError('');
+    if (!cvr.trim()) { setFormError('CVR-nummer er påkrævet'); return; }
+    if (!companyName.trim()) { setFormError('Firmanavn er påkrævet'); return; }
+    setSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        task_id: taskId, date: saleDate,
+        cvr: cvr.trim(), company_name: companyName.trim(),
+        note: note || null,
+      };
+      if (selectedTask?.compensation_model === 'FIXED')   body.units      = Number(units);
+      if (selectedTask?.compensation_model === 'PERCENT') body.deal_size  = Number(dealSize);
+      if (selectedTask?.compensation_model === 'PACKAGE') body.package_id = packageId;
+
+      const res  = await fetch('/api/sales', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { setFormError(data.error || 'Fejl'); return; }
+      resetForm();
+      setOpen(false);
+      // Reload if the sale date matches the currently viewed date
+      if (saleDate === date) load(date);
+    } catch { setFormError('Netværksfejl'); }
+    finally  { setSubmitting(false); }
+  }
+
   const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const totalRev  = sales.reduce((s, r) => s + Number(r.house_revenue), 0);
 
@@ -55,6 +119,7 @@ export default function AdminSalesPage() {
     <div style={{ padding: '28px 32px' }}>
       <div className="page-header">
         <h1 className="page-title">Salgshistorik</h1>
+        <button onClick={() => { resetForm(); setOpen(true); }} className="btn btn-primary">+ Nyt salg</button>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -116,6 +181,69 @@ export default function AdminSalesPage() {
           </div>
         )}
       </div>
+
+      {open && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <div className="modal-title">Registrer salg</div>
+            <form onSubmit={onSubmit} className="modal-form">
+              <div className="form-group">
+                <label>Dato</label>
+                <input type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label>Opgave</label>
+                <select value={taskId} onChange={e => { setTaskId(e.target.value); setPackageId(''); }} required>
+                  <option value="">Vælg opgave…</option>
+                  {tasks.map(t => <option key={t.id} value={t.id}>{t.name} — {t.client}</option>)}
+                </select>
+              </div>
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label>CVR-nummer</label>
+                  <input value={cvr} onChange={e => setCvr(e.target.value)} required placeholder="12345678" />
+                </div>
+                <div className="form-group">
+                  <label>Firmanavn</label>
+                  <input value={companyName} onChange={e => setCompanyName(e.target.value)} required placeholder="Firma A/S" />
+                </div>
+              </div>
+              {selectedTask?.compensation_model === 'FIXED' && (
+                <div className="form-group">
+                  <label>{selectedTask.units_label || 'Antal'}</label>
+                  <input type="number" min="1" value={units} onChange={e => setUnits(e.target.value)} required placeholder="1" />
+                </div>
+              )}
+              {selectedTask?.compensation_model === 'PERCENT' && (
+                <div className="form-group">
+                  <label>Beløb (kr)</label>
+                  <input type="number" min="0" value={dealSize} onChange={e => setDealSize(e.target.value)} required placeholder="0" />
+                </div>
+              )}
+              {selectedTask?.compensation_model === 'PACKAGE' && (
+                <div className="form-group">
+                  <label>Pakke</label>
+                  <select value={packageId} onChange={e => setPackageId(e.target.value)} required>
+                    <option value="">Vælg pakke…</option>
+                    {taskPackages.map(p => <option key={p.id} value={p.id}>{p.name} — {Number(p.price).toLocaleString('da-DK')} kr</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Note (valgfri)</label>
+                <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Evt. bemærkning…" />
+              </div>
+              {formError && <div className="alert-error">{formError}</div>}
+              <div className="modal-footer">
+                <button type="button" onClick={() => setOpen(false)} className="btn btn-ghost" style={{ flex: 1 }}>Annuller</button>
+                <button type="submit" disabled={submitting} className="btn btn-primary" style={{ flex: 2 }}>
+                  {submitting ? 'Gemmer…' : 'Registrer salg'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
