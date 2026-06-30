@@ -86,6 +86,7 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
   group: [
     sectionItem('KONCERN',  '/admin/group',            'Koncern Overblik', <GridIcon />),
     sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
+    sectionItem('',         '/admin/group/tickets',    'Dev tickets',      <TaskIcon />),
     sectionItem('',         '/admin/messages',         'Beskeder',         <ChatIcon />),
     sectionItem('CRM',      '/admin/crm',                  'Pipeline',         <CrmIcon />),
     sectionItem('',         '/admin/crm/companies',        'Virksomheder',     <BuildingIcon />),

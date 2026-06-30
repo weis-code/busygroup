@@ -8,6 +8,7 @@ async function ensureTable() {
   await sql`
     CREATE TABLE IF NOT EXISTS cr_tickets (
       id             SERIAL PRIMARY KEY,
+      source         TEXT NOT NULL DEFAULT 'creatorrate',
       type           TEXT NOT NULL CHECK (type IN ('dev', 'support')),
       status         TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
       priority       TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
@@ -21,6 +22,7 @@ async function ensureTable() {
       updated_at     TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'creatorrate'`.catch(() => {});
 }
 
 export async function GET(req: NextRequest) {
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
 
   await ensureTable();
 
+  const source = req.nextUrl.searchParams.get('source') ?? 'creatorrate';
   const type   = req.nextUrl.searchParams.get('type');
   const status = req.nextUrl.searchParams.get('status');
 
@@ -45,7 +48,8 @@ export async function GET(req: NextRequest) {
     LEFT JOIN users a ON a.id = t.assignee_id
     LEFT JOIN users c ON c.id = t.created_by
     WHERE
-      (${type}::text   IS NULL OR t.type   = ${type})
+      t.source = ${source}
+      AND (${type}::text   IS NULL OR t.type   = ${type})
       AND (${status}::text IS NULL OR t.status = ${status})
     ORDER BY
       CASE t.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
@@ -61,8 +65,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { type, priority, title, description, assignee_id, reporter_name, reporter_email } =
+  const { source, type, priority, title, description, assignee_id, reporter_name, reporter_email } =
     await req.json() as {
+      source?: string;
       type: string;
       priority?: string;
       title: string;
@@ -79,8 +84,9 @@ export async function POST(req: NextRequest) {
   await ensureTable();
 
   const [ticket] = await sql`
-    INSERT INTO cr_tickets (type, priority, title, description, assignee_id, reporter_name, reporter_email, created_by)
+    INSERT INTO cr_tickets (source, type, priority, title, description, assignee_id, reporter_name, reporter_email, created_by)
     VALUES (
+      ${source ?? 'creatorrate'},
       ${type},
       ${priority ?? 'normal'},
       ${title},
