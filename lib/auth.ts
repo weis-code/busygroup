@@ -7,7 +7,7 @@ const secret = new TextEncoder().encode(
 );
 
 export const COOKIE_NAME = 'nls_session';
-export type Role = 'ADMIN' | 'MANAGER' | 'SELLER';
+export type Role = 'ADMIN' | 'MANAGER' | 'SELLER' | 'NLCA_MANAGER';
 
 export interface Session {
   id: string;

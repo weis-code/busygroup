@@ -2,14 +2,14 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type CompanySlug = 'nls' | 'meridian' | 'quorex' | 'reminder' | 'group' | 'creatorrate' | 'nlc';
+export type CompanySlug = 'nls' | 'meridian' | 'quorex' | 'reminder' | 'group' | 'creatorrate' | 'nlc' | 'nlca';
 
 interface CompanyCtx {
   activeCompany: CompanySlug;
   setActiveCompany: (slug: CompanySlug) => void;
 }
 
-const VALID: CompanySlug[] = ['nls', 'meridian', 'quorex', 'reminder', 'group', 'creatorrate', 'nlc'];
+const VALID: CompanySlug[] = ['nls', 'meridian', 'quorex', 'reminder', 'group', 'creatorrate', 'nlc', 'nlca'];
 
 const CompanyContext = createContext<CompanyCtx>({
   activeCompany: 'nls',

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role as 'ADMIN' | 'MANAGER' | 'SELLER',
+    role: user.role as 'ADMIN' | 'MANAGER' | 'SELLER' | 'NLCA_MANAGER',
   });
 
   const res = NextResponse.json({ ok: true, role: user.role, name: user.name });

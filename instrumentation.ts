@@ -14,7 +14,7 @@ export async function register() {
       email TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'SELLER' CHECK (role IN ('ADMIN','MANAGER','SELLER')),
+      role TEXT NOT NULL DEFAULT 'SELLER' CHECK (role IN ('ADMIN','MANAGER','SELLER','NLCA_MANAGER')),
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
@@ -251,7 +251,8 @@ export async function register() {
       ('Quorex', 'quorex', 'saas', '#a78bfa', 'QX', 100, true),
       ('BusyReminder', 'reminder', 'saas', '#f59e0b', 'BR', 75, true),
       ('NextLevel Group', 'group', 'group', '#4f8ef7', 'NL', 100, false),
-      ('CreatorRate', 'creatorrate', 'saas', '#f43f5e', 'CR', 25, false)
+      ('CreatorRate', 'creatorrate', 'saas', '#f43f5e', 'CR', 25, false),
+      ('Next Level Creator Agency', 'nlca', 'creator_agency', '#06b6d4', 'NLCA', 100, false)
     ON CONFLICT (slug) DO NOTHING
   `;
 

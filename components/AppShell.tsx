@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { CompanyProvider, useCompany } from '@/lib/company-context';
 import type { CompanySlug } from '@/lib/company-context';
 
-interface NavItem  { href: string; label: string; icon: React.ReactNode; section?: string }
+interface NavItem  { href: string; label: string; icon: React.ReactNode; section?: string; adminOnly?: boolean }
 interface NavGroup { group: true; label: string; icon: React.ReactNode; adminOnly?: boolean; children: NavItem[] }
 type NavEntry = NavItem | NavGroup
 
@@ -13,13 +13,14 @@ function isGroup(e: NavEntry): e is NavGroup { return 'group' in e && e.group ==
 
 /* ── Company metadata ───────────────────────────────── */
 const COMPANY_META: Record<CompanySlug, { name: string; short: string; color: string }> = {
-  nls:         { name: 'NextLevel Sales',      short: 'NLS', color: 'var(--bl)' },
-  meridian:    { name: 'Meridian',             short: 'MD',  color: 'var(--gr)' },
-  quorex:      { name: 'Quorex',               short: 'QX',  color: 'var(--pu)' },
-  reminder:    { name: 'BusyReminder',         short: 'BR',  color: 'var(--ye)' },
-  group:       { name: 'NL Group',             short: 'GRP', color: 'var(--t2)' },
-  creatorrate: { name: 'CreatorRate',          short: 'CR',  color: '#f43f5e' },
-  nlc:         { name: 'Next level Creator',   short: 'NLC', color: '#8b5cf6' },
+  nls:         { name: 'NextLevel Sales',            short: 'NLS',  color: 'var(--bl)' },
+  meridian:    { name: 'Meridian',                   short: 'MD',   color: 'var(--gr)' },
+  quorex:      { name: 'Quorex',                     short: 'QX',   color: 'var(--pu)' },
+  reminder:    { name: 'BusyReminder',               short: 'BR',   color: 'var(--ye)' },
+  group:       { name: 'NL Group',                   short: 'GRP',  color: 'var(--t2)' },
+  creatorrate: { name: 'CreatorRate',                short: 'CR',   color: '#f43f5e' },
+  nlc:         { name: 'Next level Creator',         short: 'NLC',  color: '#8b5cf6' },
+  nlca:        { name: 'Next Level Creator Agency',  short: 'NLCA', color: '#06b6d4' },
 };
 
 const COMPANY_HOME: Record<CompanySlug, string> = {
@@ -30,13 +31,14 @@ const COMPANY_HOME: Record<CompanySlug, string> = {
   group:       '/admin/group',
   creatorrate: '/admin/creatorrate',
   nlc:         '/admin/nlc',
+  nlca:        '/admin/nlca',
 };
 
-const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian', 'quorex', 'reminder', 'creatorrate', 'nlc'];
+const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian', 'quorex', 'reminder', 'creatorrate', 'nlc', 'nlca'];
 
 /* ── Nav section header helper ──────────────────────── */
-function sectionItem(section: string, href: string, label: string, icon: React.ReactNode): NavItem {
-  return { href, label, icon, section };
+function sectionItem(section: string, href: string, label: string, icon: React.ReactNode, adminOnly?: boolean): NavItem {
+  return { href, label, icon, section, adminOnly };
 }
 
 /* ── Nav arrays per company ─────────────────────────── */
@@ -110,6 +112,14 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',          '/admin/nlc/messages',     'Beskeder',   <ChatIcon />),
     sectionItem('',          '/admin/settings',         'Indstillinger', <GearIcon />),
   ],
+  nlca: [
+    sectionItem('OVERSIGT',  '/admin/nlca',              'Overblik',      <GridIcon />),
+    sectionItem('CREATORS',  '/admin/nlca/creators',     'Creators',      <PeopleIcon />),
+    sectionItem('',          '/admin/nlca/payouts',      'Udbetalinger',  <EuroIcon />),
+    sectionItem('TEAM',      '/admin/nlca/managers',     'Managers',      <TeamIcon />, true),
+    sectionItem('PLATFORM',  '/admin/nlca/board',        'Board',         <BoardIcon />),
+    sectionItem('',          '/admin/nlca/messages',     'Beskeder',      <ChatIcon />),
+  ],
 };
 
 const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; icon: React.ReactNode }[]> = {
@@ -155,6 +165,12 @@ const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; ico
     { href: '/admin/nlc/board',    label: 'Board',    icon: <BoardIcon /> },
     { href: '/admin/nlc/messages', label: 'Beskeder', icon: <ChatIcon /> },
   ],
+  nlca: [
+    { href: '/admin/nlca',              label: 'Overblik',    icon: <GridIcon /> },
+    { href: '/admin/nlca/creators',     label: 'Creators',    icon: <PeopleIcon /> },
+    { href: '/admin/nlca/payouts',      label: 'Udbet.',      icon: <EuroIcon /> },
+    { href: '/admin/nlca/messages',     label: 'Beskeder',    icon: <ChatIcon /> },
+  ],
 };
 
 const sellerNav: NavEntry[] = [
@@ -184,8 +200,8 @@ function inferCompany(pathname: string): CompanySlug {
   if (pathname.startsWith('/admin/reminder'))    return 'reminder';
   if (pathname.startsWith('/admin/group'))       return 'group';
   if (pathname.startsWith('/admin/creatorrate')) return 'creatorrate';
-
-  if (pathname.startsWith('/admin/nlc'))          return 'nlc';
+  if (pathname.startsWith('/admin/nlca'))        return 'nlca';
+  if (pathname.startsWith('/admin/nlc'))         return 'nlc';
 
   // CRM belongs to Group
   if (pathname.startsWith('/admin/crm'))         return 'group';
@@ -210,7 +226,7 @@ function isActive(href: string, pathname: string): boolean {
 
 const PAGE_LABELS: Record<string, string> = {
   nls: 'Oversigt', meridian: 'Overblik', quorex: 'Overblik', reminder: 'Overblik',
-  creatorrate: 'Overblik', group: 'Koncern Overblik',
+  creatorrate: 'Overblik', group: 'Koncern Overblik', nlca: 'Overblik',
   board: 'Board', messages: 'Beskeder', sitreps: 'Sitreps',
   followups: 'Follow-ups', presence: 'Tilstedeværelse', targets: 'Targets',
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
@@ -221,6 +237,7 @@ const PAGE_LABELS: Record<string, string> = {
   finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
   mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
   employees: 'Medarbejdere',
+  creators: 'Creators', payouts: 'Udbetalinger', managers: 'Managers',
 };
 
 function getPageLabel(pathname: string): string {
@@ -240,7 +257,7 @@ function avatarColor(name: string) {
 
 /* ── Props ───────────────────────────────────────────── */
 interface Props {
-  role: 'ADMIN' | 'MANAGER' | 'SELLER';
+  role: 'ADMIN' | 'MANAGER' | 'SELLER' | 'NLCA_MANAGER';
   name: string;
   children: React.ReactNode;
 }
@@ -260,7 +277,10 @@ function AppShellInner({ role, name, children }: Props) {
   const router   = useRouter();
   const { setActiveCompany } = useCompany();
 
-  const displayCompany: CompanySlug = role === 'SELLER' ? 'nls' : inferCompany(pathname);
+  const displayCompany: CompanySlug =
+    role === 'SELLER' ? 'nls' :
+    role === 'NLCA_MANAGER' ? 'nlca' :
+    inferCompany(pathname);
   const meta = COMPANY_META[displayCompany];
 
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -269,6 +289,8 @@ function AppShellInner({ role, name, children }: Props) {
   useEffect(() => {
     if (role !== 'SELLER') setActiveCompany(displayCompany);
   }, [displayCompany, role, setActiveCompany]);
+
+  const visibleCompanies = role === 'NLCA_MANAGER' ? (['nlca'] as CompanySlug[]) : COMPANY_ORDER;
 
   useEffect(() => {
     let mounted = true;
@@ -347,6 +369,8 @@ function AppShellInner({ role, name, children }: Props) {
         lastSection = section;
       }
 
+      if (entry.adminOnly && role !== 'ADMIN') continue;
+
       result.push(
         <NavLink key={entry.href} href={entry.href} label={entry.label} icon={entry.icon}
           active={isActive(entry.href, pathname)} badge={entry.label === 'Beskeder' && unreadCount > 0} />
@@ -389,53 +413,67 @@ function AppShellInner({ role, name, children }: Props) {
         {/* Company switcher (admin/manager only) */}
         {role !== 'SELLER' && (
           <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--bd)', position: 'relative' }}>
-            <button
-              onClick={() => setSwitcherOpen(o => !o)}
-              style={{
+            {role === 'NLCA_MANAGER' ? (
+              <div style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '7px 10px', borderRadius: 7, border: '1px solid var(--bd)',
-                background: 'var(--s2)', cursor: 'pointer',
-                transition: 'border-color 0.12s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
-              <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400, marginRight: 2 }}>{meta.name}</span>
-              <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, flexShrink: 0, transform: switcherOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-
-            {switcherOpen && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 10, right: 10, zIndex: 100,
-                background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 9,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden', marginTop: 2,
+                background: 'var(--s2)',
               }}>
-                {COMPANY_ORDER.map(slug => {
-                  const m = COMPANY_META[slug];
-                  const active = slug === displayCompany;
-                  return (
-                    <button key={slug} onClick={() => switchCompany(slug)} style={{
-                      display: 'flex', alignItems: 'center', gap: 9, width: '100%',
-                      padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
-                      background: active ? 'var(--bl2)' : 'transparent',
-                      borderBottom: '1px solid var(--bd)',
-                      transition: 'background 0.1s',
-                    }}
-                      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--s2)'; }}
-                      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                    >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--bl)' : 'var(--t1)' }}>{m.short}</span>
-                      <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 2 }}>{m.name}</span>
-                      {active && <svg style={{ marginLeft: 'auto' }} width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4l3 3 6-6" stroke="var(--bl)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </button>
-                  );
-                })}
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
+                <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
+                <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400 }}>{meta.name}</span>
               </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setSwitcherOpen(o => !o)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: '7px 10px', borderRadius: 7, border: '1px solid var(--bd)',
+                    background: 'var(--s2)', cursor: 'pointer',
+                    transition: 'border-color 0.12s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
+                  <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
+                  <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400, marginRight: 2 }}>{meta.name}</span>
+                  <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, flexShrink: 0, transform: switcherOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+
+                {switcherOpen && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 10, right: 10, zIndex: 100,
+                    background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 9,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden', marginTop: 2,
+                  }}>
+                    {visibleCompanies.map(slug => {
+                      const m = COMPANY_META[slug];
+                      const isActive = slug === displayCompany;
+                      return (
+                        <button key={slug} onClick={() => switchCompany(slug)} style={{
+                          display: 'flex', alignItems: 'center', gap: 9, width: '100%',
+                          padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                          background: isActive ? 'var(--bl2)' : 'transparent',
+                          borderBottom: '1px solid var(--bd)',
+                          transition: 'background 0.1s',
+                        }}
+                          onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--s2)'; }}
+                          onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                        >
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--bl)' : 'var(--t1)' }}>{m.short}</span>
+                          <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 2 }}>{m.name}</span>
+                          {isActive && <svg style={{ marginLeft: 'auto' }} width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4l3 3 6-6" stroke="var(--bl)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
