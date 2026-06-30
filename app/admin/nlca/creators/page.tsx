@@ -37,6 +37,7 @@ export default function NlcaCreatorsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
   const [saving, setSaving] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then((d: { role: UserRole }) => setRole(d.role)).catch(() => {});
@@ -62,8 +63,9 @@ export default function NlcaCreatorsPage() {
   async function createCreator() {
     if (!form.name) return;
     setSaving(true);
+    setCreateError(null);
     try {
-      await fetch('/api/nlca/creators', {
+      const res = await fetch('/api/nlca/creators', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,9 +75,16 @@ export default function NlcaCreatorsPage() {
           notes: form.notes || null,
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setCreateError(body.error ?? `Fejl ${res.status}`);
+        return;
+      }
       setForm({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
       setShowCreate(false);
       await load();
+    } catch {
+      setCreateError('Netværksfejl — prøv igen');
     } finally {
       setSaving(false);
     }
@@ -200,7 +209,7 @@ export default function NlcaCreatorsPage() {
       {showCreate && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowCreate(false); }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowCreate(false); setCreateError(null); } }}
         >
           <div style={{ background: 'var(--s1)', borderRadius: 13, padding: 28, width: 400, maxWidth: '94vw' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 20 }}>Opret creator</div>
@@ -225,8 +234,13 @@ export default function NlcaCreatorsPage() {
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} style={{ width: '100%', marginTop: 4, resize: 'vertical' }} />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowCreate(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
+            {createError && (
+              <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--re2)', borderRadius: 7, fontSize: 12, color: 'var(--re)' }}>
+                {createError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowCreate(false); setCreateError(null); }} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
               <button onClick={() => void createCreator()} disabled={!form.name || saving} style={{ background: CYAN, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
                 {saving ? 'Opretter…' : 'Opret'}
               </button>
