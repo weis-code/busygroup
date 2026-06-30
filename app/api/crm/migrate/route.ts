@@ -161,31 +161,5 @@ export async function POST(req: NextRequest) {
     `;
   }
 
-  // Ensure Next level Creator company exists
-  await sql`
-    INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
-    VALUES ('Next level Creator', 'nlc', 'sales', '#8b5cf6', 'NLC', 0, false)
-    ON CONFLICT (slug) DO NOTHING
-  `;
-
-  // Seed NLC board + general channel if they don't exist yet
-  const [nlcCompany] = await sql`SELECT id FROM companies WHERE slug = 'nlc' LIMIT 1`;
-  if (nlcCompany) {
-    const nlcId = nlcCompany.id as number;
-    const [existingBoard] = await sql`SELECT id FROM kanban_boards WHERE company_id = ${nlcId} AND owner_user_id IS NULL LIMIT 1`;
-    if (!existingBoard) {
-      const [board] = await sql`INSERT INTO kanban_boards (company_id, name) VALUES (${nlcId}, 'Fælles board') RETURNING id`;
-      const colNames = ['Need', 'Nice', 'In progress', 'Done'];
-      for (let pos = 0; pos < colNames.length; pos++) {
-        await sql`INSERT INTO kanban_columns (board_id, name, position) VALUES (${board.id as number}, ${colNames[pos]}, ${pos})`;
-      }
-    }
-    const [existingChannel] = await sql`SELECT id FROM channels WHERE company_id = ${nlcId} AND is_general = true LIMIT 1`;
-    if (!existingChannel) {
-      const [firstAdmin] = await sql`SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1`;
-      await sql`INSERT INTO channels (company_id, name, description, is_general, created_by) VALUES (${nlcId}, 'general', 'Generel kanal', true, ${firstAdmin?.id ?? null})`;
-    }
-  }
-
   return NextResponse.json({ ok: true });
 }

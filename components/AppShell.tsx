@@ -19,7 +19,6 @@ const COMPANY_META: Record<CompanySlug, { name: string; short: string; color: st
   reminder:    { name: 'BusyReminder',               short: 'BR',   color: 'var(--ye)' },
   group:       { name: 'NL Group',                   short: 'GRP',  color: 'var(--t2)' },
   creatorrate: { name: 'CreatorRate',                short: 'CR',   color: '#f43f5e' },
-  nlc:         { name: 'Next level Creator',         short: 'NLC',  color: '#8b5cf6' },
   nlca:        { name: 'Next Level Creator Agency',  short: 'NLCA', color: '#06b6d4' },
 };
 
@@ -30,11 +29,10 @@ const COMPANY_HOME: Record<CompanySlug, string> = {
   reminder:    '/admin/reminder',
   group:       '/admin/group',
   creatorrate: '/admin/creatorrate',
-  nlc:         '/admin/nlc',
   nlca:        '/admin/nlca',
 };
 
-const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian', 'quorex', 'reminder', 'creatorrate', 'nlc', 'nlca'];
+const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian', 'quorex', 'reminder', 'creatorrate', 'nlca'];
 
 /* ── Nav section header helper ──────────────────────── */
 function sectionItem(section: string, href: string, label: string, icon: React.ReactNode, adminOnly?: boolean): NavItem {
@@ -104,14 +102,6 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',          '/admin/creatorrate/messages', 'Beskeder', <ChatIcon />),
     sectionItem('',          '/admin/settings',             'Indstillinger', <GearIcon />),
   ],
-  nlc: [
-    sectionItem('OVERSIGT',  '/admin/nlc',              'Overblik',   <GridIcon />),
-    sectionItem('CRM',       '/admin/nlc/crm',          'Pipeline',   <CrmIcon />),
-    sectionItem('',          '/admin/nlc/crm/contacts', 'Kontakter',  <PeopleIcon />),
-    sectionItem('PLATFORM',  '/admin/nlc/board',        'Board',      <BoardIcon />),
-    sectionItem('',          '/admin/nlc/messages',     'Beskeder',   <ChatIcon />),
-    sectionItem('',          '/admin/settings',         'Indstillinger', <GearIcon />),
-  ],
   nlca: [
     sectionItem('OVERSIGT',  '/admin/nlca',              'Overblik',      <GridIcon />),
     sectionItem('CREATORS',  '/admin/nlca/creators',     'Creators',      <PeopleIcon />),
@@ -159,12 +149,6 @@ const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; ico
     { href: '/admin/creatorrate/messages', label: 'Beskeder', icon: <ChatIcon /> },
     { href: '/admin/settings',             label: 'Indst.',   icon: <GearIcon /> },
   ],
-  nlc: [
-    { href: '/admin/nlc',          label: 'Overblik', icon: <GridIcon /> },
-    { href: '/admin/nlc/crm',      label: 'Pipeline', icon: <CrmIcon /> },
-    { href: '/admin/nlc/board',    label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/nlc/messages', label: 'Beskeder', icon: <ChatIcon /> },
-  ],
   nlca: [
     { href: '/admin/nlca',              label: 'Overblik',    icon: <GridIcon /> },
     { href: '/admin/nlca/creators',     label: 'Creators',    icon: <PeopleIcon /> },
@@ -201,7 +185,6 @@ function inferCompany(pathname: string): CompanySlug {
   if (pathname.startsWith('/admin/group'))       return 'group';
   if (pathname.startsWith('/admin/creatorrate')) return 'creatorrate';
   if (pathname.startsWith('/admin/nlca'))        return 'nlca';
-  if (pathname.startsWith('/admin/nlc'))         return 'nlc';
 
   // CRM belongs to Group
   if (pathname.startsWith('/admin/crm'))         return 'group';

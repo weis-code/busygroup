@@ -7,12 +7,6 @@ export async function seedPlatform() {
     VALUES ('CreatorRate', 'creatorrate', 'saas', '#f43f5e', 'CR', 25, false)
     ON CONFLICT (slug) DO NOTHING
   `;
-  await sql`
-    INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
-    VALUES ('Next level Creator', 'nlc', 'sales', '#8b5cf6', 'NLC', 0, false)
-    ON CONFLICT (slug) DO NOTHING
-  `;
-
   // Seed kanban boards + columns per company
   const companies = await sql`SELECT id, slug FROM companies`;
   const admins = await sql`SELECT id FROM users WHERE role = 'ADMIN'`;
