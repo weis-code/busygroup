@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { sessionFromRequest } from '@/lib/auth';
+import sql from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
+  const session = sessionFromRequest(req);
+  if (!session || session.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const type   = req.nextUrl.searchParams.get('type');
+  const status = req.nextUrl.searchParams.get('status');
+
+  const tickets = await sql`
+    SELECT
+      t.id, t.type, t.status, t.priority, t.title, t.description,
+      t.reporter_name, t.reporter_email,
+      t.created_at, t.updated_at,
+      a.name AS assignee_name,
+      c.name AS created_by_name
+    FROM cr_tickets t
+    LEFT JOIN users a ON a.id = t.assignee_id
+    LEFT JOIN users c ON c.id = t.created_by
+    WHERE
+      (${type}::text   IS NULL OR t.type   = ${type})
+      AND (${status}::text IS NULL OR t.status = ${status})
+    ORDER BY
+      CASE t.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
+      t.created_at DESC
+  `;
+
+  return NextResponse.json(tickets);
+}
+
+export async function POST(req: NextRequest) {
+  const session = sessionFromRequest(req);
+  if (!session || session.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { type, priority, title, description, assignee_id, reporter_name, reporter_email } =
+    await req.json() as {
+      type: string;
+      priority?: string;
+      title: string;
+      description?: string;
+      assignee_id?: string;
+      reporter_name?: string;
+      reporter_email?: string;
+    };
+
+  if (!type || !title) {
+    return NextResponse.json({ error: 'type og title kræves' }, { status: 400 });
+  }
+
+  const [ticket] = await sql`
+    INSERT INTO cr_tickets (type, priority, title, description, assignee_id, reporter_name, reporter_email, created_by)
+    VALUES (
+      ${type},
+      ${priority ?? 'normal'},
+      ${title},
+      ${description ?? null},
+      ${assignee_id ?? null},
+      ${reporter_name ?? null},
+      ${reporter_email ?? null},
+      ${session.id}
+    )
+    RETURNING id, type, status, priority, title, created_at
+  `;
+
+  return NextResponse.json(ticket, { status: 201 });
+}

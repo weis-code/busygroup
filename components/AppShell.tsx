@@ -98,6 +98,7 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
   ],
   creatorrate: [
     sectionItem('OVERSIGT',  '/admin/creatorrate',          'Overblik', <GridIcon />),
+    sectionItem('SUPPORT',   '/admin/creatorrate/tickets',  'Tickets',  <TaskIcon />),
     sectionItem('PLATFORM',  '/admin/creatorrate/board',    'Board',    <BoardIcon />),
     sectionItem('',          '/admin/creatorrate/messages', 'Beskeder', <ChatIcon />),
     sectionItem('',          '/admin/settings',             'Indstillinger', <GearIcon />),
