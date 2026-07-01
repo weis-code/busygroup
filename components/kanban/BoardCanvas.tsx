@@ -690,9 +690,9 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
       </div>
 
       {/* Board */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', minHeight: 0 }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', minHeight: 0, display: 'flex' }}>
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-          <div style={{ display: 'flex', gap: 10, padding: 18, height: '100%', minWidth: 'max-content' }}>
+          <div style={{ display: 'flex', gap: 10, padding: 18, minWidth: 'max-content', alignSelf: 'stretch' }}>
             {columns.map(col => {
               const isCollapsed = collapsed.has(col.id);
               const allColCards = cards.filter(c => c.column_id === col.id);
