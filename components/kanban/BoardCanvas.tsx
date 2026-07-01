@@ -699,7 +699,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
               const visible     = filterCards(allColCards.filter(c => !c.completed_at));
               const donePile    = filterCards(allColCards.filter(c => c.completed_at));
               return (
-                <div key={col.id} style={{ width: isCollapsed ? 42 : 220, minWidth: isCollapsed ? 42 : 220, flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'width 0.2s' }}>
+                <div key={col.id} style={{ width: isCollapsed ? 42 : 220, minWidth: isCollapsed ? 42 : 220, flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'width 0.2s', minHeight: 0 }}>
                   {isCollapsed ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingTop: 4 }}>
                       <button onClick={() => setCollapsed(prev => { const s = new Set(prev); s.delete(col.id); return s; })}
@@ -715,7 +715,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
                         onCollapse={() => setCollapsed(prev => { const s = new Set(prev); s.add(col.id); return s; })}
                         collapsed={false} />
                       <SortableContext items={visible.map(c => `card-${c.id}`)} strategy={verticalListSortingStrategy}>
-                        <div id={`col-${col.id}`} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                        <div id={`col-${col.id}`} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                           {visible.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} onToggleDone={() => toggleDone(card)} />)}
                           {showDone && donePile.length > 0 && (
                             <div style={{ borderTop: '1px dashed var(--bd)', paddingTop: 6, marginTop: 4 }}>
