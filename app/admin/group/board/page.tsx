@@ -142,7 +142,7 @@ export default function GroupBoardPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 46px)', background: 'var(--bg)' }}>
       <div style={{ padding: '0 18px', borderBottom: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, height: 48 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
