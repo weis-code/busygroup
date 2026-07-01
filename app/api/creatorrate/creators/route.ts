@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const statuses = await sql`SELECT creator_id, status, notes, updated_at FROM cr_creator_status`;
   const statusMap = Object.fromEntries(
-    (statuses as { creator_id: string; status: string; notes: string | null; updated_at: string }[])
+    (statuses as unknown as { creator_id: string; status: string; notes: string | null; updated_at: string }[])
       .map(s => [s.creator_id, s])
   );
 
