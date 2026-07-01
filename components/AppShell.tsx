@@ -98,11 +98,12 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',         '/admin/settings',         'Indstillinger',    <GearIcon />),
   ],
   creatorrate: [
-    sectionItem('OVERSIGT',  '/admin/creatorrate',          'Overblik', <GridIcon />),
-    sectionItem('SUPPORT',   '/admin/creatorrate/tickets',  'Tickets',  <TaskIcon />),
-    sectionItem('PLATFORM',  '/admin/creatorrate/board',    'Board',    <BoardIcon />),
-    sectionItem('',          '/admin/creatorrate/messages', 'Beskeder', <ChatIcon />),
-    sectionItem('',          '/admin/settings',             'Indstillinger', <GearIcon />),
+    sectionItem('OVERSIGT',  '/admin/creatorrate',           'Overblik',  <GridIcon />),
+    sectionItem('CREATORS',  '/admin/creatorrate/creators',  'Creators',  <PeopleIcon />),
+    sectionItem('SUPPORT',   '/admin/creatorrate/tickets',   'Tickets',   <TaskIcon />),
+    sectionItem('PLATFORM',  '/admin/creatorrate/board',     'Board',     <BoardIcon />),
+    sectionItem('',          '/admin/creatorrate/messages',  'Beskeder',  <ChatIcon />),
+    sectionItem('',          '/admin/settings',              'Indstillinger', <GearIcon />),
   ],
   nlca: [
     sectionItem('OVERSIGT',  '/admin/nlca',              'Overblik',      <GridIcon />),
