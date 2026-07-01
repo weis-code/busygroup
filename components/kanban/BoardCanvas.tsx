@@ -715,7 +715,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
                         onCollapse={() => setCollapsed(prev => { const s = new Set(prev); s.add(col.id); return s; })}
                         collapsed={false} />
                       <SortableContext items={visible.map(c => `card-${c.id}`)} strategy={verticalListSortingStrategy}>
-                        <div id={`col-${col.id}`} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                        <div id={`col-${col.id}`} style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 280px)' }}>
                           {visible.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} onToggleDone={() => toggleDone(card)} />)}
                           {showDone && donePile.length > 0 && (
                             <div style={{ borderTop: '1px dashed var(--bd)', paddingTop: 6, marginTop: 4 }}>
