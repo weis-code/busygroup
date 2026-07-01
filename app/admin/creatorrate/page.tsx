@@ -76,10 +76,23 @@ export default function CreatorRatePage() {
         </div>
       )}
 
-      {/* Placeholder for MRR — Stripe følger */}
-      <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '28px 32px', color: 'var(--t3)', fontSize: 13 }}>
-        <div style={{ fontWeight: 600, color: 'var(--t2)', marginBottom: 4 }}>MRR · Stripe</div>
-        <div>Stripe-integration kommer i næste trin.</div>
+      {/* MRR */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Økonomi</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+        <StatCard
+          label="MRR"
+          value={loading ? '…' : `$${((users?.creators ?? 0) * 5).toLocaleString('en-US')}`}
+          sub="$5 per creator/md."
+          color="var(--gr)"
+        />
+        <StatCard
+          label="ARR"
+          value={loading ? '…' : `$${((users?.creators ?? 0) * 5 * 12).toLocaleString('en-US')}`}
+          sub="MRR × 12"
+          color="var(--gr)"
+        />
       </div>
     </div>
   );
