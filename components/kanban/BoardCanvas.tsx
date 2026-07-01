@@ -653,7 +653,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
   const board = boards.find(b => b.id === activeBoardId);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {toast && <Toast msg={toast} onDone={() => setToast('')} />}
 
       {/* Toolbar */}
@@ -690,7 +690,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
       </div>
 
       {/* Board */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden' }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', minHeight: 0 }}>
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
           <div style={{ display: 'flex', gap: 10, padding: 18, height: '100%', minWidth: 'max-content' }}>
             {columns.map(col => {
