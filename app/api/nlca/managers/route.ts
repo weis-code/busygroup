@@ -5,11 +5,35 @@ import sql from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+async function ensureNlcaTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_managers (
+      id         SERIAL PRIMARY KEY,
+      user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      email      TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_creators (
+      id            SERIAL PRIMARY KEY,
+      name          TEXT NOT NULL,
+      manager_id    INTEGER REFERENCES nlca_managers(id) ON DELETE SET NULL,
+      tiktok_handle TEXT,
+      notes         TEXT,
+      is_active     BOOLEAN DEFAULT true,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+}
+
 export async function GET(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  await ensureNlcaTables();
 
   const currentMonth = new Date();
   const monthStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-01`;
@@ -41,6 +65,7 @@ export async function POST(req: NextRequest) {
   if (!session || session.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  await ensureNlcaTables();
 
   const { name, email, password } = await req.json() as { name: string; email: string; password: string };
   if (!name || !email || !password) {
