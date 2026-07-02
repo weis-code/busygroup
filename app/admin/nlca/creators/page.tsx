@@ -90,7 +90,7 @@ export default function NlcaCreatorsPage() {
     }
   }
 
-  const isAdmin = role === 'ADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'NLCA_MANAGER';
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1000 }}>

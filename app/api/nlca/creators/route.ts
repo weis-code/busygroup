@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = sessionFromRequest(req);
-  if (!session || session.role !== 'ADMIN') {
+  if (!session || (session.role !== 'ADMIN' && session.role !== 'NLCA_MANAGER')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   await ensureNlcaTables();
@@ -96,9 +96,14 @@ export async function POST(req: NextRequest) {
   };
   if (!name) return NextResponse.json({ error: 'Navn kræves' }, { status: 400 });
 
+  let resolvedManagerId: number | null = manager_id ?? null;
+  if (session.role === 'NLCA_MANAGER') {
+    resolvedManagerId = await getManagerId(session.id);
+  }
+
   const [creator] = await sql`
     INSERT INTO nlca_creators (name, tiktok_handle, manager_id, notes)
-    VALUES (${name}, ${tiktok_handle ?? null}, ${manager_id ?? null}, ${notes ?? null})
+    VALUES (${name}, ${tiktok_handle ?? null}, ${resolvedManagerId}, ${notes ?? null})
     RETURNING id, name, tiktok_handle, manager_id, notes, is_active, created_at
   `;
   return NextResponse.json(creator, { status: 201 });
