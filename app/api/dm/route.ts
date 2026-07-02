@@ -4,9 +4,53 @@ import sql from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+async function ensureMessengerTables() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS channels (
+      id          SERIAL PRIMARY KEY,
+      company_id  INT REFERENCES companies(id) ON DELETE CASCADE,
+      name        TEXT NOT NULL,
+      description TEXT,
+      is_general  BOOLEAN DEFAULT FALSE,
+      created_by  UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS channel_members (
+      channel_id   INT REFERENCES channels(id) ON DELETE CASCADE,
+      user_id      UUID REFERENCES users(id) ON DELETE CASCADE,
+      last_read_at TIMESTAMPTZ,
+      PRIMARY KEY (channel_id, user_id)
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS dm_conversations (
+      id            SERIAL PRIMARY KEY,
+      participant_a UUID REFERENCES users(id) ON DELETE CASCADE,
+      participant_b UUID REFERENCES users(id) ON DELETE CASCADE,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (participant_a, participant_b)
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS messages (
+      id                  SERIAL PRIMARY KEY,
+      channel_id          INT REFERENCES channels(id) ON DELETE CASCADE,
+      dm_conversation_id  INT REFERENCES dm_conversations(id) ON DELETE CASCADE,
+      sender_id           UUID REFERENCES users(id) ON DELETE SET NULL,
+      body                TEXT NOT NULL,
+      deleted_at          TIMESTAMPTZ,
+      created_at          TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+}
+
 export async function GET(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  await ensureMessengerTables();
 
   const convs = await sql`
     SELECT dc.*,
@@ -26,6 +70,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  await ensureMessengerTables();
 
   const { other_user_id } = await req.json();
   if (!other_user_id) return NextResponse.json({ error: 'other_user_id kræves' }, { status: 400 });
