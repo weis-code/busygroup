@@ -1,45 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sessionFromRequest } from '@/lib/auth';
+import { ensureNlcaTables } from '@/lib/nlca-tables';
 import sql from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
-
-async function ensureNlcaTables() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS nlca_managers (
-      id         SERIAL PRIMARY KEY,
-      user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
-      name       TEXT NOT NULL,
-      email      TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS nlca_creators (
-      id            SERIAL PRIMARY KEY,
-      name          TEXT NOT NULL,
-      manager_id    INTEGER REFERENCES nlca_managers(id) ON DELETE SET NULL,
-      tiktok_handle TEXT,
-      notes         TEXT,
-      is_active     BOOLEAN DEFAULT true,
-      created_at    TIMESTAMPTZ DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS nlca_monthly_figures (
-      id                      SERIAL PRIMARY KEY,
-      creator_id              INTEGER REFERENCES nlca_creators(id) ON DELETE CASCADE,
-      month                   DATE NOT NULL,
-      rank_up_usd             NUMERIC(10,2) DEFAULT 0,
-      activeness_usd          NUMERIC(10,2) DEFAULT 0,
-      incremental_revenue_usd NUMERIC(10,2) DEFAULT 0,
-      entered_by              UUID REFERENCES users(id),
-      updated_at              TIMESTAMPTZ DEFAULT NOW(),
-      created_at              TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(creator_id, month)
-    )
-  `;
-}
 
 async function getManagerId(userId: string): Promise<number | null> {
   const [row] = await sql`SELECT id FROM nlca_managers WHERE user_id = ${userId} LIMIT 1`;
@@ -84,6 +48,7 @@ export async function GET(req: NextRequest) {
   const creators = await sql`
     SELECT c.id AS creator_id, c.name AS creator_name,
            m.id AS manager_id, m.name AS manager_name,
+           c.country,
            COALESCE(f.rank_up_usd, 0) AS rank_up_usd,
            COALESCE(f.activeness_usd, 0) AS activeness_usd,
            COALESCE(f.incremental_revenue_usd, 0) AS incremental_revenue_usd,
@@ -107,10 +72,22 @@ export async function GET(req: NextRequest) {
     ORDER BY m.name ASC
   `;
 
+  const countryManagerPayouts = await sql`
+    SELECT cm.id AS country_manager_id, cm.name AS country_manager_name, cm.country, cm.pct,
+           COUNT(DISTINCT c.id)::int AS creator_count,
+           COALESCE(SUM(COALESCE(f.rank_up_usd, 0) + COALESCE(f.activeness_usd, 0)), 0) AS total_creator_base,
+           COALESCE(SUM(COALESCE(f.rank_up_usd, 0) + COALESCE(f.activeness_usd, 0)) * cm.pct / 100.0, 0) AS country_manager_payout
+    FROM nlca_country_managers cm
+    LEFT JOIN nlca_creators c ON c.country = cm.country AND c.is_active = true
+    LEFT JOIN nlca_monthly_figures f ON f.creator_id = c.id AND f.month = ${monthDate}::date
+    GROUP BY cm.id, cm.name, cm.country, cm.pct
+    ORDER BY cm.country ASC
+  `;
+
   const totalRevenue = creators.reduce(
     (s, r) => s + Number(r.rank_up_usd ?? 0) + Number(r.activeness_usd ?? 0) + Number(r.incremental_revenue_usd ?? 0),
     0
   );
 
-  return NextResponse.json({ creators, manager_payouts: managerPayouts, total_revenue: totalRevenue });
+  return NextResponse.json({ creators, manager_payouts: managerPayouts, country_manager_payouts: countryManagerPayouts, total_revenue: totalRevenue });
 }

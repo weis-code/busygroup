@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 
 const CYAN = '#06b6d4';
+const RED = 'var(--re)';
 
 const USD = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
@@ -16,6 +17,7 @@ interface Creator {
   manager_name: string | null;
   tiktok_handle: string | null;
   is_active: boolean;
+  country: string | null;
   created_at: string;
 }
 
@@ -37,7 +39,7 @@ export default function NlcaCreatorsPage() {
   const [selected, setSelected] = useState<Creator | null>(null);
   const [figures, setFigures] = useState<FigureRow[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
+  const [form, setForm] = useState({ name: '', tiktok_handle: '', manager_id: '', notes: '', country: '' });
   const [saving, setSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -49,6 +51,12 @@ export default function NlcaCreatorsPage() {
   });
   const [figureSaving, setFigureSaving] = useState(false);
   const [figureMsg, setFigureMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const [editManager, setEditManager] = useState('');
+  const [editCountry, setEditCountry] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMsg, setEditMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then((d: { role: UserRole }) => setRole(d.role)).catch(() => {});
@@ -70,6 +78,10 @@ export default function NlcaCreatorsPage() {
     setSelected(data);
     setFigures(data.figures ?? []);
     setFigureMsg(null);
+    setEditMsg(null);
+    setConfirmDelete(false);
+    setEditManager(String(data.manager_id ?? ''));
+    setEditCountry(data.country ?? '');
   }
 
   async function createCreator() {
@@ -85,6 +97,7 @@ export default function NlcaCreatorsPage() {
           tiktok_handle: form.tiktok_handle || null,
           manager_id: form.manager_id ? parseInt(form.manager_id, 10) : null,
           notes: form.notes || null,
+          country: form.country || null,
         }),
       });
       if (!res.ok) {
@@ -93,7 +106,7 @@ export default function NlcaCreatorsPage() {
         return;
       }
       setShowCreate(false);
-      setForm({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
+      setForm({ name: '', tiktok_handle: '', manager_id: '', notes: '', country: '' });
       await load();
     } catch {
       setCreateError('Netværksfejl — prøv igen');
@@ -135,6 +148,53 @@ export default function NlcaCreatorsPage() {
     }
   }
 
+  async function saveCreatorEdit() {
+    if (!selected || !isAdmin) return;
+    setEditSaving(true);
+    setEditMsg(null);
+    try {
+      const body: Record<string, unknown> = {};
+      const newManagerId = editManager ? parseInt(editManager, 10) : null;
+      if (newManagerId !== selected.manager_id) body.manager_id = newManagerId;
+      const newCountry = editCountry.trim() || null;
+      if (newCountry !== selected.country) body.country = newCountry;
+
+      if (Object.keys(body).length === 0) {
+        setEditMsg({ ok: true, text: 'Ingen ændringer' });
+        return;
+      }
+
+      const res = await fetch(`/api/nlca/creators/${selected.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        setEditMsg({ ok: false, text: err.error ?? `Fejl ${res.status}` });
+        return;
+      }
+      setEditMsg({ ok: true, text: 'Gemt' });
+      await loadCreator(selected.id);
+      await load();
+    } catch {
+      setEditMsg({ ok: false, text: 'Netværksfejl — prøv igen' });
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function deleteCreator() {
+    if (!selected || !isAdmin) return;
+    try {
+      const res = await fetch(`/api/nlca/creators/${selected.id}`, { method: 'DELETE' });
+      if (!res.ok) return;
+      setSelected(null);
+      setConfirmDelete(false);
+      await load();
+    } catch { /* ignore */ }
+  }
+
   const isAdmin = role === 'ADMIN';
 
   return (
@@ -154,17 +214,72 @@ export default function NlcaCreatorsPage() {
 
       {selected ? (
         <div>
-          <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: CYAN, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
+          <button onClick={() => { setSelected(null); setConfirmDelete(false); }} style={{ background: 'none', border: 'none', color: CYAN, cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0 }}>
             ← Tilbage
           </button>
-          <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
+
+          {/* Creator header */}
+          <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>{selected.name}</div>
-            <div style={{ fontSize: 12, color: 'var(--t3)', display: 'flex', gap: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--t3)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               {selected.tiktok_handle && <span>TikTok: @{selected.tiktok_handle}</span>}
               {selected.manager_name && <span>Manager: {selected.manager_name}</span>}
-              <span style={{ color: selected.is_active ? 'var(--gr)' : 'var(--re)' }}>{selected.is_active ? 'Aktiv' : 'Inaktiv'}</span>
+              {selected.country && <span>Land: {selected.country}</span>}
+              <span style={{ color: selected.is_active ? 'var(--gr)' : RED }}>{selected.is_active ? 'Aktiv' : 'Inaktiv'}</span>
             </div>
           </div>
+
+          {/* Edit section (admin only) */}
+          {isAdmin && (
+            <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Rediger</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Manager</label>
+                  <select value={editManager} onChange={e => setEditManager(e.target.value)} style={{ width: '100%' }}>
+                    <option value="">Ingen manager</option>
+                    {managers.map(m => <option key={m.id} value={String(m.id)}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Land</label>
+                  <input
+                    value={editCountry}
+                    onChange={e => setEditCountry(e.target.value)}
+                    placeholder="f.eks. Denmark"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    onClick={() => void saveCreatorEdit()}
+                    disabled={editSaving}
+                    style={{ background: CYAN, color: '#fff', border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 600, cursor: editSaving ? 'not-allowed' : 'pointer', opacity: editSaving ? 0.6 : 1 }}
+                  >
+                    {editSaving ? 'Gemmer…' : 'Gem ændringer'}
+                  </button>
+                  {editMsg && (
+                    <span style={{ fontSize: 12, color: editMsg.ok ? 'var(--gr)' : RED, fontWeight: 600 }}>{editMsg.text}</span>
+                  )}
+                </div>
+                <div>
+                  {confirmDelete ? (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: 'var(--t2)' }}>Er du sikker?</span>
+                      <button onClick={() => void deleteCreator()} style={{ background: RED, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Slet</button>
+                      <button onClick={() => setConfirmDelete(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer' }}>Annuller</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDelete(true)} style={{ background: 'none', color: 'var(--re)', border: '1px solid var(--re)', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      Slet creator
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Figures entry form */}
           <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
@@ -205,7 +320,7 @@ export default function NlcaCreatorsPage() {
               </div>
               {isAdmin && (
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Inc. Revenue USD 🔒</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Incremental Revenue Incentive 🔒</label>
                   <input
                     type="number"
                     min="0"
@@ -237,7 +352,7 @@ export default function NlcaCreatorsPage() {
                 {figureSaving ? 'Gemmer…' : 'Gem tal'}
               </button>
               {figureMsg && (
-                <span style={{ fontSize: 12, color: figureMsg.ok ? 'var(--gr)' : 'var(--re)', fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: figureMsg.ok ? 'var(--gr)' : RED, fontWeight: 600 }}>
                   {figureMsg.text}
                 </span>
               )}
@@ -294,6 +409,7 @@ export default function NlcaCreatorsPage() {
                 <tr style={{ background: 'var(--s2)' }}>
                   <th style={{ padding: '9px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Navn</th>
                   <th style={{ padding: '9px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Manager</th>
+                  <th style={{ padding: '9px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Land</th>
                   <th style={{ padding: '9px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>TikTok</th>
                   <th style={{ padding: '9px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
                   <th style={{ padding: '9px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Oprettet</th>
@@ -310,6 +426,7 @@ export default function NlcaCreatorsPage() {
                   >
                     <td style={{ padding: '11px 14px', color: 'var(--t1)', fontWeight: 500 }}>{c.name}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--t3)' }}>{c.manager_name ?? '—'}</td>
+                    <td style={{ padding: '11px 14px', color: 'var(--t3)' }}>{c.country ?? '—'}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--t3)' }}>{c.tiktok_handle ? `@${c.tiktok_handle}` : '—'}</td>
                     <td style={{ padding: '11px 14px' }}>
                       <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 100, background: c.is_active ? 'rgba(45,212,160,0.15)' : 'var(--re2)', color: c.is_active ? 'var(--gr)' : 'var(--re)' }}>
@@ -333,7 +450,7 @@ export default function NlcaCreatorsPage() {
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={e => { if (e.target === e.currentTarget) { setShowCreate(false); setCreateError(null); } }}
         >
-          <div style={{ background: 'var(--s1)', borderRadius: 13, padding: 28, width: 400, maxWidth: '94vw' }}>
+          <div style={{ background: 'var(--s1)', borderRadius: 13, padding: 28, width: 420, maxWidth: '94vw' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 20 }}>Opret creator</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -344,12 +461,18 @@ export default function NlcaCreatorsPage() {
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>TikTok handle</label>
                 <input value={form.tiktok_handle} onChange={e => setForm(f => ({ ...f, tiktok_handle: e.target.value }))} placeholder="@handle (uden @)" style={{ width: '100%', marginTop: 4 }} />
               </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tildel manager</label>
-                <select value={form.manager_id} onChange={e => setForm(f => ({ ...f, manager_id: e.target.value }))} style={{ width: '100%', marginTop: 4 }}>
-                  <option value="">Ingen manager</option>
-                  {managers.map(m => <option key={m.id} value={String(m.id)}>{m.name}</option>)}
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Tildel manager</label>
+                  <select value={form.manager_id} onChange={e => setForm(f => ({ ...f, manager_id: e.target.value }))} style={{ width: '100%', marginTop: 4 }}>
+                    <option value="">Ingen manager</option>
+                    {managers.map(m => <option key={m.id} value={String(m.id)}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Land</label>
+                  <input value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} placeholder="f.eks. Denmark" style={{ width: '100%', marginTop: 4 }} />
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Noter</label>

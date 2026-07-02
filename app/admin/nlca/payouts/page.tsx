@@ -44,9 +44,19 @@ interface ManagerRow {
   total_creator_base: number;
   manager_payout: number;
 }
+interface CountryManagerRow {
+  country_manager_id: number;
+  country_manager_name: string;
+  country: string;
+  pct: number;
+  creator_count: number;
+  total_creator_base: number;
+  country_manager_payout: number;
+}
 interface AdminPayoutData {
   creators: CreatorRow[];
   manager_payouts: ManagerRow[];
+  country_manager_payouts: CountryManagerRow[];
   total_revenue: number;
 }
 interface ManagerPayoutData {
@@ -85,10 +95,12 @@ export default function NlcaPayoutsPage() {
 
   if (isAdmin) {
     const adminData = data as AdminPayoutData;
-    const creators   = adminData.creators ?? [];
-    const managers   = adminData.manager_payouts ?? [];
-    const totalCreatorPayout = creators.reduce((s, r) => s + Number(r.creator_payout ?? 0), 0);
-    const totalManagerPayout = managers.reduce((s, m) => s + Number(m.manager_payout ?? 0), 0);
+    const creators       = adminData.creators ?? [];
+    const managers       = adminData.manager_payouts ?? [];
+    const countryMgrs    = adminData.country_manager_payouts ?? [];
+    const totalCreatorPayout    = creators.reduce((s, r) => s + Number(r.creator_payout ?? 0), 0);
+    const totalManagerPayout    = managers.reduce((s, m) => s + Number(m.manager_payout ?? 0), 0);
+    const totalCountryMgrPayout = countryMgrs.reduce((s, c) => s + Number(c.country_manager_payout ?? 0), 0);
 
     return (
       <div style={{ padding: '28px 32px', maxWidth: 1200 }}>
@@ -188,6 +200,45 @@ export default function NlcaPayoutsPage() {
             </table>
           </div>
         </div>
+
+        {/* Country manager payouts */}
+        {countryMgrs.length > 0 && (
+          <div style={{ marginTop: 20, background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bd)', background: 'var(--s2)', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
+              Landsmanager Udbetalinger
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'var(--s2)' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Landsmanager</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Land</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Creators</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Creator-beløb</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Pct</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Payout</th>
+                </tr>
+              </thead>
+              <tbody>
+                {countryMgrs.map((c, i) => (
+                  <tr key={c.country_manager_id} style={{ borderTop: i > 0 ? '1px solid var(--bd)' : 'none' }}>
+                    <td style={{ padding: '9px 12px', color: 'var(--t1)', fontWeight: 500 }}>{c.country_manager_name}</td>
+                    <td style={{ padding: '9px 12px', color: 'var(--t3)' }}>{c.country}</td>
+                    <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--t3)' }}>{c.creator_count}</td>
+                    <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--t1)' }}>{USD(Number(c.total_creator_base ?? 0))}</td>
+                    <td style={{ padding: '9px 12px', textAlign: 'right', color: 'var(--t3)' }}>{Number(c.pct)}%</td>
+                    <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{USD(Number(c.country_manager_payout ?? 0))}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid var(--bd)', background: 'var(--s2)' }}>
+                  <td colSpan={5} style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--t1)' }}>Total</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 700, color: '#10b981' }}>{USD(totalCountryMgrPayout)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
         <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>Samlet omsætning (inkl. incremental revenue)</span>

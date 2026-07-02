@@ -123,9 +123,9 @@ export async function register() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_part_time BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) NULL`;
 
-  // Ensure role check constraint includes NLCA_MANAGER (safe to run on every boot)
+  // Ensure role check constraint includes all roles (safe to run on every boot)
   await sql`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`;
-  await sql`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('ADMIN','MANAGER','SELLER','NLCA_MANAGER'))`;
+  await sql`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('ADMIN','MANAGER','SELLER','NLCA_MANAGER','NLCA_COUNTRY_MANAGER'))`;
 
   // Migrations for existing tables
   await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS calls_actual INTEGER NOT NULL DEFAULT 0`;
@@ -301,6 +301,55 @@ export async function register() {
 
   await sql`ALTER TABLE kanban_cards ADD COLUMN IF NOT EXISTS labels TEXT DEFAULT '[]'`;
   await sql`ALTER TABLE kanban_cards ADD COLUMN IF NOT EXISTS cover_color TEXT NULL`;
+
+  // NLCA tables
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_managers (
+      id         SERIAL PRIMARY KEY,
+      user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      email      TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_creators (
+      id            SERIAL PRIMARY KEY,
+      name          TEXT NOT NULL,
+      manager_id    INTEGER REFERENCES nlca_managers(id) ON DELETE SET NULL,
+      tiktok_handle TEXT,
+      notes         TEXT,
+      is_active     BOOLEAN DEFAULT true,
+      country       TEXT,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`ALTER TABLE nlca_creators ADD COLUMN IF NOT EXISTS country TEXT`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_monthly_figures (
+      id                      SERIAL PRIMARY KEY,
+      creator_id              INTEGER REFERENCES nlca_creators(id) ON DELETE CASCADE,
+      month                   DATE NOT NULL,
+      rank_up_usd             NUMERIC(10,2) DEFAULT 0,
+      activeness_usd          NUMERIC(10,2) DEFAULT 0,
+      incremental_revenue_usd NUMERIC(10,2) DEFAULT 0,
+      entered_by              UUID REFERENCES users(id),
+      updated_at              TIMESTAMPTZ DEFAULT NOW(),
+      created_at              TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(creator_id, month)
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_country_managers (
+      id         SERIAL PRIMARY KEY,
+      user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      email      TEXT,
+      country    TEXT NOT NULL UNIQUE,
+      pct        NUMERIC(5,2) NOT NULL DEFAULT 5.00,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 
   await sql`
     CREATE TABLE IF NOT EXISTS kanban_card_checklist (

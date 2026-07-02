@@ -18,21 +18,23 @@ export async function GET(req: NextRequest) {
 
   const managers = await sql`
     SELECT
-      m.id,
-      m.name,
-      m.email,
-      m.user_id,
-      m.created_at,
+      cm.id,
+      cm.name,
+      cm.email,
+      cm.user_id,
+      cm.country,
+      cm.pct,
+      cm.created_at,
       COUNT(DISTINCT c.id)::int AS creator_count,
       COALESCE(
-        SUM((COALESCE(f.rank_up_usd, 0) + COALESCE(f.activeness_usd, 0)) * 0.05),
+        SUM((COALESCE(f.rank_up_usd, 0) + COALESCE(f.activeness_usd, 0)) * cm.pct / 100.0),
         0
       ) AS payout_this_month
-    FROM nlca_managers m
-    LEFT JOIN nlca_creators c ON c.manager_id = m.id AND c.is_active = true
+    FROM nlca_country_managers cm
+    LEFT JOIN nlca_creators c ON c.country = cm.country AND c.is_active = true
     LEFT JOIN nlca_monthly_figures f ON f.creator_id = c.id AND f.month = ${monthStr}::date
-    GROUP BY m.id, m.name, m.email, m.user_id, m.created_at
-    ORDER BY m.name ASC
+    GROUP BY cm.id, cm.name, cm.email, cm.user_id, cm.country, cm.pct, cm.created_at
+    ORDER BY cm.country ASC
   `;
 
   return NextResponse.json(managers);
@@ -45,9 +47,15 @@ export async function POST(req: NextRequest) {
   }
   await ensureNlcaTables();
 
-  const { name, email, password } = await req.json() as { name: string; email: string; password: string };
-  if (!name || !email || !password) {
-    return NextResponse.json({ error: 'Navn, email og kodeord kræves' }, { status: 400 });
+  const { name, email, password, country, pct } = await req.json() as {
+    name: string;
+    email: string;
+    password: string;
+    country: string;
+    pct?: number;
+  };
+  if (!name || !email || !password || !country) {
+    return NextResponse.json({ error: 'Navn, email, kodeord og land kræves' }, { status: 400 });
   }
 
   try {
@@ -58,26 +66,25 @@ export async function POST(req: NextRequest) {
 
     const [user] = await sql`
       INSERT INTO users (email, name, password_hash, role, company_id)
-      VALUES (${email.toLowerCase().trim()}, ${name}, ${hash}, 'NLCA_MANAGER', ${companyId})
+      VALUES (${email.toLowerCase().trim()}, ${name}, ${hash}, 'NLCA_COUNTRY_MANAGER', ${companyId})
       RETURNING id, email, name, role
     `;
 
+    const resolvedPct = pct ?? 5.00;
+
     const [manager] = await sql`
-      INSERT INTO nlca_managers (user_id, name, email)
-      VALUES (${user.id as string}, ${name}, ${email.toLowerCase().trim()})
-      RETURNING id, user_id, name, email, created_at
+      INSERT INTO nlca_country_managers (user_id, name, email, country, pct)
+      VALUES (${user.id as string}, ${name}, ${email.toLowerCase().trim()}, ${country.trim()}, ${resolvedPct})
+      RETURNING id, user_id, name, email, country, pct, created_at
     `;
 
     return NextResponse.json({ ...manager, creator_count: 0, payout_this_month: 0 }, { status: 201 });
   } catch (err) {
     const pg = err as { code?: string; message?: string };
     if (pg.code === '23505') {
-      return NextResponse.json({ error: 'Email er allerede i brug' }, { status: 409 });
+      return NextResponse.json({ error: 'Email eller land er allerede i brug' }, { status: 409 });
     }
-    if (pg.code === '23514') {
-      return NextResponse.json({ error: 'Rolle ikke tilladt — kør server-migration (kontakt admin)' }, { status: 500 });
-    }
-    console.error('[NLCA] POST /managers failed:', pg.code, pg.message, err);
+    console.error('[NLCA] POST /country-managers failed:', pg.code, pg.message, err);
     return NextResponse.json({ error: `Databasefejl (${pg.code ?? 'ukendt'}): ${pg.message ?? ''}` }, { status: 500 });
   }
 }
