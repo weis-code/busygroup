@@ -45,8 +45,8 @@ export default function NlcaCreatorsPage() {
 
   const load = useCallback(async () => {
     const [c, m] = await Promise.all([
-      fetch('/api/nlca/creators').then(r => r.json()) as Promise<Creator[]>,
-      fetch('/api/nlca/managers').then(r => r.json()) as Promise<Manager[]>,
+      fetch('/api/nlca/creators').then(r => r.json()).catch(() => []) as Promise<Creator[]>,
+      fetch('/api/nlca/managers').then(r => r.json()).catch(() => []) as Promise<Manager[]>,
     ]);
     setCreators(Array.isArray(c) ? c : []);
     setManagers(Array.isArray(m) ? m : []);
@@ -80,8 +80,8 @@ export default function NlcaCreatorsPage() {
         setCreateError(body.error ?? `Fejl ${res.status}`);
         return;
       }
-      setForm({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
       setShowCreate(false);
+      setForm({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
       await load();
     } catch {
       setCreateError('Netværksfejl — prøv igen');
@@ -241,7 +241,7 @@ export default function NlcaCreatorsPage() {
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
               <button onClick={() => { setShowCreate(false); setCreateError(null); }} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
-              <button onClick={() => void createCreator()} disabled={!form.name || saving} style={{ background: CYAN, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+              <button onClick={() => void createCreator()} disabled={!form.name || saving} style={{ background: CYAN, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, opacity: (!form.name || saving) ? 0.45 : 1, cursor: (!form.name || saving) ? 'not-allowed' : 'pointer' }}>
                 {saving ? 'Opretter…' : 'Opret'}
               </button>
             </div>
