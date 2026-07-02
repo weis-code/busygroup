@@ -123,6 +123,10 @@ export async function register() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_part_time BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) NULL`;
 
+  // Ensure role check constraint includes NLCA_MANAGER (safe to run on every boot)
+  await sql`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`;
+  await sql`ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('ADMIN','MANAGER','SELLER','NLCA_MANAGER'))`;
+
   // Migrations for existing tables
   await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS calls_actual INTEGER NOT NULL DEFAULT 0`;
   await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS contacts_actual INTEGER NOT NULL DEFAULT 0`;

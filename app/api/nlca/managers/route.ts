@@ -106,11 +106,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ...manager, creator_count: 0, payout_this_month: 0 }, { status: 201 });
   } catch (err) {
-    const pg = err as { code?: string };
+    const pg = err as { code?: string; message?: string };
     if (pg.code === '23505') {
       return NextResponse.json({ error: 'Email er allerede i brug' }, { status: 409 });
     }
-    console.error('[NLCA] POST /managers failed:', err);
-    return NextResponse.json({ error: 'Databasefejl — prøv igen' }, { status: 500 });
+    if (pg.code === '23514') {
+      return NextResponse.json({ error: 'Rolle ikke tilladt — kør server-migration (kontakt admin)' }, { status: 500 });
+    }
+    console.error('[NLCA] POST /managers failed:', pg.code, pg.message, err);
+    return NextResponse.json({ error: `Databasefejl (${pg.code ?? 'ukendt'}): ${pg.message ?? ''}` }, { status: 500 });
   }
 }
