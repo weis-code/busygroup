@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-const CYAN = '#06b6d4';
 const GREEN = '#10b981';
 
 const USD = (n: number) =>
