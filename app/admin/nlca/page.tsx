@@ -135,8 +135,8 @@ export default function NlcaPage() {
         { label: 'Aktive creators', value: String(activeCount), color: 'var(--bl)' },
       ]
     : [
-        { label: 'Omsætning', value: USD(payout.visible_revenue ?? 0), color: CYAN },
         { label: 'Creator payouts', value: USD(totalCreatorPayout), color: 'var(--gr)' },
+        { label: 'Min udbetaling (5%)', value: USD(payout.manager_payout ?? 0), color: 'var(--pu)' },
         { label: 'Aktive creators', value: String(activeCount), color: 'var(--bl)' },
       ];
 
@@ -190,12 +190,13 @@ export default function NlcaPage() {
                 )}
                 <th style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Creator Payout</th>
                 {isAdmin && <th style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Manager 5%</th>}
+                {!isAdmin && <th style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Min cut (5%)</th>}
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 4} style={{ padding: '40px 14px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
+                  <td colSpan={isAdmin ? 7 : 5} style={{ padding: '40px 14px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
                     Ingen aktive creators endnu. <a href="/admin/nlca/creators" style={{ color: CYAN }}>Opret creators →</a>
                   </td>
                 </tr>
@@ -221,6 +222,7 @@ export default function NlcaPage() {
                     )}
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t1)' }}>{USD(creatorPayout)}</td>
                     {isAdmin && <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--t3)' }}>{USD(managerPayout)}</td>}
+                    {!isAdmin && <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--pu)', fontWeight: 600 }}>{USD(managerPayout)}</td>}
                   </tr>
                 );
               })}
@@ -244,6 +246,11 @@ export default function NlcaPage() {
                   {isAdmin && (
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t3)' }}>
                       {USD((payout.manager_payouts ?? []).reduce((s, m) => s + Number(m.manager_payout ?? 0), 0))}
+                    </td>
+                  )}
+                  {!isAdmin && (
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--pu)' }}>
+                      {USD(payout.manager_payout ?? 0)}
                     </td>
                   )}
                 </tr>
