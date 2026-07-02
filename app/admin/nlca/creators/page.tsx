@@ -99,14 +99,12 @@ export default function NlcaCreatorsPage() {
           <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)', margin: 0, marginBottom: 4 }}>Creators</h1>
           <div style={{ fontSize: 12, color: 'var(--t3)' }}>NLCA · {creators.length} creators</div>
         </div>
-        {isAdmin && (
-          <button
-            onClick={() => setShowCreate(true)}
-            style={{ background: CYAN, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-          >
-            + Opret creator
-          </button>
-        )}
+        <button
+          onClick={() => setShowCreate(true)}
+          style={{ background: CYAN, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          + Opret creator
+        </button>
       </div>
 
       {selected ? (
@@ -164,7 +162,7 @@ export default function NlcaCreatorsPage() {
         <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, overflow: 'hidden' }}>
           {creators.length === 0 ? (
             <div style={{ padding: '60px 40px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
-              Ingen creators endnu.{isAdmin && <> <button onClick={() => setShowCreate(true)} style={{ color: CYAN, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Opret den første →</button></>}
+              Ingen creators endnu. <button onClick={() => setShowCreate(true)} style={{ color: CYAN, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Opret den første →</button>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
