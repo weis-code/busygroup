@@ -27,10 +27,13 @@ export default function NlcaManagersPage() {
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/nlca/managers');
-    if (res.status === 403) { router.push('/admin/nlca'); return; }
-    const data = await res.json() as Manager[];
-    setManagers(Array.isArray(data) ? data : []);
+    try {
+      const res = await fetch('/api/nlca/managers');
+      if (res.status === 403) { router.push('/admin/nlca'); return; }
+      if (!res.ok) return;
+      const data = await res.json() as Manager[];
+      setManagers(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ }
   }, [router]);
 
   useEffect(() => { void load(); }, [load]);
@@ -49,13 +52,17 @@ export default function NlcaManagersPage() {
         body: JSON.stringify(form),
       });
       if (!res.ok) {
-        const d = await res.json() as { error?: string };
+        const d = await res.json().catch(() => ({})) as { error?: string };
         setError(d.error ?? 'Noget gik galt');
         return;
       }
+      const created = await res.json() as Manager;
+      setManagers(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
       setForm({ name: '', email: '', password: '' });
       setShowCreate(false);
-      await load();
+      void load();
+    } catch {
+      setError('Netværksfejl — prøv igen');
     } finally {
       setSaving(false);
     }
