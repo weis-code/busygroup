@@ -86,22 +86,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Navn, email og kodeord kræves' }, { status: 400 });
   }
 
-  const hash = await bcrypt.hash(password, 12);
+  try {
+    const hash = await bcrypt.hash(password, 12);
 
-  const [nlcaCompany] = await sql`SELECT id FROM companies WHERE slug = 'nlca' LIMIT 1`;
-  const companyId = nlcaCompany?.id ?? null;
+    const [nlcaCompany] = await sql`SELECT id FROM companies WHERE slug = 'nlca' LIMIT 1`;
+    const companyId = nlcaCompany?.id ?? null;
 
-  const [user] = await sql`
-    INSERT INTO users (email, name, password_hash, role, company_id)
-    VALUES (${email.toLowerCase().trim()}, ${name}, ${hash}, 'NLCA_MANAGER', ${companyId})
-    RETURNING id, email, name, role
-  `;
+    const [user] = await sql`
+      INSERT INTO users (email, name, password_hash, role, company_id)
+      VALUES (${email.toLowerCase().trim()}, ${name}, ${hash}, 'NLCA_MANAGER', ${companyId})
+      RETURNING id, email, name, role
+    `;
 
-  const [manager] = await sql`
-    INSERT INTO nlca_managers (user_id, name, email)
-    VALUES (${user.id as string}, ${name}, ${email.toLowerCase().trim()})
-    RETURNING id, user_id, name, email, created_at
-  `;
+    const [manager] = await sql`
+      INSERT INTO nlca_managers (user_id, name, email)
+      VALUES (${user.id as string}, ${name}, ${email.toLowerCase().trim()})
+      RETURNING id, user_id, name, email, created_at
+    `;
 
-  return NextResponse.json({ ...manager, creator_count: 0, payout_this_month: 0 }, { status: 201 });
+    return NextResponse.json({ ...manager, creator_count: 0, payout_this_month: 0 }, { status: 201 });
+  } catch (err) {
+    const pg = err as { code?: string };
+    if (pg.code === '23505') {
+      return NextResponse.json({ error: 'Email er allerede i brug' }, { status: 409 });
+    }
+    console.error('[NLCA] POST /managers failed:', err);
+    return NextResponse.json({ error: 'Databasefejl — prøv igen' }, { status: 500 });
+  }
 }
