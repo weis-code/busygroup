@@ -7,6 +7,8 @@ const CYAN = '#06b6d4';
 const USD = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
 
+const thisMonth = () => new Date().toISOString().slice(0, 7);
+
 interface Creator {
   id: number;
   name: string;
@@ -33,11 +35,20 @@ export default function NlcaCreatorsPage() {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [selected, setSelected] = useState<Creator | null>(null);
-  const [figures, setFigures]   = useState<FigureRow[]>([]);
+  const [figures, setFigures] = useState<FigureRow[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', tiktok_handle: '', manager_id: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [figureForm, setFigureForm] = useState({
+    month: thisMonth(),
+    rank_up_usd: '',
+    activeness_usd: '',
+    incremental_revenue_usd: '',
+  });
+  const [figureSaving, setFigureSaving] = useState(false);
+  const [figureMsg, setFigureMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then((d: { role: UserRole }) => setRole(d.role)).catch(() => {});
@@ -58,6 +69,7 @@ export default function NlcaCreatorsPage() {
     const data = await fetch(`/api/nlca/creators/${id}`).then(r => r.json()) as Creator & { figures: FigureRow[] };
     setSelected(data);
     setFigures(data.figures ?? []);
+    setFigureMsg(null);
   }
 
   async function createCreator() {
@@ -90,7 +102,40 @@ export default function NlcaCreatorsPage() {
     }
   }
 
-  const isAdmin = role === 'ADMIN' || role === 'NLCA_MANAGER';
+  async function saveFigures() {
+    if (!selected) return;
+    setFigureSaving(true);
+    setFigureMsg(null);
+    try {
+      const body: Record<string, unknown> = {
+        creator_id: selected.id,
+        month: figureForm.month,
+      };
+      if (figureForm.rank_up_usd !== '') body.rank_up_usd = parseFloat(figureForm.rank_up_usd);
+      if (figureForm.activeness_usd !== '') body.activeness_usd = parseFloat(figureForm.activeness_usd);
+      if (isAdmin && figureForm.incremental_revenue_usd !== '') {
+        body.incremental_revenue_usd = parseFloat(figureForm.incremental_revenue_usd);
+      }
+      const res = await fetch('/api/nlca/figures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        setFigureMsg({ ok: false, text: err.error ?? `Fejl ${res.status}` });
+        return;
+      }
+      setFigureMsg({ ok: true, text: 'Tal gemt' });
+      await loadCreator(selected.id);
+    } catch {
+      setFigureMsg({ ok: false, text: 'Netværksfejl — prøv igen' });
+    } finally {
+      setFigureSaving(false);
+    }
+  }
+
+  const isAdmin = role === 'ADMIN';
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1000 }}>
@@ -121,6 +166,85 @@ export default function NlcaCreatorsPage() {
             </div>
           </div>
 
+          {/* Figures entry form */}
+          <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, padding: '20px 24px', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Registrer månedlige tal</div>
+            <div style={{ display: 'grid', gridTemplateColumns: isAdmin ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Måned</label>
+                <input
+                  type="month"
+                  value={figureForm.month}
+                  onChange={e => setFigureForm(f => ({ ...f, month: e.target.value }))}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Rank-up USD</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={figureForm.rank_up_usd}
+                  onChange={e => setFigureForm(f => ({ ...f, rank_up_usd: e.target.value }))}
+                  placeholder="0.00"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Activeness USD</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={figureForm.activeness_usd}
+                  onChange={e => setFigureForm(f => ({ ...f, activeness_usd: e.target.value }))}
+                  placeholder="0.00"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              {isAdmin && (
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>Inc. Revenue USD 🔒</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={figureForm.incremental_revenue_usd}
+                    onChange={e => setFigureForm(f => ({ ...f, incremental_revenue_usd: e.target.value }))}
+                    placeholder="0.00"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                onClick={() => void saveFigures()}
+                disabled={figureSaving || !figureForm.month}
+                style={{
+                  background: CYAN,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 7,
+                  padding: '8px 18px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: (figureSaving || !figureForm.month) ? 'not-allowed' : 'pointer',
+                  opacity: (figureSaving || !figureForm.month) ? 0.45 : 1,
+                }}
+              >
+                {figureSaving ? 'Gemmer…' : 'Gem tal'}
+              </button>
+              {figureMsg && (
+                <span style={{ fontSize: 12, color: figureMsg.ok ? 'var(--gr)' : 'var(--re)', fontWeight: 600 }}>
+                  {figureMsg.text}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Figures history table */}
           <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bd)', background: 'var(--s2)', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
               Månedlige tal
@@ -134,7 +258,7 @@ export default function NlcaCreatorsPage() {
                     <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Måned</th>
                     <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Rank-up</th>
                     <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Activeness</th>
-                    {isAdmin && <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>🔒 Inc. Revenue</th>}
+                    {isAdmin && <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Inc. Revenue 🔒</th>}
                     <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--t2)', fontSize: 11, textTransform: 'uppercase' }}>Payout</th>
                   </tr>
                 </thead>
