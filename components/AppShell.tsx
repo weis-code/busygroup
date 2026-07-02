@@ -49,6 +49,7 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',           '/admin/targets',          'Targets',         <TargetIcon />),
     sectionItem('',           '/admin/daily',            'Daglige mål',     <BarIcon />),
     sectionItem('',           '/admin/nls/absence',      'Fravær',          <CalendarIcon />),
+    sectionItem('',           '/admin/tasks',            'Opgaver',         <TaskIcon />),
     sectionItem('TEAM',       '/admin/sellers',          'Sælgere',         <TeamIcon />),
     sectionItem('',           '/admin/sales',            'Mine salg',       <SalesIcon />),
     sectionItem('',           '/admin/periods',          'Lønperioder',     <CalendarIcon />),
