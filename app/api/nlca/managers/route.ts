@@ -26,6 +26,20 @@ async function ensureNlcaTables() {
       created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS nlca_monthly_figures (
+      id                      SERIAL PRIMARY KEY,
+      creator_id              INTEGER REFERENCES nlca_creators(id) ON DELETE CASCADE,
+      month                   DATE NOT NULL,
+      rank_up_usd             NUMERIC(10,2) DEFAULT 0,
+      activeness_usd          NUMERIC(10,2) DEFAULT 0,
+      incremental_revenue_usd NUMERIC(10,2) DEFAULT 0,
+      entered_by              UUID REFERENCES users(id),
+      updated_at              TIMESTAMPTZ DEFAULT NOW(),
+      created_at              TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(creator_id, month)
+    )
+  `;
 }
 
 export async function GET(req: NextRequest) {
