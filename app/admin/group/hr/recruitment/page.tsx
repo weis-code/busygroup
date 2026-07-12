@@ -153,13 +153,18 @@ export default function HRRecruitmentPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [cands, comp] = await Promise.all([
-      fetch('/api/hr/candidates').then(r => r.json()),
-      fetch('/api/companies').then(r => r.json()),
-    ]);
-    setCandidates(Array.isArray(cands) ? cands as Candidate[] : []);
-    setCompanies(Array.isArray(comp) ? comp as Company[] : []);
-    setLoading(false);
+    try {
+      const [cands, comp] = await Promise.all([
+        fetch('/api/hr/candidates').then(r => r.json()),
+        fetch('/api/companies').then(r => r.json()),
+      ]);
+      setCandidates(Array.isArray(cands) ? cands as Candidate[] : []);
+      setCompanies(Array.isArray(comp) ? comp as Company[] : []);
+    } catch {
+      setCandidates([]); setCompanies([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { void load(); }, [load]);

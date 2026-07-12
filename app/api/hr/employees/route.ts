@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const session = sessionFromRequest(req);
-  if (!session || session.role !== 'ADMIN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const companySlug = req.nextUrl.searchParams.get('company');
   const role        = req.nextUrl.searchParams.get('role');

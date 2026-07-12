@@ -21,11 +21,16 @@ const STATUS_BG: Record<string, string> = { PENDING: 'var(--ye2)', APPROVED: 'va
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function GroupAbsencePage() {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const today = now.toISOString().slice(0, 10);
+
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [sellers, setSellers]   = useState<Seller[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [filterCompany, setFilterCompany] = useState('');
+  const [filterStatus, setFilterStatus]   = useState('');
+  const [month, setMonth]       = useState(currentMonth);
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formUserId, setFormUserId] = useState('');
@@ -68,24 +73,57 @@ export default function GroupAbsencePage() {
     await load();
   }
 
-  const filtered = filterCompany ? absences.filter(a => a.company_slug === filterCompany) : absences;
+  const pendingCount = absences.filter(a => a.status === 'PENDING').length;
+
+  const filtered = absences
+    .filter(a => {
+      if (filterCompany && a.company_slug !== filterCompany) return false;
+      if (month && !a.start_date.startsWith(month)) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+      if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+      return 0;
+    });
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1000 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>Fravær · Alle virksomheder</h1>
           <div style={{ fontSize: 12, color: 'var(--t3)' }}>Konsolideret fraværsoversigt</div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)} style={{ width: 'auto', padding: '7px 12px', fontSize: 12 }}>
-            <option value="">Alle virksomheder</option>
-            {companies.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-          </select>
-          <button onClick={() => setShowForm(true)} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-            + Registrer fravær
-          </button>
-        </div>
+        <button onClick={() => setShowForm(true)} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+          + Registrer fravær
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+        <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+          style={{ padding: '7px 12px', fontSize: 12, width: 'auto' }} />
+        <select value={filterCompany} onChange={e => setFilterCompany(e.target.value)} style={{ width: 'auto', padding: '7px 12px', fontSize: 12 }}>
+          <option value="">Alle virksomheder</option>
+          {companies.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+        </select>
+        {(['', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(s => {
+          const labels: Record<string, string> = { '': 'Alle', PENDING: 'Afventer', APPROVED: 'Godkendt', REJECTED: 'Afvist' };
+          const active = filterStatus === s;
+          return (
+            <button key={s} onClick={() => setFilterStatus(s)} style={{
+              padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: active ? 700 : 500,
+              border: `1.5px solid ${active ? 'var(--bl)' : 'var(--bd)'}`,
+              background: active ? 'var(--bl2)' : 'transparent',
+              color: active ? 'var(--bl)' : 'var(--t2)', cursor: 'pointer',
+            }}>{labels[s]}</button>
+          );
+        })}
+        {pendingCount > 0 && (
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ye)', background: 'var(--ye2)', padding: '4px 10px', borderRadius: 6, marginLeft: 4 }}>
+            ⚠ {pendingCount} afventer
+          </span>
+        )}
       </div>
 
       {loading ? (
