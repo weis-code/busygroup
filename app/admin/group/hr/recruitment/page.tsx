@@ -49,11 +49,6 @@ function fmtDateShort(d: string | null) {
   return new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
 }
 
-function fmtDateLong(d: string | null) {
-  if (!d) return null;
-  return new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
 function fmtDatetime(dt: string | null) {
   if (!dt) return null;
   const d = new Date(dt);
@@ -244,7 +239,8 @@ export default function HRRecruitmentPage() {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, cursor: canCollapse ? 'pointer' : 'default', userSelect: 'none' }}
                       onClick={canCollapse ? () => setCollapsed(prev => {
                         const next = new Set(prev);
-                        next.has(stage.key) ? next.delete(stage.key) : next.add(stage.key);
+                        if (next.has(stage.key)) next.delete(stage.key);
+                        else next.add(stage.key);
                         return next;
                       }) : undefined}>
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: stage.color, display: 'inline-block', flexShrink: 0 }} />
