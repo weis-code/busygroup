@@ -33,6 +33,15 @@ interface Ticket {
   updated_at: string;
 }
 
+interface Comment {
+  id: number;
+  ticket_id: number;
+  user_id: string | null;
+  user_name: string;
+  body: string;
+  created_at: string;
+}
+
 const EMPTY_FORM = {
   type: 'support' as 'dev' | 'support',
   priority: 'normal',
@@ -53,6 +62,20 @@ export default function CreatorRateTicketsPage() {
   const [saving, setSaving]             = useState(false);
   const [saveError, setSaveError]       = useState<string | null>(null);
 
+  // Edit state
+  const [editing, setEditing]           = useState(false);
+  const [editForm, setEditForm]         = useState<Partial<typeof EMPTY_FORM & { title: string }>>({});
+  const [editSaving, setEditSaving]     = useState(false);
+  const [editError, setEditError]       = useState<string | null>(null);
+
+  // Comments state
+  const [comments, setComments]         = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentBody, setCommentBody]   = useState('');
+  const [commentSaving, setCommentSaving] = useState(false);
+
+  const STATUS_FLOW: string[] = ['open', 'in_progress', 'resolved', 'closed'];
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -66,6 +89,24 @@ export default function CreatorRateTicketsPage() {
   }, [activeType, statusFilter]);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function loadComments(ticketId: number) {
+    setCommentsLoading(true);
+    try {
+      const data = await fetch(`/api/creatorrate/tickets/${ticketId}/comments`).then(r => r.json()) as Comment[];
+      setComments(Array.isArray(data) ? data : []);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }
+
+  function openDetail(ticket: Ticket) {
+    setSelected(ticket);
+    setEditing(false);
+    setEditError(null);
+    setCommentBody('');
+    void loadComments(ticket.id);
+  }
 
   async function createTicket() {
     if (!form.title) return;
@@ -111,14 +152,86 @@ export default function CreatorRateTicketsPage() {
     await load();
   }
 
-  const STATUS_FLOW: string[] = ['open', 'in_progress', 'resolved', 'closed'];
+  function startEdit(ticket: Ticket) {
+    setEditForm({
+      title: ticket.title,
+      description: ticket.description ?? '',
+      priority: ticket.priority,
+      reporter_name: ticket.reporter_name ?? '',
+      reporter_email: ticket.reporter_email ?? '',
+    });
+    setEditError(null);
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (!selected || !editForm.title?.trim()) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const res = await fetch(`/api/creatorrate/tickets/${selected.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editForm.title,
+          description: editForm.description || null,
+          priority: editForm.priority,
+          reporter_name: editForm.reporter_name || null,
+          reporter_email: editForm.reporter_email || null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setEditError(body.error ?? `Fejl ${res.status}`);
+        return;
+      }
+      const updated: Ticket = {
+        ...selected,
+        title: editForm.title ?? selected.title,
+        description: editForm.description || null,
+        priority: editForm.priority ?? selected.priority,
+        reporter_name: editForm.reporter_name || null,
+        reporter_email: editForm.reporter_email || null,
+      };
+      setSelected(updated);
+      setEditing(false);
+      await load();
+    } catch {
+      setEditError('Netværksfejl — prøv igen');
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function postComment() {
+    if (!selected || !commentBody.trim()) return;
+    setCommentSaving(true);
+    try {
+      const res = await fetch(`/api/creatorrate/tickets/${selected.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: commentBody }),
+      });
+      if (res.ok) {
+        const comment = await res.json() as Comment;
+        setComments(prev => [...prev, comment]);
+        setCommentBody('');
+      }
+    } finally {
+      setCommentSaving(false);
+    }
+  }
 
   function fmtDate(iso: string) {
     return new Date(iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  const openCount    = tickets.filter(t => t.status === 'open').length;
-  const inProgCount  = tickets.filter(t => t.status === 'in_progress').length;
+  function fmtDateTime(iso: string) {
+    return new Date(iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const openCount   = tickets.filter(t => t.status === 'open').length;
+  const inProgCount = tickets.filter(t => t.status === 'in_progress').length;
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 980 }}>
@@ -210,7 +323,7 @@ export default function CreatorRateTicketsPage() {
                 return (
                   <tr
                     key={t.id}
-                    onClick={() => setSelected(t)}
+                    onClick={() => openDetail(t)}
                     style={{ borderTop: i > 0 ? '1px solid var(--bd)' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}
@@ -245,74 +358,227 @@ export default function CreatorRateTicketsPage() {
       {selected && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={e => { if (e.target === e.currentTarget) setSelected(null); }}
+          onClick={e => { if (e.target === e.currentTarget) { setSelected(null); setEditing(false); } }}
         >
-          <div style={{ background: 'var(--s1)', borderRadius: 14, padding: 28, width: 520, maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <div>
+          <div style={{ background: 'var(--s1)', borderRadius: 14, padding: 28, width: 580, maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                   #{selected.id} · {selected.type === 'dev' ? 'Udvikling' : 'Support'}
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{selected.title}</div>
+                {!editing && (
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{selected.title}</div>
+                )}
               </div>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
+              <div style={{ display: 'flex', gap: 8, marginLeft: 12, flexShrink: 0 }}>
+                {!editing && (
+                  <button
+                    onClick={() => startEdit(selected)}
+                    style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '5px 12px', fontSize: 12, color: 'var(--t2)', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Rediger
+                  </button>
+                )}
+                <button onClick={() => { setSelected(null); setEditing(false); }} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: '0 4px' }}>×</button>
+              </div>
             </div>
 
-            {selected.description && (
-              <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.6, marginBottom: 20, padding: '12px 14px', background: 'var(--s2)', borderRadius: 8 }}>
-                {selected.description}
+            {/* Edit form */}
+            {editing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Titel *</label>
+                  <input
+                    value={editForm.title ?? ''}
+                    onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                    autoFocus
+                    style={{ width: '100%', marginTop: 4 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Beskrivelse</label>
+                  <textarea
+                    value={editForm.description ?? ''}
+                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    rows={3}
+                    style={{ width: '100%', marginTop: 4, resize: 'vertical' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Prioritet</label>
+                  <select
+                    value={editForm.priority ?? 'normal'}
+                    onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
+                    style={{ width: '100%', marginTop: 4 }}
+                  >
+                    <option value="low">Lav</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">Høj</option>
+                    <option value="urgent">Akut</option>
+                  </select>
+                </div>
+                {selected.type === 'support' && (
+                  <>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Creator navn</label>
+                      <input
+                        value={editForm.reporter_name ?? ''}
+                        onChange={e => setEditForm(f => ({ ...f, reporter_name: e.target.value }))}
+                        style={{ width: '100%', marginTop: 4 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Creator email</label>
+                      <input
+                        value={editForm.reporter_email ?? ''}
+                        onChange={e => setEditForm(f => ({ ...f, reporter_email: e.target.value }))}
+                        type="email"
+                        style={{ width: '100%', marginTop: 4 }}
+                      />
+                    </div>
+                  </>
+                )}
+                {editError && (
+                  <div style={{ padding: '8px 12px', background: 'var(--re2)', borderRadius: 7, fontSize: 12, color: 'var(--re)' }}>{editError}</div>
+                )}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setEditing(false); setEditError(null); }}
+                    style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '7px 14px', fontSize: 12 }}
+                  >
+                    Annuller
+                  </button>
+                  <button
+                    onClick={() => void saveEdit()}
+                    disabled={!editForm.title?.trim() || editSaving}
+                    style={{ background: CR, color: '#fff', border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 600, opacity: editSaving ? 0.7 : 1, cursor: editSaving ? 'default' : 'pointer' }}
+                  >
+                    {editSaving ? 'Gemmer…' : 'Gem ændringer'}
+                  </button>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Description */}
+                {selected.description && (
+                  <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.6, padding: '12px 14px', background: 'var(--s2)', borderRadius: 8 }}>
+                    {selected.description}
+                  </div>
+                )}
+
+                {/* Meta grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12 }}>
+                  {selected.reporter_name && (
+                    <div>
+                      <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Creator</div>
+                      <div style={{ color: 'var(--t1)' }}>{selected.reporter_name}</div>
+                      {selected.reporter_email && <div style={{ color: 'var(--t3)' }}>{selected.reporter_email}</div>}
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Prioritet</div>
+                    <div style={{ color: PRIORITY_META[selected.priority]?.color ?? 'var(--t1)', fontWeight: 700 }}>
+                      {PRIORITY_META[selected.priority]?.label ?? selected.priority}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Oprettet af</div>
+                    <div style={{ color: 'var(--t1)' }}>{selected.created_by_name ?? '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Oprettet</div>
+                    <div style={{ color: 'var(--t1)' }}>{fmtDate(selected.created_at)}</div>
+                  </div>
+                </div>
+
+                {/* Status change */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Skift status</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {STATUS_FLOW.map(s => {
+                      const meta = STATUS_META[s];
+                      const isCurrent = selected.status === s;
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => !isCurrent && void updateStatus(selected.id, s)}
+                          style={{
+                            padding: '6px 14px', borderRadius: 100,
+                            border: `1px solid ${isCurrent ? meta.color : 'var(--bd)'}`,
+                            background: isCurrent ? meta.bg : 'transparent',
+                            color: isCurrent ? meta.color : 'var(--t3)',
+                            fontSize: 12, fontWeight: 600,
+                            cursor: isCurrent ? 'default' : 'pointer',
+                          }}
+                        >
+                          {meta.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20, fontSize: 12 }}>
-              {selected.reporter_name && (
-                <div>
-                  <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Creator</div>
-                  <div style={{ color: 'var(--t1)' }}>{selected.reporter_name}</div>
-                  {selected.reporter_email && <div style={{ color: 'var(--t3)' }}>{selected.reporter_email}</div>}
+            {/* Comments */}
+            {!editing && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                  Kommentarer {comments.length > 0 && `(${comments.length})`}
                 </div>
-              )}
-              <div>
-                <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Prioritet</div>
-                <div style={{ color: PRIORITY_META[selected.priority]?.color ?? 'var(--t1)', fontWeight: 700 }}>
-                  {PRIORITY_META[selected.priority]?.label ?? selected.priority}
-                </div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Oprettet af</div>
-                <div style={{ color: 'var(--t1)' }}>{selected.created_by_name ?? '—'}</div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--t3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, marginBottom: 3 }}>Oprettet</div>
-                <div style={{ color: 'var(--t1)' }}>{fmtDate(selected.created_at)}</div>
-              </div>
-            </div>
 
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Skift status</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {STATUS_FLOW.map(s => {
-                  const meta = STATUS_META[s];
-                  const isCurrent = selected.status === s;
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => !isCurrent && void updateStatus(selected.id, s)}
-                      style={{
-                        padding: '6px 14px', borderRadius: 100,
-                        border: `1px solid ${isCurrent ? meta.color : 'var(--bd)'}`,
-                        background: isCurrent ? meta.bg : 'transparent',
-                        color: isCurrent ? meta.color : 'var(--t3)',
-                        fontSize: 12, fontWeight: 600,
-                        cursor: isCurrent ? 'default' : 'pointer',
-                      }}
-                    >
-                      {meta.label}
-                    </button>
-                  );
-                })}
+                {commentsLoading ? (
+                  <div style={{ fontSize: 12, color: 'var(--t3)', padding: '8px 0' }}>Henter kommentarer…</div>
+                ) : comments.length === 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--t3)', padding: '8px 0' }}>Ingen kommentarer endnu.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                    {comments.map(c => (
+                      <div key={c.id} style={{ background: 'var(--s2)', borderRadius: 8, padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t1)' }}>{c.user_name}</span>
+                          <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDateTime(c.created_at)}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.body}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add comment */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                  <textarea
+                    value={commentBody}
+                    onChange={e => setCommentBody(e.target.value)}
+                    placeholder="Skriv en kommentar…"
+                    rows={2}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        void postComment();
+                      }
+                    }}
+                    style={{ flex: 1, resize: 'none', fontSize: 13 }}
+                  />
+                  <button
+                    onClick={() => void postComment()}
+                    disabled={!commentBody.trim() || commentSaving}
+                    style={{
+                      background: CR, color: '#fff', border: 'none', borderRadius: 7,
+                      padding: '8px 14px', fontSize: 12, fontWeight: 600,
+                      opacity: !commentBody.trim() || commentSaving ? 0.5 : 1,
+                      cursor: !commentBody.trim() || commentSaving ? 'default' : 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {commentSaving ? '…' : 'Send'}
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>⌘+Enter for at sende</div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

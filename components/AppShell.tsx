@@ -92,9 +92,12 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('CRM',      '/admin/crm',                  'Pipeline',         <CrmIcon />),
     sectionItem('',         '/admin/crm/companies',        'Virksomheder',     <BuildingIcon />),
     sectionItem('',         '/admin/group/my-customers',  'Mine Kunder',      <EuroIcon />),
-    sectionItem('TEAM',     '/admin/group/employees',     'Medarbejdere',     <TeamIcon />),
-    sectionItem('',         '/admin/group/absence',    'Fravær (alle)',    <CalendarIcon />),
-    sectionItem('FINANS',   '/admin/group/finance',    'Økonomi',          <BarIcon />),
+    sectionItem('TEAM',     '/admin/group/employees',      'Medarbejdere',     <TeamIcon />),
+    sectionItem('',         '/admin/group/absence',       'Fravær (alle)',    <CalendarIcon />),
+    sectionItem('HR',       '/admin/group/hr/employees',  'Medarbejdere',     <TeamIcon />),
+    sectionItem('',         '/admin/group/hr/absence',    'Fravær',           <CalendarIcon />),
+    sectionItem('',         '/admin/group/hr/recruitment','Rekruttering',      <TargetIcon />),
+    sectionItem('FINANS',   '/admin/group/finance',       'Økonomi',          <BarIcon />),
     sectionItem('SYSTEM',   '/admin/companies',        'Virksomheder',     <BuildingIcon />),
     sectionItem('',         '/admin/settings',         'Indstillinger',    <GearIcon />),
   ],
@@ -226,6 +229,7 @@ const PAGE_LABELS: Record<string, string> = {
   mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
   employees: 'Medarbejdere',
   creators: 'Creators', payouts: 'Udbetalinger', managers: 'Managers',
+  recruitment: 'Rekruttering', hr: 'HR',
 };
 
 function getPageLabel(pathname: string): string {

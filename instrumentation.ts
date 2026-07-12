@@ -478,6 +478,76 @@ export async function register() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS cr_tickets (
+      id            SERIAL PRIMARY KEY,
+      type          TEXT NOT NULL CHECK (type IN ('dev', 'support')),
+      status        TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+      priority      TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+      title         TEXT NOT NULL,
+      description   TEXT,
+      assignee_id   UUID REFERENCES users(id) ON DELETE SET NULL,
+      reporter_name  TEXT,
+      reporter_email TEXT,
+      created_by    UUID REFERENCES users(id),
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS cr_tickets_type_idx   ON cr_tickets(type)`;
+  await sql`CREATE INDEX IF NOT EXISTS cr_tickets_status_idx ON cr_tickets(status)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS cr_ticket_comments (
+      id         SERIAL PRIMARY KEY,
+      ticket_id  INTEGER NOT NULL REFERENCES cr_tickets(id) ON DELETE CASCADE,
+      user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
+      user_name  TEXT NOT NULL DEFAULT '',
+      body       TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS cr_ticket_comments_ticket_idx ON cr_ticket_comments(ticket_id)`;
+
+  // HR module — extend users with HR fields
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS start_date DATE NULL`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT NULL`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT NULL`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact TEXT NULL`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_type TEXT DEFAULT 'full_time'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS hr_candidates (
+      id SERIAL PRIMARY KEY,
+      full_name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      linkedin TEXT,
+      applying_for TEXT NOT NULL,
+      company_id INTEGER REFERENCES companies(id) NULL,
+      stage TEXT NOT NULL DEFAULT 'applied',
+      applied_at DATE DEFAULT CURRENT_DATE,
+      interview_date TIMESTAMPTZ NULL,
+      start_date DATE NULL,
+      notes TEXT,
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS hr_candidate_comments (
+      id SERIAL PRIMARY KEY,
+      candidate_id INTEGER REFERENCES hr_candidates(id) ON DELETE CASCADE,
+      author_id UUID REFERENCES users(id),
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   } catch (err) {
     console.error('[NLS] Schema init failed:', err);
   }
