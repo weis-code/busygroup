@@ -121,7 +121,6 @@ export async function register() {
   `;
 
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_part_time BOOLEAN NOT NULL DEFAULT FALSE`;
-  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) NULL`;
 
   // Ensure role check constraint includes all roles (safe to run on every boot)
   await sql`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`;
@@ -259,6 +258,9 @@ export async function register() {
       ('Next Level Creator Agency', 'nlca', 'creator_agency', '#06b6d4', 'NLCA', 100, false)
     ON CONFLICT (slug) DO NOTHING
   `;
+
+  // Now companies exists — safe to reference it from users
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id) NULL`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS kanban_boards (
@@ -548,7 +550,14 @@ export async function register() {
     )
   `;
 
-  // Meridian CRM — private per-user lead pipeline
+  } catch (err) {
+    console.error('[NLS] Schema init failed:', err);
+  }
+
+  // Meridian CRM + ticket tables — separate block so they always run
+  try {
+  const { default: sql } = await import('./lib/db');
+
   await sql`
     CREATE TABLE IF NOT EXISTS meridian_pipeline_stages (
       id          SERIAL PRIMARY KEY,
@@ -591,8 +600,8 @@ export async function register() {
       updated_at          TIMESTAMPTZ DEFAULT NOW()
     )
   `;
-  await sql`CREATE INDEX IF NOT EXISTS meridian_leads_owner_idx   ON meridian_leads(owner_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS meridian_leads_stage_idx   ON meridian_leads(stage_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_leads_owner_idx ON meridian_leads(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_leads_stage_idx ON meridian_leads(stage_id)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS meridian_lead_activities (
@@ -610,10 +619,9 @@ export async function register() {
       created_at       TIMESTAMPTZ DEFAULT NOW()
     )
   `;
-  await sql`CREATE INDEX IF NOT EXISTS meridian_activities_owner_idx  ON meridian_lead_activities(owner_id)`;
-  await sql`CREATE INDEX IF NOT EXISTS meridian_activities_lead_idx   ON meridian_lead_activities(lead_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_activities_owner_idx ON meridian_lead_activities(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_activities_lead_idx  ON meridian_lead_activities(lead_id)`;
 
-  // Meridian support tickets
   await sql`
     CREATE TABLE IF NOT EXISTS meridian_tickets (
       id            SERIAL PRIMARY KEY,
@@ -649,6 +657,6 @@ export async function register() {
   await sql`CREATE INDEX IF NOT EXISTS meridian_ticket_msgs_ticket_idx ON meridian_ticket_messages(ticket_id)`;
 
   } catch (err) {
-    console.error('[NLS] Schema init failed:', err);
+    console.error('[NLS] Meridian schema init failed:', err);
   }
 }
