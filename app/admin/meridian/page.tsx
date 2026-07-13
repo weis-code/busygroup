@@ -146,7 +146,7 @@ export default function MeridianPage() {
               <div key={t.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--bd)' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t1)', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.customer_name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{t.subject}"</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>&ldquo;{t.subject}&rdquo;</div>
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 100, background: t.status === 'open' ? 'var(--bl2)' : 'var(--ye2)', color: t.status === 'open' ? 'var(--bl)' : 'var(--ye)' }}>

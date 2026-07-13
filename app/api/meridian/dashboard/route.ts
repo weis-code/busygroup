@@ -12,7 +12,6 @@ export async function GET(req: NextRequest) {
 
   const today     = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 7) + '-01';
-  const lastMonth  = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().slice(0, 7) + '-01';
   const lastMonthEnd = today.slice(0, 7) + '-01';
 
   // Meridian company id
