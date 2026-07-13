@@ -172,6 +172,7 @@ function SortableStageRow({ stage, onUpdateName, onUpdateColor, onUpdateProb, on
   onMigrateChange: (id: number) => void; migrationOptions: Stage[]; isSpecial?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showColors, setShowColors] = useState(false);
   const [nameVal, setNameVal] = useState(stage.name);
   const [probVal, setProbVal] = useState(String(stage.probability));
 
@@ -189,12 +190,14 @@ function SortableStageRow({ stage, onUpdateName, onUpdateColor, onUpdateProb, on
         {/* Color picker */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <button style={{ width: 14, height: 14, borderRadius: '50%', background: stage.color, border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', padding: 0 }}
-            onClick={() => {}} title="Vælg farve" />
-          <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, display: 'flex', gap: 3, background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, padding: 5, marginTop: 3, flexWrap: 'wrap', width: 88 }}>
-            {PRESET_COLORS.map(c => (
-              <button key={c} onClick={() => onUpdateColor(c)} style={{ width: 14, height: 14, borderRadius: '50%', background: c, border: `2px solid ${stage.color === c ? 'var(--t1)' : 'transparent'}`, cursor: 'pointer', padding: 0 }} />
-            ))}
-          </div>
+            onClick={() => setShowColors(v => !v)} title="Vælg farve" />
+          {showColors && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, display: 'flex', gap: 3, background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, padding: 5, marginTop: 3, flexWrap: 'wrap', width: 88 }}>
+              {PRESET_COLORS.map(c => (
+                <button key={c} onClick={() => { onUpdateColor(c); setShowColors(false); }} style={{ width: 14, height: 14, borderRadius: '50%', background: c, border: `2px solid ${stage.color === c ? 'var(--t1)' : 'transparent'}`, cursor: 'pointer', padding: 0 }} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Name */}
@@ -274,7 +277,7 @@ function StageColumn({ stage, leads, onCardClick, collapsed, onToggle }: {
   stage: Stage; leads: Lead[]; onCardClick: (id: number) => void;
   collapsed?: boolean; onToggle?: () => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  const { setNodeRef, isOver } = useDroppable({ id: 'stage-' + stage.id });
   const ids = leads.map(l => l.id);
   const totalValue = leads.reduce((s, l) => s + (Number(l.deal_value_dkk) || 0), 0);
 
@@ -461,16 +464,15 @@ export default function MeridianCrmPage() {
     const { active, over } = event;
     if (!over) return;
     const leadId = Number(active.id);
-    const overId = Number(over.id);
-    if (leadId === overId) return;
+    if (!leadId) return;
 
-    // over.id may be a stage id (dropped on empty column) or a lead id (dropped on another lead)
+    // over.id is 'stage-N' when dropped on empty column, or a lead id number when dropped on a card
+    const overStr = String(over.id);
     let targetStageId: number | null = null;
-    const overAsStage = stages.find(s => s.id === overId);
-    if (overAsStage) {
-      targetStageId = overAsStage.id;
+    if (overStr.startsWith('stage-')) {
+      targetStageId = Number(overStr.slice(6));
     } else {
-      const overLead = leads.find(l => l.id === overId);
+      const overLead = leads.find(l => l.id === Number(over.id));
       targetStageId = overLead?.stage_id ?? null;
     }
     if (targetStageId === null) return;

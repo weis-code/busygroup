@@ -49,13 +49,22 @@ function KpiCard({ label, value, sub, accent, delta }: { label: string; value: s
 
 export default function MeridianPage() {
   const [data, setData] = useState<DashData | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch('/api/meridian/dashboard')
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .then(d => setData(d as DashData))
-      .catch(() => {});
+      .catch(() => setError(true));
   }, []);
+
+  if (error) return (
+    <div style={{ padding: '28px 32px' }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Overblik</div>
+      <div style={{ fontSize: 12, color: 'var(--t3)' }}>Meridian Consulting</div>
+      <div style={{ marginTop: 40, color: 'var(--re)', fontSize: 13 }}>Kunne ikke indlæse data. Prøv at genindlæse siden.</div>
+    </div>
+  );
 
   if (!data) return (
     <div style={{ padding: '28px 32px' }}>
