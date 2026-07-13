@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 
 interface KPIs { revenue: number; mrr: number; ebitda: number; headcount: number }
 interface CompanyData {
-  slug: string; name: string; color: string; initials: string;
+  slug: string; name: string; subtitle: string | null; color: string; initials: string;
   revenue: number; mrr: number | null; fixed_costs: number; ebitda: number; type: string;
 }
 interface ChartEntry { month: string; label: string; total: number; [key: string]: number | string | undefined }
@@ -236,7 +236,9 @@ export default function GroupPage() {
                           </div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{c.name}</div>
-                            <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}>{c.type === 'sales' ? 'Salg' : 'SaaS'}</div>
+                            <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}>
+                              {c.subtitle ?? (c.type === 'sales' ? 'Salg' : 'SaaS')}
+                            </div>
                           </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>

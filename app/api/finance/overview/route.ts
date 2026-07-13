@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
   }
   await ensureTables();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today      = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 7) + '-01';
 
-  // NLS revenue this month (from sales table)
+  // NLS revenue this month
   const [nlsRevenue] = await sql`
     SELECT COALESCE(SUM(house_revenue), 0)::numeric AS amount
     FROM sales
@@ -55,39 +55,49 @@ export async function GET(req: NextRequest) {
     ORDER BY 1
   `;
 
-  // MRR entries this month
+  // Meridian combined MRR from customer_products (all active products)
+  const [meridianMrrRow] = await sql`
+    SELECT COALESCE(SUM(cp.price_dkk), 0)::numeric AS mrr_amount
+    FROM customer_products cp
+    WHERE cp.status = 'active'
+      AND cp.product_name IN ('AI Receptionist', 'Quorex', 'BusyReminder', 'Hjemmeside')
+  `;
+  const meridianMrr = Number(meridianMrrRow.mrr_amount);
+
+  // MRR entries this month for non-group, non-nls, non-quorex, non-reminder companies
   const mrrNow = await sql`
     SELECT c.slug, c.name, c.color, c.logo_initials,
            COALESCE(me.mrr_amount, 0)::numeric AS mrr_amount
     FROM companies c
     LEFT JOIN mrr_entries me
       ON me.company_id = c.id AND me.month = ${monthStart}::date
-    WHERE c.slug != 'group'
+    WHERE c.slug NOT IN ('group', 'nls', 'quorex', 'reminder')
     ORDER BY c.name
   `;
 
-  // MRR last 6 months per company
+  // MRR last 6 months — merge quorex+reminder into meridian
   const mrrChart = await sql`
     SELECT
       TO_CHAR(me.month, 'YYYY-MM') AS month,
-      c.slug,
-      me.mrr_amount::numeric AS amount
+      CASE WHEN c.slug IN ('quorex', 'reminder') THEN 'meridian' ELSE c.slug END AS slug,
+      SUM(me.mrr_amount)::numeric AS amount
     FROM mrr_entries me
     JOIN companies c ON c.id = me.company_id
     WHERE me.month >= (DATE_TRUNC('month', NOW()) - INTERVAL '5 months')
-      AND c.slug != 'group' AND c.slug != 'nls'
-    ORDER BY me.month, c.slug
+      AND c.slug NOT IN ('group', 'nls')
+    GROUP BY 1, 2
+    ORDER BY 1, 2
   `;
 
-  // Fixed costs per company
+  // Fixed costs per company (exclude quorex/reminder — their costs roll into meridian)
   const fixedCosts = await sql`
     SELECT c.slug, COALESCE(fs.fixed_costs_monthly, 0)::numeric AS fixed_costs
     FROM companies c
     LEFT JOIN finance_settings fs ON fs.company_id = c.id
-    WHERE c.slug != 'group'
+    WHERE c.slug NOT IN ('group', 'quorex', 'reminder')
   `;
 
-  // Headcount (non-part-time users)
+  // Headcount
   const [{ headcount }] = await sql`
     SELECT COUNT(*)::int AS headcount
     FROM users
@@ -95,34 +105,47 @@ export async function GET(req: NextRequest) {
       AND role IN ('ADMIN', 'MANAGER', 'SELLER')
   `;
 
-  // Build per-company data
   const costsMap: Record<string, number> = {};
   for (const r of fixedCosts) costsMap[r.slug] = Number(r.fixed_costs);
 
-  const mrrMap: Record<string, number> = {};
-  for (const r of mrrNow) mrrMap[r.slug] = Number(r.mrr_amount);
-
   const nlsRev = Number(nlsRevenue.amount);
-  const totalMrr = Object.entries(mrrMap)
-    .filter(([s]) => s !== 'nls')
-    .reduce((acc, [, v]) => acc + v, 0);
-  const totalRevenue = nlsRev + totalMrr;
+
+  // Build per-company data: use meridianMrr for meridian, mrr_entries for others
+  const companies = mrrNow.map(c => {
+    const revenue = c.slug === 'meridian' ? meridianMrr : Number(c.mrr_amount);
+    return {
+      slug:       c.slug,
+      name:       c.name,
+      subtitle:   c.slug === 'meridian' ? 'inkl. Quorex + BusyReminder' : null,
+      color:      c.color,
+      initials:   c.logo_initials,
+      revenue,
+      mrr:        revenue,
+      fixed_costs: costsMap[c.slug] ?? 0,
+      ebitda:     revenue - (costsMap[c.slug] ?? 0),
+      type:       c.slug === 'nls' ? 'sales' : 'saas',
+    };
+  });
+
+  const nlsCompany = {
+    slug: 'nls', name: 'Next Level Sales', subtitle: null,
+    color: '#4f8ef7', initials: 'NLS',
+    revenue: nlsRev, mrr: null,
+    fixed_costs: costsMap['nls'] ?? 0,
+    ebitda: nlsRev - (costsMap['nls'] ?? 0),
+    type: 'sales',
+  };
+
+  const allCompanies = [nlsCompany, ...companies];
+
+  const saasRevenue = meridianMrr + companies
+    .filter(c => c.slug !== 'meridian')
+    .reduce((s, c) => s + c.revenue, 0);
+  const totalRevenue = nlsRev + saasRevenue;
   const totalFixedCosts = Object.values(costsMap).reduce((a, b) => a + b, 0);
   const ebitda = totalRevenue - totalFixedCosts;
 
-  const companies = mrrNow.map(c => ({
-    slug:      c.slug,
-    name:      c.name,
-    color:     c.color,
-    initials:  c.logo_initials,
-    revenue:   c.slug === 'nls' ? nlsRev : Number(c.mrr_amount),
-    mrr:       c.slug === 'nls' ? null    : Number(c.mrr_amount),
-    fixed_costs: costsMap[c.slug] ?? 0,
-    ebitda:    (c.slug === 'nls' ? nlsRev : Number(c.mrr_amount)) - (costsMap[c.slug] ?? 0),
-    type:      c.slug === 'nls' ? 'sales' : 'saas',
-  }));
-
-  // Build 6-month chart: get all months
+  // Build 6-month chart
   const monthSet = new Set<string>();
   for (const r of nlsChart) monthSet.add(r.month);
   for (const r of mrrChart) monthSet.add(r.month);
@@ -140,15 +163,15 @@ export async function GET(req: NextRequest) {
     '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Dec',
   };
   const chart = months.map(m => {
-    const mm = mrrByMonthSlug[m] ?? {};
-    const nls = nlsByMonth[m] ?? 0;
+    const mm    = mrrByMonthSlug[m] ?? {};
+    const nls   = nlsByMonth[m] ?? 0;
     const total = nls + Object.values(mm).reduce((a, b) => a + b, 0);
     return { month: m, label: MONTH_LABELS[m.slice(5)] ?? m, nls, ...mm, total };
   });
 
   return NextResponse.json({
-    kpis: { revenue: totalRevenue, mrr: totalMrr, ebitda, headcount: Number(headcount) },
-    companies,
+    kpis: { revenue: totalRevenue, mrr: saasRevenue, ebitda, headcount: Number(headcount) },
+    companies: allCompanies,
     chart,
     breakEven: {
       totalFixedCosts,

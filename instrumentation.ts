@@ -548,6 +548,71 @@ export async function register() {
     )
   `;
 
+  // Meridian CRM — private per-user lead pipeline
+  await sql`
+    CREATE TABLE IF NOT EXISTS meridian_pipeline_stages (
+      id          SERIAL PRIMARY KEY,
+      owner_id    TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      color       TEXT NOT NULL DEFAULT '#4f8ef7',
+      probability INTEGER DEFAULT 0,
+      position    INTEGER NOT NULL DEFAULT 0,
+      is_won      BOOLEAN DEFAULT false,
+      is_lost     BOOLEAN DEFAULT false,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_stages_owner_idx ON meridian_pipeline_stages(owner_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS meridian_leads (
+      id                  SERIAL PRIMARY KEY,
+      owner_id            TEXT NOT NULL,
+      company_name        TEXT NOT NULL,
+      contact_name        TEXT,
+      contact_title       TEXT,
+      email               TEXT,
+      phone               TEXT,
+      linkedin            TEXT,
+      website             TEXT,
+      country             TEXT DEFAULT 'DK',
+      industry            TEXT,
+      stage_id            INTEGER REFERENCES meridian_pipeline_stages(id) ON DELETE SET NULL,
+      products            JSONB DEFAULT '[]',
+      deal_value_dkk      INTEGER DEFAULT 0,
+      deal_type           TEXT DEFAULT 'recurring',
+      expected_close_date DATE,
+      probability         INTEGER DEFAULT 0,
+      won_at              TIMESTAMPTZ,
+      lost_at             TIMESTAMPTZ,
+      lost_reason         TEXT,
+      notes               TEXT,
+      created_at          TIMESTAMPTZ DEFAULT NOW(),
+      updated_at          TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_leads_owner_idx   ON meridian_leads(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_leads_stage_idx   ON meridian_leads(stage_id)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS meridian_lead_activities (
+      id               SERIAL PRIMARY KEY,
+      owner_id         TEXT NOT NULL,
+      lead_id          INTEGER REFERENCES meridian_leads(id) ON DELETE CASCADE,
+      type             TEXT NOT NULL,
+      direction        TEXT DEFAULT 'outbound',
+      title            TEXT,
+      body             TEXT,
+      outcome          TEXT,
+      next_action      TEXT,
+      next_action_date DATE,
+      occurred_at      TIMESTAMPTZ DEFAULT NOW(),
+      created_at       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_activities_owner_idx  ON meridian_lead_activities(owner_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_activities_lead_idx   ON meridian_lead_activities(lead_id)`;
+
   } catch (err) {
     console.error('[NLS] Schema init failed:', err);
   }
