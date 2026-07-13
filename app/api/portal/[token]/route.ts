@@ -22,5 +22,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   const products = await sql`
     SELECT * FROM customer_products WHERE customer_id = ${access.customer_id} ORDER BY started_at DESC
   `;
-  return NextResponse.json({ ...access, products });
+  const tickets = await sql`
+    SELECT id, subject, status, priority, type, created_at
+    FROM meridian_tickets
+    WHERE customer_id = ${access.customer_id}
+    ORDER BY created_at DESC
+    LIMIT 10
+  `;
+  return NextResponse.json({ ...access, products, tickets });
 }

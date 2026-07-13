@@ -3,44 +3,265 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
-  type DragEndEvent,
+  useDroppable, type DragEndEvent,
 } from '@dnd-kit/core';
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+  SortableContext, sortableKeyboardCoordinates, useSortable,
+  verticalListSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { flag } from '@/lib/countries';
 import type { Stage, Lead } from './_components/types';
-import { fmt, isOverdue, daysInStage, MERIDIAN_PRODUCTS, INDUSTRIES } from './_components/types';
+import { fmt, fmtDate, isOverdue, daysInStage, MERIDIAN_PRODUCTS, INDUSTRIES } from './_components/types';
 import LeadPanel from './_components/LeadPanel';
+
+const PRESET_COLORS = ['#4a5d78','#4f8ef7','#a78bfa','#f59e0b','#ff6b35','#2dd4a0','#f43f5e','#06b6d4'];
+
+/* ── Stage editor modal ──────────────────────────────── */
+function StageEditorModal({ stages: initial, onClose, onSaved }: {
+  stages: Stage[]; onClose: () => void; onSaved: () => void;
+}) {
+  const [stages, setStages]   = useState<Stage[]>(initial);
+  const [saving, setSaving]   = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState('#4f8ef7');
+  const [newProb, setNewProb] = useState('50');
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [migrateStageId, setMigrateStageId] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleEditorDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = stages.findIndex(s => s.id === Number(active.id));
+    const newIdx = stages.findIndex(s => s.id === Number(over.id));
+    if (oldIdx === -1 || newIdx === -1) return;
+    setStages(arrayMove(stages, oldIdx, newIdx));
+  }
+
+  function updateStage(id: number, patch: Partial<Stage>) {
+    setStages(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+  }
+
+  async function addStage() {
+    if (!newName.trim()) return;
+    const res = await fetch('/api/meridian/crm/stages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName.trim(), color: newColor, probability: Number(newProb) || 50 }),
+    });
+    const created = await res.json() as Stage;
+    setStages(prev => [...prev, created]);
+    setNewName(''); setNewColor('#4f8ef7'); setNewProb('50');
+  }
+
+  async function deleteStage(id: number) {
+    if (migrateStageId === null) return;
+    await fetch(`/api/meridian/crm/stages/${id}?migrate_to=${migrateStageId}`, { method: 'DELETE' });
+    setStages(prev => prev.filter(s => s.id !== id));
+    setDeleteConfirm(null); setMigrateStageId(null);
+  }
+
+  async function save() {
+    setSaving(true);
+    // Save order and metadata for each stage
+    const order = stages.map(s => s.id);
+    await fetch('/api/meridian/crm/stages/reorder', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order }),
+    });
+    for (const s of stages) {
+      await fetch(`/api/meridian/crm/stages/${s.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: s.name, color: s.color, probability: s.probability }),
+      });
+    }
+    setSaving(false);
+    onSaved();
+    onClose();
+  }
+
+  const normalStages = stages.filter(s => !s.is_won && !s.is_lost);
+  const specialStages = stages.filter(s => s.is_won || s.is_lost);
+  const allIds = normalStages.map(s => s.id);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, width: 520, maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Rediger pipeline</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 18 }}>×</button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleEditorDragEnd}>
+            <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
+              {normalStages.map(stage => (
+                <SortableStageRow key={stage.id} stage={stage}
+                  onUpdateName={n => updateStage(stage.id, { name: n })}
+                  onUpdateColor={c => updateStage(stage.id, { color: c })}
+                  onUpdateProb={p => updateStage(stage.id, { probability: p })}
+                  onDelete={() => { setDeleteConfirm(stage.id); setMigrateStageId(stages.filter(s => s.id !== stage.id && !s.is_lost)[0]?.id ?? null); }}
+                  deleteConfirm={deleteConfirm === stage.id}
+                  onCancelDelete={() => setDeleteConfirm(null)}
+                  onConfirmDelete={() => void deleteStage(stage.id)}
+                  migrateStageId={migrateStageId}
+                  onMigrateChange={setMigrateStageId}
+                  migrationOptions={stages.filter(s => s.id !== stage.id && !s.is_lost)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+
+          {specialStages.length > 0 && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--bd)' }}>
+              {specialStages.map(stage => (
+                <SortableStageRow key={stage.id} stage={stage}
+                  onUpdateName={n => updateStage(stage.id, { name: n })}
+                  onUpdateColor={c => updateStage(stage.id, { color: c })}
+                  onUpdateProb={p => updateStage(stage.id, { probability: p })}
+                  onDelete={() => {}} deleteConfirm={false}
+                  onCancelDelete={() => {}} onConfirmDelete={() => {}}
+                  migrateStageId={null} onMigrateChange={() => {}} migrationOptions={[]}
+                  isSpecial
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Add new stage */}
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--bd)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.08em', marginBottom: 8 }}>+ TILFØJ STADIE</div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Navn…"
+                style={{ flex: 1, fontSize: 12, padding: '6px 9px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, color: 'var(--t1)' }} />
+              <input value={newProb} onChange={e => setNewProb(e.target.value)} type="number" min="0" max="100" placeholder="%"
+                style={{ width: 54, fontSize: 12, padding: '6px 9px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, color: 'var(--t1)' }} />
+              <div style={{ display: 'flex', gap: 3 }}>
+                {PRESET_COLORS.map(c => (
+                  <button key={c} onClick={() => setNewColor(c)} style={{ width: 16, height: 16, borderRadius: '50%', background: c, border: `2px solid ${newColor === c ? 'var(--t1)' : 'transparent'}`, cursor: 'pointer', padding: 0 }} />
+                ))}
+              </div>
+              <button onClick={() => void addStage()} disabled={!newName.trim()}
+                style={{ background: 'var(--bl)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: newName.trim() ? 1 : 0.5 }}>
+                Tilføj
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--bd)', display: 'flex', gap: 8 }}>
+          <button onClick={() => void save()} disabled={saving}
+            style={{ flex: 1, background: 'var(--bl)', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            {saving ? 'Gemmer…' : 'Gem ændringer'}
+          </button>
+          <button onClick={onClose} style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 13, color: 'var(--t2)', cursor: 'pointer' }}>Annuller</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SortableStageRow({ stage, onUpdateName, onUpdateColor, onUpdateProb, onDelete, deleteConfirm, onCancelDelete, onConfirmDelete, migrateStageId, onMigrateChange, migrationOptions, isSpecial }: {
+  stage: Stage; onUpdateName: (n: string) => void; onUpdateColor: (c: string) => void;
+  onUpdateProb: (p: number) => void; onDelete: () => void; deleteConfirm: boolean;
+  onCancelDelete: () => void; onConfirmDelete: () => void; migrateStageId: number | null;
+  onMigrateChange: (id: number) => void; migrationOptions: Stage[]; isSpecial?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [nameVal, setNameVal] = useState(stage.name);
+  const [probVal, setProbVal] = useState(String(stage.probability));
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: stage.id, disabled: !!isSpecial });
+
+  function commitName() { if (nameVal.trim()) onUpdateName(nameVal.trim()); setEditing(false); }
+  function commitProb() { const n = Number(probVal); if (!isNaN(n)) onUpdateProb(Math.min(100, Math.max(0, n))); }
+
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--bd)', opacity: isSpecial ? 0.7 : 1 }}>
+        {/* Drag handle */}
+        <span {...(isSpecial ? {} : { ...attributes, ...listeners })} style={{ cursor: isSpecial ? 'default' : 'grab', color: 'var(--t3)', fontSize: 14, flexShrink: 0, userSelect: 'none' }}>⋮⋮</span>
+
+        {/* Color picker */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button style={{ width: 14, height: 14, borderRadius: '50%', background: stage.color, border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer', padding: 0 }}
+            onClick={() => {}} title="Vælg farve" />
+          <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, display: 'flex', gap: 3, background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, padding: 5, marginTop: 3, flexWrap: 'wrap', width: 88 }}>
+            {PRESET_COLORS.map(c => (
+              <button key={c} onClick={() => onUpdateColor(c)} style={{ width: 14, height: 14, borderRadius: '50%', background: c, border: `2px solid ${stage.color === c ? 'var(--t1)' : 'transparent'}`, cursor: 'pointer', padding: 0 }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Name */}
+        {editing ? (
+          <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)}
+            onBlur={commitName} onKeyDown={e => e.key === 'Enter' && commitName()}
+            style={{ flex: 1, fontSize: 12, padding: '3px 6px', background: 'var(--s2)', border: '1px solid var(--bl)', borderRadius: 5, color: 'var(--t1)' }} />
+        ) : (
+          <span onClick={() => setEditing(true)} style={{ flex: 1, fontSize: 12, color: 'var(--t1)', cursor: 'text' }}>{stage.name}</span>
+        )}
+
+        {/* Probability */}
+        <input value={probVal} onChange={e => setProbVal(e.target.value)} onBlur={commitProb} type="number" min="0" max="100"
+          style={{ width: 46, fontSize: 11, padding: '3px 5px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 5, color: 'var(--t2)', textAlign: 'center' }} />
+        <span style={{ fontSize: 10, color: 'var(--t3)' }}>%</span>
+
+        {!isSpecial && (
+          <button onClick={onDelete} style={{ background: 'none', border: 'none', color: 'var(--re)', cursor: 'pointer', fontSize: 11, padding: '2px 6px', borderRadius: 5, flexShrink: 0 }}>Slet</button>
+        )}
+      </div>
+
+      {deleteConfirm && (
+        <div style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.2)', borderRadius: 7, padding: '10px 12px', marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--re)', fontWeight: 600, marginBottom: 6 }}>Flyt leads til:</div>
+          <select value={migrateStageId ?? ''} onChange={e => onMigrateChange(Number(e.target.value))}
+            style={{ fontSize: 11, padding: '5px 8px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, color: 'var(--t1)', marginBottom: 8, width: '100%' }}>
+            {migrationOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={onConfirmDelete} style={{ flex: 1, background: 'var(--re)', color: '#fff', border: 'none', borderRadius: 5, padding: '5px 0', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Slet stadie</button>
+            <button onClick={onCancelDelete} style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 5, padding: '5px 10px', fontSize: 11, color: 'var(--t2)', cursor: 'pointer' }}>Annuller</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ── Sortable lead card ──────────────────────────────── */
 function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
-  const overdue = isOverdue(lead.next_action_date);
-  const soonDue = !overdue && lead.next_action_date && lead.next_action_date <= new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+  const overdue  = isOverdue(lead.next_action_date);
+  const soonDue  = !overdue && lead.next_action_date && lead.next_action_date <= new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }} {...attributes} {...listeners}>
       <div onClick={onClick} style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 8, padding: '10px 12px', marginBottom: 6, cursor: 'pointer', transition: 'border-color 0.1s' }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
         onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', marginBottom: 2 }}>{lead.company_name}</div>
-        {lead.contact_name && <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 5 }}>{lead.contact_name}{lead.contact_title ? ` · ${lead.contact_title}` : ''}</div>}
+        {lead.contact_name && <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 4 }}>{lead.contact_name}{lead.contact_title ? ` · ${lead.contact_title}` : ''}</div>}
         {(lead.products as string[] ?? []).length > 0 && (
-          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 5 }}>
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 4 }}>
             {(lead.products as string[]).map((p: string) => (
               <span key={p} style={{ fontSize: 9, padding: '2px 5px', background: 'var(--bl2)', borderRadius: 100, color: 'var(--bl)', fontWeight: 600 }}>{p}</span>
             ))}
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {lead.deal_value_dkk > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gr)' }}>{fmt(lead.deal_value_dkk)}/md.</span>}
-          {lead.country !== 'DK' && <span style={{ fontSize: 11 }}>{flag(lead.country)}</span>}
+          {lead.country && lead.country !== 'DK' && <span style={{ fontSize: 11 }}>{flag(lead.country)}</span>}
           <span style={{ fontSize: 9, color: 'var(--t3)', marginLeft: 'auto' }}>{daysInStage(lead.updated_at)} dage</span>
           {Number(lead.activity_count) > 0 && <span style={{ fontSize: 9, color: 'var(--t3)' }}>💬 {lead.activity_count}</span>}
         </div>
         {lead.next_action_label && (
-          <div style={{ marginTop: 5, fontSize: 10, color: overdue ? 'var(--re)' : soonDue ? 'var(--ye)' : 'var(--t3)', fontWeight: overdue || soonDue ? 600 : 400 }}>
-            📅 {lead.next_action_label}
+          <div style={{ marginTop: 4, fontSize: 10, color: overdue ? 'var(--re)' : soonDue ? 'var(--ye)' : 'var(--t3)', fontWeight: overdue || soonDue ? 600 : 400 }}>
+            📅 {lead.next_action_label}{lead.next_action_date ? ` · ${fmtDate(lead.next_action_date)}` : ''}
           </div>
         )}
       </div>
@@ -48,27 +269,34 @@ function LeadCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
   );
 }
 
-/* ── Stage column ────────────────────────────────────── */
-function StageColumn({ stage, leads, onCardClick }: {
+/* ── Stage column with droppable support ─────────────── */
+function StageColumn({ stage, leads, onCardClick, collapsed, onToggle }: {
   stage: Stage; leads: Lead[]; onCardClick: (id: number) => void;
+  collapsed?: boolean; onToggle?: () => void;
 }) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   const ids = leads.map(l => l.id);
+  const totalValue = leads.reduce((s, l) => s + (Number(l.deal_value_dkk) || 0), 0);
+
   return (
     <div style={{ width: 230, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8, padding: '0 2px' }}>
+      <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: collapsed ? 0 : 8, padding: '0 2px', cursor: onToggle ? 'pointer' : 'default' }}>
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: stage.color, display: 'inline-block', flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stage.name}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stage.name}</span>
         <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', border: '1px solid var(--bd)', padding: '1px 6px', borderRadius: 100, flexShrink: 0 }}>{leads.length}</span>
+        {onToggle && <span style={{ fontSize: 10, color: 'var(--t3)', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▾</span>}
       </div>
-      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <div data-stage-id={stage.id} style={{ flex: 1, minHeight: 60 }}>
-          {leads.map(l => <LeadCard key={l.id} lead={l} onClick={() => onCardClick(l.id)} />)}
-        </div>
-      </SortableContext>
-      {stage.is_won && leads.length > 0 && (
-        <div style={{ fontSize: 10, color: 'var(--gr)', fontWeight: 600, textAlign: 'center', marginTop: 4 }}>
-          {fmt(leads.reduce((s, l) => s + l.deal_value_dkk, 0))}/md.
-        </div>
+      {!collapsed && (
+        <>
+          {totalValue > 0 && <div style={{ fontSize: 9, color: 'var(--t3)', marginBottom: 6, paddingLeft: 17 }}>{fmt(totalValue)}/md.</div>}
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            <div ref={setNodeRef} data-stage-id={stage.id}
+              style={{ flex: 1, minHeight: 80, borderRadius: 7, border: '1px dashed transparent', transition: 'all 0.1s', ...(isOver ? { borderColor: 'var(--bl)', background: 'rgba(79,142,247,0.04)' } : {}) }}>
+              {leads.map(l => <LeadCard key={l.id} lead={l} onClick={() => onCardClick(l.id)} />)}
+              {leads.length === 0 && <div style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center', padding: '16px 0', opacity: 0.5 }}>Tom</div>}
+            </div>
+          </SortableContext>
+        </>
       )}
     </div>
   );
@@ -132,8 +360,8 @@ function NewLeadModal({ stages, onClose, onCreated }: { stages: Stage[]; onClose
           </div>
           <Field label="Værdi (kr./md.)"><input value={form.deal_value_dkk} onChange={s('deal_value_dkk')} type="number" placeholder="0" /></Field>
           <Field label="Stadie">
-            <select value={form.stage_id} onChange={e => { const st = stages.find(s => s.id === Number(e.target.value)); setForm(f => ({ ...f, stage_id: Number(e.target.value), probability: st?.probability ?? 0 })); }}>
-              {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <select value={form.stage_id} onChange={e => { const st = stages.find(stg => stg.id === Number(e.target.value)); setForm(f => ({ ...f, stage_id: Number(e.target.value), probability: st?.probability ?? 0 })); }}>
+              {stages.map(stg => <option key={stg.id} value={stg.id}>{stg.name}</option>)}
             </select>
           </Field>
           <Field label="Forventet lukning"><input value={form.expected_close_date} onChange={s('expected_close_date')} type="date" /></Field>
@@ -165,9 +393,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 3 }}>{label}</div>
-      <style>{`
-        .mcrm-field input, .mcrm-field select { width:100%; padding:7px 9px; background:var(--s2); border:1px solid var(--bd); border-radius:6px; color:var(--t1); font-size:12px; box-sizing:border-box; }
-      `}</style>
+      <style>{`.mcrm-field input,.mcrm-field select{width:100%;padding:7px 9px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--t1);font-size:12px;box-sizing:border-box}`}</style>
       <div className="mcrm-field">{children}</div>
     </div>
   );
@@ -175,19 +401,39 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 /* ── Main page ───────────────────────────────────────── */
 export default function MeridianCrmPage() {
-  const [stages, setStages]       = useState<Stage[]>([]);
-  const [leads, setLeads]         = useState<Lead[]>([]);
-  const [overview, setOverview]   = useState<{ pipelineValue: number; weightedPipeline: number; wonThisMonth: { count: number; value: number }; activitiesThisWeek: number; leadsByStage: Array<{ id: number; name: string; lead_count: number; total_value: number }> } | null>(null);
-  const [search, setSearch]       = useState('');
+  const [stages, setStages]     = useState<Stage[]>([]);
+  const [leads, setLeads]       = useState<Lead[]>([]);
+  const [overview, setOverview] = useState<{ pipelineValue: number; weightedPipeline: number; wonThisMonth: { count: number; value: number }; activitiesThisWeek: number; leadsByStage: Array<{ id: number; name: string; lead_count: number; total_value: number }> } | null>(null);
+  const [search, setSearch]     = useState('');
   const [selectedLead, setSelectedLead] = useState<number | null>(null);
   const [showNewLead, setShowNewLead]   = useState(false);
-  const [statsOpen]                      = useState(true);
+  const [showEditor, setShowEditor]     = useState(false);
+  const [collapsedCols, setCollapsedCols] = useState<Set<number>>(new Set());
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const loadStages = useCallback(async () => {
     const data = await fetch('/api/meridian/crm/stages').then(r => r.json()) as Stage[];
-    setStages(Array.isArray(data) ? data : []);
+    const arr = Array.isArray(data) ? data : [];
+    if (arr.length === 0) {
+      await fetch('/api/meridian/crm/stages/seed', { method: 'POST' });
+      const seeded = await fetch('/api/meridian/crm/stages').then(r => r.json()) as Stage[];
+      setStages(Array.isArray(seeded) ? seeded : []);
+      // Collapse won/lost by default
+      const wl = (Array.isArray(seeded) ? seeded : []).filter((s: Stage) => s.is_won || s.is_lost).map((s: Stage) => s.id);
+      setCollapsedCols(new Set(wl));
+    } else {
+      setStages(arr);
+      // Collapse won/lost by default (only on first load)
+      setCollapsedCols(prev => {
+        if (prev.size > 0) return prev;
+        const wl = arr.filter(s => s.is_won || s.is_lost).map(s => s.id);
+        return new Set(wl);
+      });
+    }
   }, []);
 
   const loadLeads = useCallback(async () => {
@@ -203,19 +449,40 @@ export default function MeridianCrmPage() {
 
   useEffect(() => { void loadStages(); void loadLeads(); void loadOverview(); }, [loadStages, loadLeads, loadOverview]);
 
+  function toggleCollapse(stageId: number) {
+    setCollapsedCols(prev => {
+      const next = new Set(prev);
+      if (next.has(stageId)) next.delete(stageId); else next.add(stageId);
+      return next;
+    });
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over) return;
     const leadId = Number(active.id);
     const overId = Number(over.id);
-    // over.id is either another lead id or a stage id — find target stage
-    const targetLead  = leads.find(l => l.id === overId);
-    const targetStageId = targetLead ? targetLead.stage_id : null;
-    const targetStage = targetStageId ? stages.find(s => s.id === targetStageId) : null;
-    if (!targetStage) return;
+    if (leadId === overId) return;
+
+    // over.id may be a stage id (dropped on empty column) or a lead id (dropped on another lead)
+    let targetStageId: number | null = null;
+    const overAsStage = stages.find(s => s.id === overId);
+    if (overAsStage) {
+      targetStageId = overAsStage.id;
+    } else {
+      const overLead = leads.find(l => l.id === overId);
+      targetStageId = overLead?.stage_id ?? null;
+    }
+    if (targetStageId === null) return;
     const sourceLead = leads.find(l => l.id === leadId);
-    if (sourceLead?.stage_id === targetStage.id) return;
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage_id: targetStage.id, stage_name: targetStage.name, stage_color: targetStage.color } : l));
+    if (sourceLead?.stage_id === targetStageId) return;
+    const targetStage = stages.find(s => s.id === targetStageId);
+    if (!targetStage) return;
+
+    // Optimistic update
+    setLeads(prev => prev.map(l =>
+      l.id === leadId ? { ...l, stage_id: targetStage.id, stage_name: targetStage.name, stage_color: targetStage.color } : l
+    ));
     await fetch(`/api/meridian/crm/leads/${leadId}/stage`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stage_id: targetStage.id }),
@@ -223,10 +490,8 @@ export default function MeridianCrmPage() {
     void loadOverview();
   }
 
-  const activeStages  = stages.filter(s => !s.is_won && !s.is_lost);
-  const wonStage      = stages.find(s => s.is_won);
-  const lostStage     = stages.find(s => s.is_lost);
-  const filteredLeads = search ? leads : leads;
+  const activeStages = stages.filter(s => !s.is_won && !s.is_lost);
+  const wonLostStages = stages.filter(s => s.is_won || s.is_lost);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -237,6 +502,10 @@ export default function MeridianCrmPage() {
         <div style={{ flex: 1 }} />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Søg firma eller kontakt…"
           style={{ fontSize: 12, padding: '6px 10px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 7, color: 'var(--t1)', width: 200 }} />
+        <button onClick={() => setShowEditor(true)}
+          style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '7px 12px', fontSize: 12, cursor: 'pointer' }}>
+          Rediger pipeline
+        </button>
         <button onClick={() => setShowNewLead(true)}
           style={{ background: 'var(--bl)', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           + Nyt lead
@@ -244,50 +513,43 @@ export default function MeridianCrmPage() {
       </div>
 
       {/* Stats strip */}
-      {statsOpen && overview && (
-        <div style={{ flexShrink: 0, background: 'var(--s1)', borderBottom: '1px solid var(--bd)', padding: '12px 24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 10 }}>
-            {[
-              { label: 'Pipeline værdi',    value: fmt(overview.pipelineValue), color: 'var(--t1)' },
-              { label: 'Vægtet pipeline',   value: fmt(overview.weightedPipeline), color: 'var(--bl)' },
-              { label: 'Vundet denne md.',  value: `${overview.wonThisMonth.count} · ${fmt(overview.wonThisMonth.value)}`, color: 'var(--gr)' },
-              { label: 'Aktiviteter i uge', value: String(overview.activitiesThisWeek), color: 'var(--pu)' },
-            ].map(k => (
-              <div key={k.label} style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>{k.label}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: k.color }}>{k.value}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {overview.leadsByStage.filter(s => s.lead_count > 0).map(s => (
-              <div key={s.id} style={{ fontSize: 10, padding: '3px 8px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, color: 'var(--t2)' }}>
-                {s.name}: {s.lead_count} · {fmt(s.total_value)}
-              </div>
-            ))}
-          </div>
+      {overview && (
+        <div style={{ flexShrink: 0, background: 'var(--s1)', borderBottom: '1px solid var(--bd)', padding: '10px 24px', display: 'flex', gap: 10 }}>
+          {[
+            { label: 'Pipeline',     value: fmt(overview.pipelineValue),     color: 'var(--t1)' },
+            { label: 'Vægtet',       value: fmt(overview.weightedPipeline),  color: 'var(--bl)' },
+            { label: 'Vundet md.',   value: `${overview.wonThisMonth.count} · ${fmt(overview.wonThisMonth.value)}`, color: 'var(--gr)' },
+            { label: 'Akt. i uge',   value: String(overview.activitiesThisWeek), color: 'var(--pu)' },
+          ].map(k => (
+            <div key={k.label} style={{ background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '7px 12px', flex: 1 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>{k.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: k.color }}>{k.value}</div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Kanban board */}
       <div style={{ flex: 1, overflowX: 'auto', padding: '16px 24px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={e => void handleDragEnd(e)}>
-          {activeStages.map(stage => {
-            const stageLeads = filteredLeads.filter(l => l.stage_id === stage.id);
-            return <StageColumn key={stage.id} stage={stage} leads={stageLeads} onCardClick={setSelectedLead} />;
-          })}
-
-          {/* Won / Lost columns */}
-          {wonStage && (
-            <StageColumn key={wonStage.id} stage={wonStage} leads={filteredLeads.filter(l => l.stage_id === wonStage.id)} onCardClick={setSelectedLead} />
-          )}
-          {lostStage && (
-            <StageColumn key={lostStage.id} stage={lostStage} leads={filteredLeads.filter(l => l.stage_id === lostStage.id)} onCardClick={setSelectedLead} />
-          )}
+          {activeStages.map(stage => (
+            <StageColumn key={stage.id} stage={stage}
+              leads={leads.filter(l => l.stage_id === stage.id)}
+              onCardClick={setSelectedLead}
+            />
+          ))}
+          {wonLostStages.length > 0 && <div style={{ width: 1, background: 'var(--bd)', alignSelf: 'stretch', flexShrink: 0 }} />}
+          {wonLostStages.map(stage => (
+            <StageColumn key={stage.id} stage={stage}
+              leads={leads.filter(l => l.stage_id === stage.id)}
+              onCardClick={setSelectedLead}
+              collapsed={collapsedCols.has(stage.id)}
+              onToggle={() => toggleCollapse(stage.id)}
+            />
+          ))}
         </DndContext>
       </div>
 
-      {/* Lead detail panel */}
       {selectedLead !== null && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 199 }} onClick={() => setSelectedLead(null)} />
@@ -295,8 +557,9 @@ export default function MeridianCrmPage() {
         </>
       )}
 
-      {/* New lead modal */}
       {showNewLead && <NewLeadModal stages={stages} onClose={() => setShowNewLead(false)} onCreated={() => { void loadLeads(); void loadOverview(); }} />}
+
+      {showEditor && <StageEditorModal stages={stages} onClose={() => setShowEditor(false)} onSaved={() => { void loadStages(); void loadLeads(); }} />}
     </div>
   );
 }

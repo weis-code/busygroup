@@ -613,6 +613,41 @@ export async function register() {
   await sql`CREATE INDEX IF NOT EXISTS meridian_activities_owner_idx  ON meridian_lead_activities(owner_id)`;
   await sql`CREATE INDEX IF NOT EXISTS meridian_activities_lead_idx   ON meridian_lead_activities(lead_id)`;
 
+  // Meridian support tickets
+  await sql`
+    CREATE TABLE IF NOT EXISTS meridian_tickets (
+      id            SERIAL PRIMARY KEY,
+      customer_id   INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+      customer_name TEXT NOT NULL,
+      subject       TEXT NOT NULL,
+      description   TEXT,
+      type          TEXT DEFAULT 'general',
+      status        TEXT DEFAULT 'open',
+      priority      TEXT DEFAULT 'normal',
+      assigned_to   UUID REFERENCES users(id) NULL,
+      resolved_at   TIMESTAMPTZ NULL,
+      resolved_by   UUID REFERENCES users(id) NULL,
+      created_by    UUID REFERENCES users(id) NULL,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_tickets_status_idx   ON meridian_tickets(status)`;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_tickets_priority_idx ON meridian_tickets(priority)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS meridian_ticket_messages (
+      id          SERIAL PRIMARY KEY,
+      ticket_id   INTEGER REFERENCES meridian_tickets(id) ON DELETE CASCADE,
+      author_id   UUID REFERENCES users(id) NULL,
+      author_name TEXT NOT NULL,
+      is_internal BOOLEAN DEFAULT false,
+      body        TEXT NOT NULL,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS meridian_ticket_msgs_ticket_idx ON meridian_ticket_messages(ticket_id)`;
+
   } catch (err) {
     console.error('[NLS] Schema init failed:', err);
   }

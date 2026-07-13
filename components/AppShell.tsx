@@ -58,21 +58,18 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',           '/admin/nls/messages',     'Beskeder',        <ChatIcon />),
   ],
   meridian: [
-    sectionItem('OVERSIGT',   '/admin/meridian',                            'Overblik',        <GridIcon />),
-    sectionItem('PRODUKTER',  '/admin/meridian/products/ai-receptionist',   'AI Receptionist', <RobotIcon />),
-    sectionItem('',           '/admin/meridian/products/quorex',            'Quorex',          <PortalIcon />),
-    sectionItem('',           '/admin/meridian/products/busyreminder',      'BusyReminder',    <BellIcon />),
-    sectionItem('',           '/admin/meridian/products/hjemmeside',        'Hjemmeside',      <GlobeIcon />),
-    sectionItem('',           '/admin/meridian/products',                   'Produktkatalog',  <TaskIcon />),
-    sectionItem('KUNDER',     '/admin/customers',                           'Kunder',          <PeopleIcon />),
-    sectionItem('',           '/admin/handover',                            'Handover',        <HandoverIcon />),
-    sectionItem('',           '/admin/portal',                              'Klientportal',    <PortalIcon />),
-    sectionItem('SALG',       '/admin/meridian/crm',                        'Min pipeline',    <CrmIcon />),
-    sectionItem('',           '/admin/meridian/crm/activity',               'Aktivitet',       <BarIcon />),
-    sectionItem('TEAM',       '/admin/meridian/team',                       'AM / KAM',        <TeamIcon />),
-    sectionItem('',           '/admin/meridian/absence',                    'Fravær',          <CalendarIcon />),
-    sectionItem('PLATFORM',   '/admin/meridian/board',                      'Board',           <BoardIcon />),
-    sectionItem('',           '/admin/meridian/messages',                   'Beskeder',        <ChatIcon />),
+    sectionItem('OVERSIGT',     '/admin/meridian',                     'Overblik',       <GridIcon />),
+    sectionItem('SALG',         '/admin/meridian/crm',                 'Min pipeline',   <CrmIcon />),
+    sectionItem('',             '/admin/meridian/crm/activity',        'Aktivitet',      <BarIcon />),
+    sectionItem('KUNDER',       '/admin/customers',                    'Kunder',         <PeopleIcon />),
+    sectionItem('',             '/admin/handover',                     'Handover',       <HandoverIcon />),
+    sectionItem('',             '/admin/meridian/support',             'Support',        <TicketIcon />),
+    sectionItem('PRODUKTER',    '/admin/meridian/products',            'Produktkatalog', <TaskIcon />),
+    sectionItem('KLIENTPORTAL', '/admin/portal',                       'Portal',         <PortalIcon />),
+    sectionItem('TEAM',         '/admin/meridian/team',                'AM / KAM',       <TeamIcon />),
+    sectionItem('',             '/admin/meridian/absence',             'Fravær',         <CalendarIcon />),
+    sectionItem('PLATFORM',     '/admin/meridian/board',               'Board',          <BoardIcon />),
+    sectionItem('',             '/admin/meridian/messages',            'Beskeder',       <ChatIcon />),
   ],
   quorex: [
     sectionItem('OVERSIGT',  '/admin/quorex',           'Overblik', <GridIcon />),
@@ -227,7 +224,7 @@ const PAGE_LABELS: Record<string, string> = {
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
   periods: 'Lønperioder', settings: 'Indstillinger', companies: 'Virksomheder',
   customers: 'Kunder', handover: 'Handovers', portal: 'Klientportal',
-  crm: 'CRM Pipeline', contacts: 'Virksomheder', activity: 'Aktivitetsfeed',
+  crm: 'CRM Pipeline', contacts: 'Virksomheder', activity: 'Aktivitetsfeed', support: 'Support',
   'my-customers': 'Mine Kunder',
   finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
   mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
@@ -610,3 +607,4 @@ function EuroIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15
 function GlobeIcon()     { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.4"/><ellipse cx="7.5" cy="7.5" rx="2.5" ry="6" stroke="currentColor" strokeWidth="1.2"/><line x1="1.5" y1="7.5" x2="13.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="2.5" y1="5" x2="12.5" y2="5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/><line x1="2.5" y1="10" x2="12.5" y2="10" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg> }
 function RobotIcon()     { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="3" y="5" width="9" height="7" rx="2" stroke="currentColor" strokeWidth="1.4"/><circle cx="5.5" cy="8.5" r="1" fill="currentColor"/><circle cx="9.5" cy="8.5" r="1" fill="currentColor"/><line x1="7.5" y1="2" x2="7.5" y2="5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7.5" cy="1.5" r=".8" fill="currentColor"/><line x1="5.5" y1="12" x2="5.5" y2="13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="9.5" y1="12" x2="9.5" y2="13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
 function BellIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1.5A4 4 0 003.5 5.5V9l-1 1.5h10L11.5 9V5.5A4 4 0 007.5 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M6 11.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
+function TicketIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 5.5a1.5 1.5 0 000 3V11a1 1 0 001 1h8a1 1 0 001-1V8.5a1.5 1.5 0 000-3V4a1 1 0 00-1-1H3a1 1 0 00-1 1v1.5z" stroke="currentColor" strokeWidth="1.3"/><line x1="5.5" y1="3" x2="5.5" y2="12" stroke="currentColor" strokeWidth="1" strokeDasharray="1.5 1.5"/></svg> }
