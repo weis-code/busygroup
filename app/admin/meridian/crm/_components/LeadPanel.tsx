@@ -89,8 +89,6 @@ export default function LeadPanel({ leadId, stages, onClose, onUpdate }: Props) 
     </div>
   );
 
-  const activeStage = stages.find(s => s.id === lead.stage_id);
-
   return (
     <div style={{ position: 'fixed', right: 0, top: 46, bottom: 0, width: 460, background: 'var(--s1)', borderLeft: '1px solid var(--bd)', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}

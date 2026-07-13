@@ -9,7 +9,7 @@ import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalList
 import { CSS } from '@dnd-kit/utilities';
 import { flag } from '@/lib/countries';
 import type { Stage, Lead } from './_components/types';
-import { fmt, fmtDate, isOverdue, daysInStage, MERIDIAN_PRODUCTS, INDUSTRIES } from './_components/types';
+import { fmt, isOverdue, daysInStage, MERIDIAN_PRODUCTS, INDUSTRIES } from './_components/types';
 import LeadPanel from './_components/LeadPanel';
 
 /* ── Sortable lead card ──────────────────────────────── */
@@ -181,7 +181,7 @@ export default function MeridianCrmPage() {
   const [search, setSearch]       = useState('');
   const [selectedLead, setSelectedLead] = useState<number | null>(null);
   const [showNewLead, setShowNewLead]   = useState(false);
-  const [statsOpen, setStatsOpen]       = useState(true);
+  const [statsOpen]                      = useState(true);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
