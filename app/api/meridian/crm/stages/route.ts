@@ -33,13 +33,18 @@ function forbidden() { return NextResponse.json({ error: 'Forbidden' }, { status
 export async function GET(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
-  await seedStages(session.id);
-  const stages = await sql`
-    SELECT * FROM meridian_pipeline_stages
-    WHERE owner_id = ${session.id}
-    ORDER BY position, id
-  `;
-  return NextResponse.json(stages);
+  try {
+    await seedStages(session.id);
+    const stages = await sql`
+      SELECT * FROM meridian_pipeline_stages
+      WHERE owner_id = ${session.id}
+      ORDER BY position, id
+    `;
+    return NextResponse.json(stages);
+  } catch (err) {
+    console.error('[Meridian] stages GET failed:', err);
+    return NextResponse.json({ error: 'Database error', detail: String(err) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -48,13 +53,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as { name: string; color?: string; probability?: number };
   if (!body.name?.trim()) return NextResponse.json({ error: 'name required' }, { status: 400 });
 
-  const [maxPos] = await sql`
-    SELECT COALESCE(MAX(position), -1) AS pos FROM meridian_pipeline_stages WHERE owner_id = ${session.id}
-  `;
-  const [stage] = await sql`
-    INSERT INTO meridian_pipeline_stages (owner_id, name, color, probability, position)
-    VALUES (${session.id}, ${body.name.trim()}, ${body.color ?? '#4f8ef7'}, ${body.probability ?? 50}, ${Number(maxPos.pos) + 1})
-    RETURNING *
-  `;
-  return NextResponse.json(stage, { status: 201 });
+  try {
+    const [maxPos] = await sql`
+      SELECT COALESCE(MAX(position), -1) AS pos FROM meridian_pipeline_stages WHERE owner_id = ${session.id}
+    `;
+    const [stage] = await sql`
+      INSERT INTO meridian_pipeline_stages (owner_id, name, color, probability, position)
+      VALUES (${session.id}, ${body.name.trim()}, ${body.color ?? '#4f8ef7'}, ${body.probability ?? 50}, ${Number(maxPos.pos) + 1})
+      RETURNING *
+    `;
+    return NextResponse.json(stage, { status: 201 });
+  } catch (err) {
+    console.error('[Meridian] stages POST failed:', err);
+    return NextResponse.json({ error: 'Database error', detail: String(err) }, { status: 500 });
+  }
 }

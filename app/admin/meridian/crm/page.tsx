@@ -408,6 +408,7 @@ export default function MeridianCrmPage() {
   const [leads, setLeads]       = useState<Lead[]>([]);
   const [overview, setOverview] = useState<{ pipelineValue: number; weightedPipeline: number; wonThisMonth: { count: number; value: number }; activitiesThisWeek: number; leadsByStage: Array<{ id: number; name: string; lead_count: number; total_value: number }> } | null>(null);
   const [search, setSearch]     = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<number | null>(null);
   const [showNewLead, setShowNewLead]   = useState(false);
   const [showEditor, setShowEditor]     = useState(false);
@@ -419,18 +420,28 @@ export default function MeridianCrmPage() {
   );
 
   const loadStages = useCallback(async () => {
-    const data = await fetch('/api/meridian/crm/stages').then(r => r.json()) as Stage[];
+    const res = await fetch('/api/meridian/crm/stages');
+    if (!res.ok) {
+      setLoadError('Pipeline kunne ikke indlæses. Prøv at genindlæse siden.');
+      return;
+    }
+    const data = await res.json() as Stage[];
     const arr = Array.isArray(data) ? data : [];
+    setLoadError(null);
     if (arr.length === 0) {
-      await fetch('/api/meridian/crm/stages/seed', { method: 'POST' });
-      const seeded = await fetch('/api/meridian/crm/stages').then(r => r.json()) as Stage[];
+      const seedRes = await fetch('/api/meridian/crm/stages/seed', { method: 'POST' });
+      if (!seedRes.ok) {
+        setLoadError('Pipeline-stadier kunne ikke oprettes. Prøv at genindlæse siden.');
+        return;
+      }
+      const seededRes = await fetch('/api/meridian/crm/stages');
+      if (!seededRes.ok) { setLoadError('Pipeline kunne ikke indlæses. Prøv at genindlæse siden.'); return; }
+      const seeded = await seededRes.json() as Stage[];
       setStages(Array.isArray(seeded) ? seeded : []);
-      // Collapse won/lost by default
       const wl = (Array.isArray(seeded) ? seeded : []).filter((s: Stage) => s.is_won || s.is_lost).map((s: Stage) => s.id);
       setCollapsedCols(new Set(wl));
     } else {
       setStages(arr);
-      // Collapse won/lost by default (only on first load)
       setCollapsedCols(prev => {
         if (prev.size > 0) return prev;
         const wl = arr.filter(s => s.is_won || s.is_lost).map(s => s.id);
@@ -513,6 +524,17 @@ export default function MeridianCrmPage() {
           + Nyt lead
         </button>
       </div>
+
+      {/* Error banner */}
+      {loadError && (
+        <div style={{ flexShrink: 0, background: 'rgba(244,63,94,0.08)', borderBottom: '1px solid rgba(244,63,94,0.2)', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 13, color: 'var(--re)', fontWeight: 600 }}>⚠ {loadError}</span>
+          <button onClick={() => { setLoadError(null); void loadStages(); void loadLeads(); void loadOverview(); }}
+            style={{ marginLeft: 'auto', fontSize: 11, padding: '4px 10px', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', borderRadius: 6, color: 'var(--re)', cursor: 'pointer' }}>
+            Prøv igen
+          </button>
+        </div>
+      )}
 
       {/* Stats strip */}
       {overview && (
