@@ -554,8 +554,73 @@ export async function register() {
     console.error('[NLS] Schema init failed:', err);
   }
 
-  // Meridian CRM tables — each in its own block so one failure doesn't block the rest
+  // Base platform tables — re-attempted in isolation so a failure earlier in the main
+  // block doesn't leave these tables uncreated on subsequent restarts.
   const { default: sql2 } = await import('./lib/db');
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS companies (
+        id              SERIAL PRIMARY KEY,
+        name            TEXT NOT NULL,
+        slug            TEXT UNIQUE NOT NULL,
+        type            TEXT NOT NULL,
+        color           TEXT NOT NULL,
+        logo_initials   TEXT NOT NULL,
+        ownership_pct   INTEGER DEFAULT 100,
+        stripe_enabled  BOOLEAN DEFAULT false,
+        created_at      TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`
+      INSERT INTO companies (name, slug, type, color, logo_initials, ownership_pct, stripe_enabled)
+      VALUES
+        ('Next Level Sales',       'nls',       'sales',           '#4f8ef7', 'NLS', 100, false),
+        ('Meridian Consulting',    'meridian',  'consulting',      '#2dd4a0', 'MC',  100, false),
+        ('Quorex',                 'quorex',    'saas',            '#a78bfa', 'QX',  100, true),
+        ('BusyReminder',           'reminder',  'saas',            '#f59e0b', 'BR',   75, true),
+        ('NextLevel Group',        'group',     'group',           '#4f8ef7', 'NL',  100, false),
+        ('CreatorRate',            'creatorrate','saas',           '#f43f5e', 'CR',   25, false),
+        ('Next Level Creator Agency','nlca',    'creator_agency',  '#06b6d4', 'NLCA',100, false)
+      ON CONFLICT (slug) DO NOTHING
+    `;
+  } catch (err) { console.error('[NLS] companies table/seed failed:', err); }
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS customers (
+        id              SERIAL PRIMARY KEY,
+        company_id      INTEGER REFERENCES companies(id),
+        name            TEXT NOT NULL,
+        cvr             TEXT,
+        contact_name    TEXT,
+        contact_email   TEXT,
+        contact_phone   TEXT,
+        am_user_id      UUID REFERENCES users(id) NULL,
+        kam_user_id     UUID REFERENCES users(id) NULL,
+        status          TEXT DEFAULT 'active',
+        mrr             INTEGER DEFAULT 0,
+        notes           TEXT,
+        created_at      TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+  } catch (err) { console.error('[NLS] customers table failed:', err); }
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS customer_products (
+        id           SERIAL PRIMARY KEY,
+        customer_id  INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+        product_name TEXT NOT NULL,
+        price_dkk    INTEGER NOT NULL,
+        status       TEXT DEFAULT 'active',
+        started_at   DATE,
+        created_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+  } catch (err) { console.error('[NLS] customer_products table failed:', err); }
+
+  // Meridian CRM tables — each in its own block so one failure doesn't block the rest
 
   try {
     await sql2`
