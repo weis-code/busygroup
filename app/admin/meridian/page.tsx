@@ -49,20 +49,27 @@ function KpiCard({ label, value, sub, accent, delta }: { label: string; value: s
 
 export default function MeridianPage() {
   const [data, setData] = useState<DashData | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/meridian/dashboard')
-      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .then(async r => {
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({})) as Record<string, string>;
+          throw new Error(`HTTP ${r.status} — ${body?.detail ?? body?.error ?? 'ukendt fejl'}`);
+        }
+        return r.json();
+      })
       .then(d => setData(d as DashData))
-      .catch(() => setError(true));
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   if (error) return (
     <div style={{ padding: '28px 32px' }}>
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Overblik</div>
       <div style={{ fontSize: 12, color: 'var(--t3)' }}>Meridian Consulting</div>
-      <div style={{ marginTop: 40, color: 'var(--re)', fontSize: 13 }}>Kunne ikke indlæse data. Prøv at genindlæse siden.</div>
+      <div style={{ marginTop: 40, color: 'var(--re)', fontSize: 13, fontWeight: 600 }}>Kunne ikke indlæse data</div>
+      <div style={{ marginTop: 8, color: 'var(--t3)', fontSize: 11, fontFamily: 'monospace', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, padding: '8px 12px', maxWidth: 640, wordBreak: 'break-all' }}>{error}</div>
     </div>
   );
 
