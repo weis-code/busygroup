@@ -586,6 +586,17 @@ export async function register() {
     `;
   } catch (err) { console.error('[NLS] companies table/seed failed:', err); }
 
+  // Idempotent column additions for companies (handles tables created before these columns existed)
+  try {
+    await sql2`ALTER TABLE companies ADD COLUMN IF NOT EXISTS ownership_pct INTEGER DEFAULT 100`;
+    await sql2`ALTER TABLE companies ADD COLUMN IF NOT EXISTS stripe_enabled BOOLEAN DEFAULT false`;
+    await sql2`ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_initials TEXT DEFAULT ''`;
+    await sql2`ALTER TABLE companies ADD COLUMN IF NOT EXISTS color TEXT DEFAULT '#4f8ef7'`;
+    // Backfill non-100% ownership for companies that existed before the column was added
+    await sql2`UPDATE companies SET ownership_pct = 75 WHERE slug = 'reminder' AND ownership_pct = 100`;
+    await sql2`UPDATE companies SET ownership_pct = 25 WHERE slug = 'creatorrate' AND ownership_pct = 100`;
+  } catch (err) { console.error('[NLS] companies column migration failed:', err); }
+
   try {
     await sql2`
       CREATE TABLE IF NOT EXISTS customers (

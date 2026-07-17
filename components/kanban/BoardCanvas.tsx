@@ -699,7 +699,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
               const visible     = filterCards(allColCards.filter(c => !c.completed_at));
               const donePile    = filterCards(allColCards.filter(c => c.completed_at));
               return (
-                <div key={col.id} style={{ width: isCollapsed ? 42 : 220, minWidth: isCollapsed ? 42 : 220, flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'width 0.2s', minHeight: 0 }}>
+                <div key={col.id} style={{ width: isCollapsed ? 42 : 220, minWidth: isCollapsed ? 42 : 220, flexShrink: 0, display: 'flex', flexDirection: 'column', transition: 'width 0.2s', minHeight: 0, overflow: 'hidden' }}>
                   {isCollapsed ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, paddingTop: 4 }}>
                       <button onClick={() => setCollapsed(prev => { const s = new Set(prev); s.delete(col.id); return s; })}
