@@ -14,29 +14,57 @@ export async function GET(req: NextRequest) {
     const [meridianCo] = await sql`SELECT id FROM companies WHERE slug = 'meridian'`;
     const meridianId: number | null = meridianCo?.id ?? null;
 
-    const products = await sql`
-      SELECT
-        cp.product_name,
-        COUNT(*) FILTER (WHERE cp.status = 'active')::int AS active_count,
-        COUNT(*) FILTER (WHERE cp.status != 'active')::int AS inactive_count,
-        COALESCE(SUM(cp.price_dkk) FILTER (WHERE cp.status = 'active'), 0)::int AS mrr,
-        MIN(cp.started_at) AS first_started,
-        JSON_AGG(
-          JSON_BUILD_OBJECT(
-            'id', cp.id,
-            'customer_id', cu.id,
-            'customer_name', cu.name,
-            'price_dkk', cp.price_dkk,
-            'status', cp.status,
-            'started_at', cp.started_at
-          ) ORDER BY cu.name
-        ) AS subscriptions
-      FROM customer_products cp
-      JOIN customers cu ON cu.id = cp.customer_id
-      WHERE cu.company_id = ${meridianId}
-      GROUP BY cp.product_name
-      ORDER BY mrr DESC, cp.product_name
-    `;
+    let products: Record<string, unknown>[];
+    try {
+      products = await sql`
+        SELECT
+          cp.product_name,
+          COUNT(*) FILTER (WHERE cp.status = 'active')::int AS active_count,
+          COUNT(*) FILTER (WHERE cp.status != 'active')::int AS inactive_count,
+          COALESCE(SUM(cp.price_dkk) FILTER (WHERE cp.status = 'active'), 0)::int AS mrr,
+          MIN(cp.started_at) AS first_started,
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'id', cp.id,
+              'customer_id', cu.id,
+              'customer_name', cu.name,
+              'price_dkk', cp.price_dkk,
+              'status', cp.status,
+              'started_at', cp.started_at
+            ) ORDER BY cu.name
+          ) AS subscriptions
+        FROM customer_products cp
+        JOIN customers cu ON cu.id = cp.customer_id
+        WHERE cu.company_id = ${meridianId}
+        GROUP BY cp.product_name
+        ORDER BY mrr DESC, cp.product_name
+      ` as Record<string, unknown>[];
+    } catch {
+      // price_dkk column not yet migrated — fall back without price data
+      products = await sql`
+        SELECT
+          cp.product_name,
+          COUNT(*) FILTER (WHERE cp.status = 'active')::int AS active_count,
+          COUNT(*) FILTER (WHERE cp.status != 'active')::int AS inactive_count,
+          0::int AS mrr,
+          MIN(cp.started_at) AS first_started,
+          JSON_AGG(
+            JSON_BUILD_OBJECT(
+              'id', cp.id,
+              'customer_id', cu.id,
+              'customer_name', cu.name,
+              'price_dkk', 0,
+              'status', cp.status,
+              'started_at', cp.started_at
+            ) ORDER BY cu.name
+          ) AS subscriptions
+        FROM customer_products cp
+        JOIN customers cu ON cu.id = cp.customer_id
+        WHERE cu.company_id = ${meridianId}
+        GROUP BY cp.product_name
+        ORDER BY cp.product_name
+      ` as Record<string, unknown>[];
+    }
 
     return NextResponse.json(products);
   } catch (err) {

@@ -612,12 +612,14 @@ export async function register() {
         id           SERIAL PRIMARY KEY,
         customer_id  INTEGER REFERENCES customers(id) ON DELETE CASCADE,
         product_name TEXT NOT NULL,
-        price_dkk    INTEGER NOT NULL,
+        price_dkk    INTEGER NOT NULL DEFAULT 0,
         status       TEXT DEFAULT 'active',
         started_at   DATE,
         created_at   TIMESTAMPTZ DEFAULT NOW()
       )
     `;
+    // Idempotent column migrations — runs on every restart so existing tables get updated
+    await sql2`ALTER TABLE customer_products ADD COLUMN IF NOT EXISTS price_dkk INTEGER NOT NULL DEFAULT 0`;
   } catch (err) { console.error('[NLS] customer_products table failed:', err); }
 
   // Meridian CRM tables — each in its own block so one failure doesn't block the rest

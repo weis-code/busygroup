@@ -19,28 +19,41 @@ export async function GET(req: NextRequest) {
     const [meridianCo] = await sql`SELECT id FROM companies WHERE slug = 'meridian'`;
     const meridianId: number | null = meridianCo?.id ?? null;
 
-    // MRR — active customer_products for meridian customers
-    const [mrrRow] = await sql`
-      SELECT COALESCE(SUM(cp.price_dkk), 0)::int AS mrr
-      FROM customer_products cp
-      JOIN customers cu ON cu.id = cp.customer_id
-      WHERE cu.company_id = ${meridianId} AND cp.status = 'active'
-    `;
-
-    const [lastMrrRow] = await sql`
-      SELECT COALESCE(SUM(cp.price_dkk), 0)::int AS mrr
-      FROM customer_products cp
-      JOIN customers cu ON cu.id = cp.customer_id
-      WHERE cu.company_id = ${meridianId}
-        AND cp.status = 'active'
-        AND cp.started_at < ${lastMonthEnd}
-    `;
-
-    const [subCount] = await sql`
-      SELECT COUNT(*)::int AS count FROM customer_products cp
-      JOIN customers cu ON cu.id = cp.customer_id
-      WHERE cu.company_id = ${meridianId} AND cp.status = 'active'
-    `;
+    // MRR — active customer_products for meridian customers (guarded: price_dkk column may not exist yet)
+    let mrrRow: Record<string, unknown> | undefined;
+    let lastMrrRow: Record<string, unknown> | undefined;
+    let subCount: Record<string, unknown> | undefined;
+    let recentCustomers: Record<string, unknown>[] = [];
+    try {
+      [mrrRow] = await sql`
+        SELECT COALESCE(SUM(cp.price_dkk), 0)::int AS mrr
+        FROM customer_products cp
+        JOIN customers cu ON cu.id = cp.customer_id
+        WHERE cu.company_id = ${meridianId} AND cp.status = 'active'
+      `;
+      [lastMrrRow] = await sql`
+        SELECT COALESCE(SUM(cp.price_dkk), 0)::int AS mrr
+        FROM customer_products cp
+        JOIN customers cu ON cu.id = cp.customer_id
+        WHERE cu.company_id = ${meridianId}
+          AND cp.status = 'active'
+          AND cp.started_at < ${lastMonthEnd}
+      `;
+      [subCount] = await sql`
+        SELECT COUNT(*)::int AS count FROM customer_products cp
+        JOIN customers cu ON cu.id = cp.customer_id
+        WHERE cu.company_id = ${meridianId} AND cp.status = 'active'
+      `;
+      recentCustomers = await sql`
+        SELECT cu.id, cu.name, cu.status, cu.created_at,
+          COALESCE(SUM(cp.price_dkk) FILTER (WHERE cp.status='active'), 0)::int AS mrr,
+          ARRAY_AGG(DISTINCT cp.product_name) FILTER (WHERE cp.product_name IS NOT NULL) AS products
+        FROM customers cu
+        LEFT JOIN customer_products cp ON cp.customer_id = cu.id
+        WHERE cu.company_id = ${meridianId} AND cu.created_at >= ${monthStart}
+        GROUP BY cu.id ORDER BY cu.created_at DESC LIMIT 5
+      `;
+    } catch { /* customer_products.price_dkk not yet migrated — return zeros */ }
 
     // Customers
     const [custRow] = await sql`
@@ -55,17 +68,6 @@ export async function GET(req: NextRequest) {
       SELECT COUNT(*)::int AS count
       FROM customers WHERE company_id = ${meridianId}
         AND status = 'active' AND created_at >= ${monthStart}
-    `;
-
-    // Recent customers this month
-    const recentCustomers = await sql`
-      SELECT cu.id, cu.name, cu.status, cu.created_at,
-        COALESCE(SUM(cp.price_dkk) FILTER (WHERE cp.status='active'), 0)::int AS mrr,
-        ARRAY_AGG(DISTINCT cp.product_name) FILTER (WHERE cp.product_name IS NOT NULL) AS products
-      FROM customers cu
-      LEFT JOIN customer_products cp ON cp.customer_id = cu.id
-      WHERE cu.company_id = ${meridianId} AND cu.created_at >= ${monthStart}
-      GROUP BY cu.id ORDER BY cu.created_at DESC LIMIT 5
     `;
 
     // Support tickets — guarded in case table doesn't exist yet

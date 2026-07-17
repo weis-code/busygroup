@@ -715,7 +715,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
                         onCollapse={() => setCollapsed(prev => { const s = new Set(prev); s.add(col.id); return s; })}
                         collapsed={false} />
                       <SortableContext items={visible.map(c => `card-${c.id}`)} strategy={verticalListSortingStrategy}>
-                        <div id={`col-${col.id}`} style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 280px)' }}>
+                        <div id={`col-${col.id}`} style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                           {visible.map(card => <CardItem key={card.id} card={card} onClick={() => setModal({ card })} onToggleDone={() => toggleDone(card)} />)}
                           {showDone && donePile.length > 0 && (
                             <div style={{ borderTop: '1px dashed var(--bd)', paddingTop: 6, marginTop: 4 }}>
@@ -725,7 +725,7 @@ export function BoardCanvas({ boards, activeBoardId, onBoardChange, columns, car
                         </div>
                       </SortableContext>
                       <button onClick={() => setModal({ card: { priority: 'normal' }, colId: col.id })}
-                        style={{ marginTop: 6, border: '1px dashed var(--bd)', borderRadius: 7, padding: '8px 0', color: 'var(--t3)', fontSize: 12, background: 'transparent', minHeight: 44, cursor: 'pointer' }}>
+                        style={{ marginTop: 6, border: '1px dashed var(--bd)', borderRadius: 7, padding: '8px 0', color: 'var(--t3)', fontSize: 12, background: 'transparent', minHeight: 44, cursor: 'pointer', flexShrink: 0 }}>
                         + Tilføj kort
                       </button>
                     </>

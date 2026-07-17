@@ -127,5 +127,11 @@ export async function POST(req: NextRequest) {
     results.push('meridian_ticket_messages ✓');
   } catch (e) { results.push(`meridian_ticket_messages ERROR: ${String(e)}`); }
 
+  // Column migrations
+  try {
+    await sql`ALTER TABLE customer_products ADD COLUMN IF NOT EXISTS price_dkk INTEGER NOT NULL DEFAULT 0`;
+    results.push('customer_products.price_dkk ✓');
+  } catch (e) { results.push(`customer_products.price_dkk ERROR: ${String(e)}`); }
+
   return NextResponse.json({ results });
 }
