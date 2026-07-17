@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
       }
     } catch { /* ownership_pct column not yet migrated — default to 100 */ }
 
-    const companies = (rows as Record<string, unknown>[]).map(r => ({
+    type CompanyRow = Record<string, unknown> & { ownership_pct: number };
+    const companies: CompanyRow[] = (rows as Record<string, unknown>[]).map(r => ({
       ...r,
       ownership_pct: ownershipMap[Number(r.id)] ?? 100,
     }));
