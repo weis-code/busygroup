@@ -14,12 +14,15 @@ export async function GET(req: NextRequest) {
   const leadId = searchParams.get('lead_id');
 
   const activities = await sql`
-    SELECT a.*, l.company_name
-    FROM meridian_lead_activities a
-    JOIN meridian_leads l ON l.id = a.lead_id
-    WHERE a.owner_id = ${session.id}
-      AND (${leadId ?? null}::int IS NULL OR a.lead_id = ${leadId ?? null}::int)
-    ORDER BY a.occurred_at DESC, a.created_at DESC
+    SELECT t.id, t.owner_id, t.deal_id AS lead_id, t.type, t.direction, t.title, t.body,
+           t.outcome, t.next_action, t.next_action_date, t.occurred_at, t.created_at,
+           d.prospect_company AS company_name
+    FROM crm_touchpoints t
+    JOIN crm_deals d ON d.id = t.deal_id
+    WHERE t.owner_id = ${session.id}
+      AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND (${leadId ?? null}::int IS NULL OR t.deal_id = ${leadId ?? null}::int)
+    ORDER BY t.occurred_at DESC, t.created_at DESC
     LIMIT 200
   `;
   return NextResponse.json(activities);
@@ -39,13 +42,14 @@ export async function POST(req: NextRequest) {
   }
 
   const [lead] = await sql`
-    SELECT id FROM meridian_leads WHERE id = ${body.lead_id} AND owner_id = ${session.id}
+    SELECT id FROM crm_deals WHERE id = ${body.lead_id} AND owner_id = ${session.id}
+      AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
 
   const [activity] = await sql`
-    INSERT INTO meridian_lead_activities
-      (owner_id, lead_id, type, direction, title, body, outcome, next_action, next_action_date, occurred_at)
+    INSERT INTO crm_touchpoints
+      (owner_id, deal_id, type, direction, title, body, outcome, next_action, next_action_date, occurred_at)
     VALUES (
       ${session.id}, ${body.lead_id}, ${body.type},
       ${body.direction ?? 'outbound'}, ${body.title ?? null},
@@ -53,7 +57,8 @@ export async function POST(req: NextRequest) {
       ${body.next_action ?? null}, ${body.next_action_date ?? null},
       COALESCE(${body.occurred_at ?? null}::timestamptz, NOW())
     )
-    RETURNING *
+    RETURNING id, owner_id, deal_id AS lead_id, type, direction, title, body,
+              outcome, next_action, next_action_date, occurred_at, created_at
   `;
   return NextResponse.json(activity, { status: 201 });
 }

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   try {
     const stages = await sql`
       SELECT * FROM crm_pipeline_stages
-      WHERE owner_id = ${session.id}
+      WHERE owner_id = ${session.id} AND workspace_id IS NULL
       ORDER BY position ASC, id ASC
     `;
     return NextResponse.json(stages);
@@ -39,14 +39,14 @@ export async function POST(req: NextRequest) {
   // Place new stage before won/lost
   const [maxPos] = await sql`
     SELECT COALESCE(MAX(position), 0) AS mp FROM crm_pipeline_stages
-    WHERE owner_id = ${session.id} AND is_won = FALSE AND is_lost = FALSE
+    WHERE owner_id = ${session.id} AND workspace_id IS NULL AND is_won = FALSE AND is_lost = FALSE
   `;
   const position = (maxPos?.mp ?? 0) + 1;
 
   // Shift won/lost stages down to stay last
   await sql`
     UPDATE crm_pipeline_stages SET position = position + 1
-    WHERE owner_id = ${session.id} AND (is_won = TRUE OR is_lost = TRUE)
+    WHERE owner_id = ${session.id} AND workspace_id IS NULL AND (is_won = TRUE OR is_lost = TRUE)
   `;
 
   const key = slugify(label.trim());

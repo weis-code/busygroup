@@ -14,17 +14,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json() as { name?: string; color?: string; probability?: number };
 
   const [existing] = await sql`
-    SELECT id FROM meridian_pipeline_stages WHERE id = ${id} AND owner_id = ${session.id}
+    SELECT id FROM crm_pipeline_stages
+    WHERE id = ${id} AND owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return notFound();
 
   const [updated] = await sql`
-    UPDATE meridian_pipeline_stages SET
-      name        = COALESCE(${body.name        ?? null}, name),
+    UPDATE crm_pipeline_stages SET
+      label       = COALESCE(${body.name        ?? null}, label),
       color       = COALESCE(${body.color       ?? null}, color),
       probability = COALESCE(${body.probability ?? null}::int, probability)
     WHERE id = ${id} AND owner_id = ${session.id}
-    RETURNING *
+    RETURNING id, label AS name, color, probability, position, is_won, is_lost
   `;
   return NextResponse.json(updated);
 }
@@ -35,7 +36,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
 
   const [existing] = await sql`
-    SELECT id, is_won, is_lost FROM meridian_pipeline_stages WHERE id = ${id} AND owner_id = ${session.id}
+    SELECT id, is_won, is_lost FROM crm_pipeline_stages
+    WHERE id = ${id} AND owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return notFound();
   if (existing.is_won || existing.is_lost) {
@@ -45,16 +47,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const body = await req.json().catch(() => ({})) as { move_leads_to_stage_id?: number };
   if (body.move_leads_to_stage_id) {
     await sql`
-      UPDATE meridian_leads SET stage_id = ${body.move_leads_to_stage_id}
+      UPDATE crm_deals SET stage_id = ${body.move_leads_to_stage_id}
       WHERE stage_id = ${id} AND owner_id = ${session.id}
     `;
   } else {
     await sql`
-      UPDATE meridian_leads SET stage_id = NULL
+      UPDATE crm_deals SET stage_id = NULL
       WHERE stage_id = ${id} AND owner_id = ${session.id}
     `;
   }
 
-  await sql`DELETE FROM meridian_pipeline_stages WHERE id = ${id} AND owner_id = ${session.id}`;
+  await sql`DELETE FROM crm_pipeline_stages WHERE id = ${id} AND owner_id = ${session.id}`;
   return NextResponse.json({ ok: true });
 }

@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       label       = COALESCE(${label?.trim() ?? null}, label),
       color       = COALESCE(${(color as string) ?? null}, color),
       probability = COALESCE(${probability != null ? Number(probability) : null}, probability)
-    WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    WHERE id = ${Number(id)} AND owner_id = ${session.id} AND workspace_id IS NULL
     RETURNING *
   `;
 
@@ -37,7 +37,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   // Find the stage to delete
   const [stage] = await sql`
-    SELECT * FROM crm_pipeline_stages WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    SELECT * FROM crm_pipeline_stages WHERE id = ${Number(id)} AND owner_id = ${session.id} AND workspace_id IS NULL
   `;
   if (!stage) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
   if (stage.is_won || stage.is_lost) {
@@ -48,16 +48,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (body.move_deals_to_stage_id) {
     const [target] = await sql`
       SELECT key FROM crm_pipeline_stages
-      WHERE id = ${body.move_deals_to_stage_id} AND owner_id = ${session.id}
+      WHERE id = ${body.move_deals_to_stage_id} AND owner_id = ${session.id} AND workspace_id IS NULL
     `;
     if (target) {
       await sql`
         UPDATE crm_deals SET stage = ${target.key}
-        WHERE owner_id = ${session.id} AND stage = ${stage.key as string}
+        WHERE owner_id = ${session.id} AND workspace_id IS NULL AND stage = ${stage.key as string}
       `;
     }
   }
 
-  await sql`DELETE FROM crm_pipeline_stages WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+  await sql`DELETE FROM crm_pipeline_stages WHERE id = ${Number(id)} AND owner_id = ${session.id} AND workspace_id IS NULL`;
   return NextResponse.json({ ok: true });
 }

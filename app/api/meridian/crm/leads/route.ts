@@ -17,33 +17,49 @@ export async function GET(req: NextRequest) {
 
   const leads = await sql`
     SELECT
-      l.*,
-      s.name  AS stage_name,
+      d.id,
+      d.owner_id,
+      d.prospect_company AS company_name,
+      d.prospect_name    AS contact_name,
+      d.contact_title,
+      d.prospect_email   AS email,
+      d.prospect_phone   AS phone,
+      d.linkedin, d.website, d.country, d.industry,
+      d.stage_id,
+      s.label AS stage_name,
       s.color AS stage_color,
-      s.is_won,
-      s.is_lost,
-      (SELECT COUNT(*) FROM meridian_lead_activities a WHERE a.lead_id = l.id) AS activity_count,
+      COALESCE(s.is_won, false)  AS is_won,
+      COALESCE(s.is_lost, false) AS is_lost,
+      d.products,
+      d.value AS deal_value_dkk,
+      d.deal_type,
+      d.expected_close AS expected_close_date,
+      d.probability,
+      d.won_at, d.lost_at, d.lost_reason,
+      d.notes, d.created_at, d.updated_at,
+      (SELECT COUNT(*) FROM crm_touchpoints t WHERE t.deal_id = d.id) AS activity_count,
       (
-        SELECT a.next_action || ' · ' || TO_CHAR(a.next_action_date, 'DD. Mon.')
-        FROM meridian_lead_activities a
-        WHERE a.lead_id = l.id AND a.next_action_date IS NOT NULL
-        ORDER BY a.next_action_date ASC
+        SELECT t.next_action || ' · ' || TO_CHAR(t.next_action_date, 'DD. Mon.')
+        FROM crm_touchpoints t
+        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL
+        ORDER BY t.next_action_date ASC
         LIMIT 1
       ) AS next_action_label,
       (
-        SELECT a.next_action_date
-        FROM meridian_lead_activities a
-        WHERE a.lead_id = l.id AND a.next_action_date IS NOT NULL
-        ORDER BY a.next_action_date ASC
+        SELECT t.next_action_date
+        FROM crm_touchpoints t
+        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL
+        ORDER BY t.next_action_date ASC
         LIMIT 1
       ) AS next_action_date
-    FROM meridian_leads l
-    LEFT JOIN meridian_pipeline_stages s ON s.id = l.stage_id
-    WHERE l.owner_id = ${session.id}
-      AND (${stageId ?? null}::int IS NULL OR l.stage_id = ${stageId ?? null}::int)
-      AND (${country ?? null} IS NULL OR l.country = ${country ?? null})
-      AND (${search ?? null} IS NULL OR l.company_name ILIKE ${'%' + (search ?? '') + '%'} OR l.contact_name ILIKE ${'%' + (search ?? '') + '%'})
-    ORDER BY l.created_at DESC
+    FROM crm_deals d
+    LEFT JOIN crm_pipeline_stages s ON s.id = d.stage_id
+    WHERE d.owner_id = ${session.id}
+      AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND (${stageId ?? null}::int IS NULL OR d.stage_id = ${stageId ?? null}::int)
+      AND (${country ?? null} IS NULL OR d.country = ${country ?? null})
+      AND (${search ?? null} IS NULL OR d.prospect_company ILIKE ${'%' + (search ?? '') + '%'} OR d.prospect_name ILIKE ${'%' + (search ?? '') + '%'})
+    ORDER BY d.created_at DESC
   `;
   return NextResponse.json(leads);
 }
@@ -70,13 +86,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const [lead] = await sql`
-      INSERT INTO meridian_leads (
-        owner_id, company_name, contact_name, contact_title,
-        email, phone, linkedin, website, country, industry,
-        stage_id, products, deal_value_dkk, deal_type,
-        expected_close_date, probability, notes
+      INSERT INTO crm_deals (
+        owner_id, workspace_id, title,
+        prospect_company, prospect_name, contact_title,
+        prospect_email, prospect_phone, linkedin, website, country, industry,
+        stage_id, products, value, deal_type,
+        expected_close, probability, notes
       ) VALUES (
         ${session.id},
+        (SELECT id FROM companies WHERE slug = 'meridian'),
+        ${body.company_name.trim()},
         ${body.company_name.trim()},
         ${body.contact_name   || null},
         ${body.contact_title  || null},
@@ -94,7 +113,13 @@ export async function POST(req: NextRequest) {
         ${body.probability    ?? 0},
         ${body.notes          || null}
       )
-      RETURNING *
+      RETURNING
+        id, owner_id,
+        prospect_company AS company_name, prospect_name AS contact_name, contact_title,
+        prospect_email AS email, prospect_phone AS phone, linkedin, website, country, industry,
+        stage_id, products, value AS deal_value_dkk, deal_type,
+        expected_close AS expected_close_date, probability,
+        won_at, lost_at, lost_reason, notes, created_at, updated_at
     `;
     return NextResponse.json(lead, { status: 201 });
   } catch (err) {

@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN users u ON u.id::text = d.owner_id
       LEFT JOIN companies co ON co.id = d.company_id
       WHERE d.status = ${status}
+        AND d.workspace_id IS NULL
         AND (${stage} IS NULL OR d.stage = ${stage})
         AND (${country} IS NULL OR d.country = ${country})
         AND (${companyId} IS NULL OR d.company_id = ${companyId}::int)

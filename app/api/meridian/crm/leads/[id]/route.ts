@@ -13,16 +13,27 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   const [lead] = await sql`
-    SELECT l.*, s.name AS stage_name, s.color AS stage_color, s.is_won, s.is_lost
-    FROM meridian_leads l
-    LEFT JOIN meridian_pipeline_stages s ON s.id = l.stage_id
-    WHERE l.id = ${Number(id)} AND l.owner_id = ${session.id}
+    SELECT
+      d.id, d.owner_id,
+      d.prospect_company AS company_name, d.prospect_name AS contact_name, d.contact_title,
+      d.prospect_email AS email, d.prospect_phone AS phone, d.linkedin, d.website, d.country, d.industry,
+      d.stage_id, d.products, d.value AS deal_value_dkk, d.deal_type,
+      d.expected_close AS expected_close_date, d.probability,
+      d.won_at, d.lost_at, d.lost_reason, d.notes, d.created_at, d.updated_at,
+      s.label AS stage_name, s.color AS stage_color,
+      COALESCE(s.is_won, false) AS is_won, COALESCE(s.is_lost, false) AS is_lost
+    FROM crm_deals d
+    LEFT JOIN crm_pipeline_stages s ON s.id = d.stage_id
+    WHERE d.id = ${Number(id)} AND d.owner_id = ${session.id}
+      AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!lead) return notFound();
 
   const activities = await sql`
-    SELECT * FROM meridian_lead_activities
-    WHERE lead_id = ${Number(id)} AND owner_id = ${session.id}
+    SELECT id, owner_id, deal_id AS lead_id, type, direction, title, body, outcome,
+           next_action, next_action_date, occurred_at, created_at
+    FROM crm_touchpoints
+    WHERE deal_id = ${Number(id)} AND owner_id = ${session.id}
     ORDER BY occurred_at DESC, created_at DESC
   `;
   return NextResponse.json({ ...lead, activities });
@@ -42,43 +53,48 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     won_at?: string | null; lost_at?: string | null; lost_reason?: string | null; notes?: string;
   };
 
-  // Empty-string date fields must become NULL — an empty string in a date
-  // column crashes the driver ("Invalid time value").
   const expectedCloseDate = body.expected_close_date?.trim() ? body.expected_close_date : null;
+  const meridianFilter = sql`workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')`;
 
   try {
     const [updated] = await sql`
-      UPDATE meridian_leads SET
-        company_name        = COALESCE(${body.company_name        || null}, company_name),
-        contact_name        = COALESCE(${body.contact_name        || null}, contact_name),
-        contact_title       = COALESCE(${body.contact_title       || null}, contact_title),
-        email               = COALESCE(${body.email               || null}, email),
-        phone               = COALESCE(${body.phone               || null}, phone),
-        linkedin            = COALESCE(${body.linkedin            || null}, linkedin),
-        website             = COALESCE(${body.website             || null}, website),
-        country             = COALESCE(${body.country             || null}, country),
-        industry            = COALESCE(${body.industry            || null}, industry),
-        deal_value_dkk      = COALESCE(${body.deal_value_dkk      ?? null}, deal_value_dkk),
-        deal_type           = COALESCE(${body.deal_type           || null}, deal_type),
-        expected_close_date = COALESCE(${expectedCloseDate}, expected_close_date),
-        probability         = COALESCE(${body.probability         ?? null}, probability),
-        notes               = COALESCE(${body.notes               || null}, notes),
-        updated_at          = NOW()
-      WHERE id = ${Number(id)} AND owner_id = ${session.id}
-      RETURNING *
+      UPDATE crm_deals SET
+        prospect_company = COALESCE(${body.company_name || null}, prospect_company),
+        prospect_name    = COALESCE(${body.contact_name || null}, prospect_name),
+        contact_title    = COALESCE(${body.contact_title || null}, contact_title),
+        prospect_email   = COALESCE(${body.email || null}, prospect_email),
+        prospect_phone   = COALESCE(${body.phone || null}, prospect_phone),
+        linkedin         = COALESCE(${body.linkedin || null}, linkedin),
+        website          = COALESCE(${body.website || null}, website),
+        country          = COALESCE(${body.country || null}, country),
+        industry         = COALESCE(${body.industry || null}, industry),
+        value            = COALESCE(${body.deal_value_dkk ?? null}, value),
+        deal_type        = COALESCE(${body.deal_type || null}, deal_type),
+        expected_close   = COALESCE(${expectedCloseDate}, expected_close),
+        probability      = COALESCE(${body.probability ?? null}, probability),
+        notes            = COALESCE(${body.notes || null}, notes),
+        updated_at       = NOW()
+      WHERE id = ${Number(id)} AND owner_id = ${session.id} AND ${meridianFilter}
+      RETURNING
+        id, owner_id,
+        prospect_company AS company_name, prospect_name AS contact_name, contact_title,
+        prospect_email AS email, prospect_phone AS phone, linkedin, website, country, industry,
+        stage_id, products, value AS deal_value_dkk, deal_type,
+        expected_close AS expected_close_date, probability,
+        won_at, lost_at, lost_reason, notes, created_at, updated_at
     `;
     if (!updated) return notFound();
 
     if ('stage_id' in body) {
-      await sql`UPDATE meridian_leads SET stage_id = ${body.stage_id ?? null} WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+      await sql`UPDATE crm_deals SET stage_id = ${body.stage_id ?? null} WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
       updated.stage_id = body.stage_id ?? null;
     }
     if ('products' in body) {
-      await sql`UPDATE meridian_leads SET products = ${JSON.stringify(body.products)}::jsonb WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+      await sql`UPDATE crm_deals SET products = ${JSON.stringify(body.products)}::jsonb WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
     }
-    if ('won_at' in body)     { await sql`UPDATE meridian_leads SET won_at = ${body.won_at || null}         WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
-    if ('lost_at' in body)    { await sql`UPDATE meridian_leads SET lost_at = ${body.lost_at || null}       WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
-    if ('lost_reason' in body) { await sql`UPDATE meridian_leads SET lost_reason = ${body.lost_reason || null} WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
+    if ('won_at' in body)      { await sql`UPDATE crm_deals SET won_at = ${body.won_at || null}           WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
+    if ('lost_at' in body)     { await sql`UPDATE crm_deals SET lost_at = ${body.lost_at || null}         WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
+    if ('lost_reason' in body) { await sql`UPDATE crm_deals SET lost_reason = ${body.lost_reason || null} WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
 
     return NextResponse.json(updated);
   } catch (err) {
@@ -93,9 +109,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
 
   const [existing] = await sql`
-    SELECT id FROM meridian_leads WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    SELECT id FROM crm_deals WHERE id = ${Number(id)} AND owner_id = ${session.id}
+      AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return notFound();
-  await sql`DELETE FROM meridian_leads WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+  await sql`DELETE FROM crm_deals WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
   return NextResponse.json({ ok: true });
 }

@@ -15,9 +15,9 @@ export async function PATCH(req: NextRequest) {
   }
   for (let i = 0; i < order.length; i++) {
     await sql`
-      UPDATE meridian_pipeline_stages
+      UPDATE crm_pipeline_stages
       SET position = ${i}
-      WHERE id = ${order[i]} AND owner_id = ${session.id}
+      WHERE id = ${order[i]} AND owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
     `;
   }
   return NextResponse.json({ ok: true });

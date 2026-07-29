@@ -10,51 +10,55 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const today     = new Date().toISOString().slice(0, 10);
+  const today      = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 7) + '-01';
   const weekStart  = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
 
   const leadsByStage = await sql`
     SELECT
-      s.id, s.name, s.color, s.probability, s.is_won, s.is_lost, s.position,
-      COUNT(l.id)::int AS lead_count,
-      COALESCE(SUM(l.deal_value_dkk), 0)::int AS total_value
-    FROM meridian_pipeline_stages s
-    LEFT JOIN meridian_leads l ON l.stage_id = s.id AND l.owner_id = ${session.id}
-    WHERE s.owner_id = ${session.id}
-    GROUP BY s.id, s.name, s.color, s.probability, s.is_won, s.is_lost, s.position
+      s.id, s.label AS name, s.color, s.probability, s.is_won, s.is_lost, s.position,
+      COUNT(d.id)::int AS lead_count,
+      COALESCE(SUM(d.value), 0)::int AS total_value
+    FROM crm_pipeline_stages s
+    LEFT JOIN crm_deals d ON d.stage_id = s.id AND d.owner_id = ${session.id}
+    WHERE s.owner_id = ${session.id} AND s.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    GROUP BY s.id, s.label, s.color, s.probability, s.is_won, s.is_lost, s.position
     ORDER BY s.position
   `;
 
   const [pipeline] = await sql`
     SELECT
-      COALESCE(SUM(l.deal_value_dkk), 0)::int AS pipeline_value,
-      COALESCE(SUM(l.deal_value_dkk * l.probability / 100), 0)::int AS weighted_pipeline
-    FROM meridian_leads l
-    JOIN meridian_pipeline_stages s ON s.id = l.stage_id
-    WHERE l.owner_id = ${session.id} AND NOT s.is_won AND NOT s.is_lost
+      COALESCE(SUM(d.value), 0)::int AS pipeline_value,
+      COALESCE(SUM(d.value * d.probability / 100), 0)::int AS weighted_pipeline
+    FROM crm_deals d
+    JOIN crm_pipeline_stages s ON s.id = d.stage_id
+    WHERE d.owner_id = ${session.id} AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND NOT s.is_won AND NOT s.is_lost
   `;
 
   const [wonMonth] = await sql`
-    SELECT COUNT(*)::int AS count, COALESCE(SUM(deal_value_dkk), 0)::int AS value
-    FROM meridian_leads
-    WHERE owner_id = ${session.id} AND won_at >= ${monthStart}::date
+    SELECT COUNT(*)::int AS count, COALESCE(SUM(value), 0)::int AS value
+    FROM crm_deals
+    WHERE owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND won_at >= ${monthStart}::date
   `;
 
   const [activitiesWeek] = await sql`
     SELECT COUNT(*)::int AS count
-    FROM meridian_lead_activities
-    WHERE owner_id = ${session.id} AND occurred_at >= ${weekStart}::timestamptz
+    FROM crm_touchpoints t
+    JOIN crm_deals d ON d.id = t.deal_id
+    WHERE t.owner_id = ${session.id} AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND t.occurred_at >= ${weekStart}::timestamptz
   `;
 
   const nextActions = await sql`
-    SELECT l.id AS lead_id, l.company_name, a.next_action, a.next_action_date, a.type
-    FROM meridian_lead_activities a
-    JOIN meridian_leads l ON l.id = a.lead_id
-    WHERE a.owner_id = ${session.id}
-      AND a.next_action_date IS NOT NULL
-      AND a.next_action IS NOT NULL
-    ORDER BY a.next_action_date ASC
+    SELECT d.id AS lead_id, d.prospect_company AS company_name, t.next_action, t.next_action_date, t.type
+    FROM crm_touchpoints t
+    JOIN crm_deals d ON d.id = t.deal_id
+    WHERE t.owner_id = ${session.id} AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND t.next_action_date IS NOT NULL
+      AND t.next_action IS NOT NULL
+    ORDER BY t.next_action_date ASC
     LIMIT 20
   `;
 

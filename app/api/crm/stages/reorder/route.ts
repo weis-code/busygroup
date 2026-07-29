@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
   for (let i = 0; i < order.length; i++) {
     await sql`
       UPDATE crm_pipeline_stages SET position = ${i}
-      WHERE id = ${order[i]} AND owner_id = ${session.id}
+      WHERE id = ${order[i]} AND owner_id = ${session.id} AND workspace_id IS NULL
     `;
   }
 

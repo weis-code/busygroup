@@ -865,4 +865,25 @@ export async function register() {
       console.error(`[NLS] legacy table rename failed for ${t}:`, err);
     }
   }
+
+  // Fase 2: unify Meridian's CRM onto the shared crm_* schema (previously its own
+  // parallel meridian_leads/meridian_pipeline_stages/meridian_lead_activities tables).
+  // workspace_id distinguishes which company's CRM instance a row belongs to — separate
+  // from the pre-existing company_id column, which tags a deal's *portfolio* company
+  // (e.g. "this deal is about selling BusyReminder") and is unrelated to ownership.
+  // NULL workspace_id = Group's own CRM (unchanged, preserves current behaviour).
+  try {
+    await sql2`ALTER TABLE crm_pipeline_stages ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES companies(id) NULL`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS workspace_id INTEGER REFERENCES companies(id) NULL`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS stage_id INTEGER REFERENCES crm_pipeline_stages(id) NULL`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS contact_title TEXT`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS linkedin TEXT`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS website TEXT`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS industry TEXT`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS products JSONB DEFAULT '[]'`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS deal_type TEXT DEFAULT 'recurring'`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS probability INTEGER DEFAULT 0`;
+    await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
+    await sql2`ALTER TABLE crm_touchpoints ADD COLUMN IF NOT EXISTS occurred_at TIMESTAMPTZ DEFAULT NOW()`;
+  } catch (err) { console.error('[NLS] crm_* Meridian-compat columns failed:', err); }
 }
