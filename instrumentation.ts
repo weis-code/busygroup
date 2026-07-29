@@ -938,4 +938,17 @@ export async function register() {
       await sql2`ALTER TABLE cr_tickets ADD CONSTRAINT cr_tickets_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id)`;
     }
   } catch (err) { console.error('[NLS] cr_tickets Meridian-compat columns failed:', err); }
+
+  // Backfill personal kanban boards' company_id — previously always created
+  // NULL, which silently broke the assignee picker (it joins on company_id,
+  // so every personal board showed nobody assignable except two hardcoded
+  // email addresses). New boards are fixed at creation time; this repairs
+  // existing ones.
+  try {
+    await sql2`
+      UPDATE kanban_boards kb SET company_id = u.company_id
+      FROM users u
+      WHERE kb.owner_user_id = u.id AND kb.company_id IS NULL AND u.company_id IS NOT NULL
+    `;
+  } catch (err) { console.error('[NLS] kanban_boards company_id backfill failed:', err); }
 }

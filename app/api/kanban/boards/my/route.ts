@@ -20,9 +20,13 @@ export async function GET(req: NextRequest) {
   `;
 
   if (!board) {
+    // company_id must be set so the assignee picker (which joins on it) can
+    // find this person's colleagues — a board with no company_id previously
+    // showed no one at all in the "tildel til" dropdown.
+    const [me] = await sql`SELECT company_id FROM users WHERE id = ${session.id}`;
     [board] = await sql`
-      INSERT INTO kanban_boards (name, owner_user_id)
-      VALUES ('Mit board', ${session.id})
+      INSERT INTO kanban_boards (name, owner_user_id, company_id)
+      VALUES ('Mit board', ${session.id}, ${me?.company_id ?? null})
       RETURNING *
     `;
     for (const col of DEFAULT_COLUMNS) {
