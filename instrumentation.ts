@@ -925,7 +925,12 @@ export async function register() {
   // Meridian's finer-grained type (billing/technical/...) separately from cr_tickets'
   // own type (dev/support), which stays fixed at 'support' for every Meridian ticket.
   try {
-    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) NULL`;
+    // No REFERENCES constraint: the "customers" table in production is a separate,
+    // unrelated CreatorRate/Supabase-imported table with a TEXT/UUID id and none of
+    // the columns (company_id, name, am_user_id...) the rest of this codebase's
+    // "customers" model assumes — a pre-existing table-name collision unrelated to
+    // this migration. Storing customer_id unconstrained avoids coupling to that.
+    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_id INTEGER NULL`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_name TEXT`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS category TEXT`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ NULL`;
