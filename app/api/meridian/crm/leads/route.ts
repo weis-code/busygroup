@@ -15,10 +15,13 @@ export async function GET(req: NextRequest) {
   const country  = searchParams.get('country');
   const search   = searchParams.get('search');
 
+  // Shared team pipeline — everyone with Meridian CRM access sees every lead,
+  // not just the ones they personally created.
   const leads = await sql`
     SELECT
       d.id,
       d.owner_id,
+      u.name AS owner_name,
       d.prospect_company AS company_name,
       d.prospect_name    AS contact_name,
       d.contact_title,
@@ -54,8 +57,8 @@ export async function GET(req: NextRequest) {
       ) AS next_action_date
     FROM crm_deals d
     LEFT JOIN crm_pipeline_stages s ON s.id = d.stage_id
-    WHERE d.owner_id = ${session.id}
-      AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    LEFT JOIN users u ON u.id::text = d.owner_id
+    WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND (${stageId ?? null}::int IS NULL OR d.stage_id = ${stageId ?? null}::int)
       AND (${country ?? null} IS NULL OR d.country = ${country ?? null})
       AND (${search ?? null} IS NULL OR d.prospect_company ILIKE ${'%' + (search ?? '') + '%'} OR d.prospect_name ILIKE ${'%' + (search ?? '') + '%'})

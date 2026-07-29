@@ -19,8 +19,7 @@ export async function GET(req: NextRequest) {
            d.prospect_company AS company_name
     FROM crm_touchpoints t
     JOIN crm_deals d ON d.id = t.deal_id
-    WHERE t.owner_id = ${session.id}
-      AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND (${leadId ?? null}::int IS NULL OR t.deal_id = ${leadId ?? null}::int)
     ORDER BY t.occurred_at DESC, t.created_at DESC
     LIMIT 200
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
   }
 
   const [lead] = await sql`
-    SELECT id FROM crm_deals WHERE id = ${body.lead_id} AND owner_id = ${session.id}
+    SELECT id FROM crm_deals WHERE id = ${body.lead_id}
       AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });

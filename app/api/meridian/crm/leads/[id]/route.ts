@@ -24,8 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       COALESCE(s.is_won, false) AS is_won, COALESCE(s.is_lost, false) AS is_lost
     FROM crm_deals d
     LEFT JOIN crm_pipeline_stages s ON s.id = d.stage_id
-    WHERE d.id = ${Number(id)} AND d.owner_id = ${session.id}
-      AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    WHERE d.id = ${Number(id)} AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!lead) return notFound();
 
@@ -33,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     SELECT id, owner_id, deal_id AS lead_id, type, direction, title, body, outcome,
            next_action, next_action_date, occurred_at, created_at
     FROM crm_touchpoints
-    WHERE deal_id = ${Number(id)} AND owner_id = ${session.id}
+    WHERE deal_id = ${Number(id)}
     ORDER BY occurred_at DESC, created_at DESC
   `;
   return NextResponse.json({ ...lead, activities });
@@ -54,7 +53,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   };
 
   const expectedCloseDate = body.expected_close_date?.trim() ? body.expected_close_date : null;
-  const meridianFilter = sql`workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')`;
 
   try {
     const [updated] = await sql`
@@ -74,7 +72,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         probability      = COALESCE(${body.probability ?? null}, probability),
         notes            = COALESCE(${body.notes || null}, notes),
         updated_at       = NOW()
-      WHERE id = ${Number(id)} AND owner_id = ${session.id} AND ${meridianFilter}
+      WHERE id = ${Number(id)} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       RETURNING
         id, owner_id,
         prospect_company AS company_name, prospect_name AS contact_name, contact_title,
@@ -86,15 +84,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!updated) return notFound();
 
     if ('stage_id' in body) {
-      await sql`UPDATE crm_deals SET stage_id = ${body.stage_id ?? null} WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+      await sql`UPDATE crm_deals SET stage_id = ${body.stage_id ?? null} WHERE id = ${Number(id)}`;
       updated.stage_id = body.stage_id ?? null;
     }
     if ('products' in body) {
-      await sql`UPDATE crm_deals SET products = ${JSON.stringify(body.products)}::jsonb WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+      await sql`UPDATE crm_deals SET products = ${JSON.stringify(body.products)}::jsonb WHERE id = ${Number(id)}`;
     }
-    if ('won_at' in body)      { await sql`UPDATE crm_deals SET won_at = ${body.won_at || null}           WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
-    if ('lost_at' in body)     { await sql`UPDATE crm_deals SET lost_at = ${body.lost_at || null}         WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
-    if ('lost_reason' in body) { await sql`UPDATE crm_deals SET lost_reason = ${body.lost_reason || null} WHERE id = ${Number(id)} AND owner_id = ${session.id}`; }
+    if ('won_at' in body)      { await sql`UPDATE crm_deals SET won_at = ${body.won_at || null}           WHERE id = ${Number(id)}`; }
+    if ('lost_at' in body)     { await sql`UPDATE crm_deals SET lost_at = ${body.lost_at || null}         WHERE id = ${Number(id)}`; }
+    if ('lost_reason' in body) { await sql`UPDATE crm_deals SET lost_reason = ${body.lost_reason || null} WHERE id = ${Number(id)}`; }
 
     return NextResponse.json(updated);
   } catch (err) {
@@ -109,10 +107,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
 
   const [existing] = await sql`
-    SELECT id FROM crm_deals WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    SELECT id FROM crm_deals WHERE id = ${Number(id)}
       AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return notFound();
-  await sql`DELETE FROM crm_deals WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+  await sql`DELETE FROM crm_deals WHERE id = ${Number(id)}`;
   return NextResponse.json({ ok: true });
 }

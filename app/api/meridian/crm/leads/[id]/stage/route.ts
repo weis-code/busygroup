@@ -13,14 +13,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { stage_id, lost_reason } = await req.json() as { stage_id: number; lost_reason?: string };
 
   const [existing] = await sql`
-    SELECT id FROM crm_deals WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    SELECT id FROM crm_deals WHERE id = ${Number(id)}
       AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const [stage] = await sql`
-    SELECT * FROM crm_pipeline_stages WHERE id = ${stage_id} AND owner_id = ${session.id}
-      AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    SELECT * FROM crm_pipeline_stages WHERE id = ${stage_id}
+      AND owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!stage) return NextResponse.json({ error: 'Stage not found' }, { status: 404 });
 
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       lost_reason = CASE WHEN ${stage.is_lost}::boolean AND ${lost_reason ?? null} IS NOT NULL
                          THEN ${lost_reason ?? null} ELSE lost_reason END,
       updated_at  = NOW()
-    WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    WHERE id = ${Number(id)}
     RETURNING
       id, owner_id,
       prospect_company AS company_name, prospect_name AS contact_name, contact_title,

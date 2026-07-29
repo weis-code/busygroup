@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest) {
     await sql`
       UPDATE crm_pipeline_stages
       SET position = ${i}
-      WHERE id = ${order[i]} AND owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      WHERE id = ${order[i]} AND owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
     `;
   }
   return NextResponse.json({ ok: true });

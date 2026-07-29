@@ -4,6 +4,8 @@ import sql from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+// Normally a no-op — instrumentation.ts seeds the shared Meridian pipeline once at
+// boot. Kept as a fallback the frontend can call if it ever sees an empty pipeline.
 const DEFAULT_STAGES = [
   { key: 'identificeret',   name: 'Identificeret',  color: '#4a5d78', probability: 5,   position: 0, is_won: false, is_lost: false },
   { key: 'foerste_kontakt', name: 'Første kontakt', color: '#4f8ef7', probability: 15,  position: 1, is_won: false, is_lost: false },
@@ -22,15 +24,14 @@ export async function POST(req: NextRequest) {
   }
   const [row] = await sql`
     SELECT COUNT(*)::int AS count FROM crm_pipeline_stages
-    WHERE owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    WHERE owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (Number(row.count) > 0) return NextResponse.json({ seeded: false });
 
   for (const s of DEFAULT_STAGES) {
     await sql`
       INSERT INTO crm_pipeline_stages (owner_id, workspace_id, key, label, color, probability, position, is_won, is_lost)
-      VALUES (${session.id}, (SELECT id FROM companies WHERE slug = 'meridian'), ${s.key}, ${s.name}, ${s.color}, ${s.probability}, ${s.position}, ${s.is_won}, ${s.is_lost})
-      ON CONFLICT (owner_id, key) DO NOTHING
+      VALUES (NULL, (SELECT id FROM companies WHERE slug = 'meridian'), ${s.key}, ${s.name}, ${s.color}, ${s.probability}, ${s.position}, ${s.is_won}, ${s.is_lost})
     `;
   }
   return NextResponse.json({ seeded: true });
