@@ -329,8 +329,8 @@ function NewLeadModal({ stages, onClose, onCreated }: { stages: Stage[]; onClose
         body: JSON.stringify({ ...form, deal_value_dkk: Number(form.deal_value_dkk) || 0 }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
-        setError(body.error ?? `Kunne ikke oprette lead (fejl ${res.status})`);
+        const body = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        setError([body.error, body.detail].filter(Boolean).join(': ') || `Kunne ikke oprette lead (fejl ${res.status})`);
         return;
       }
       onCreated();

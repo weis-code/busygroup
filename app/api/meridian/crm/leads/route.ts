@@ -64,32 +64,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'company_name required' }, { status: 400 });
   }
 
-  const [lead] = await sql`
-    INSERT INTO meridian_leads (
-      owner_id, company_name, contact_name, contact_title,
-      email, phone, linkedin, website, country, industry,
-      stage_id, products, deal_value_dkk, deal_type,
-      expected_close_date, probability, notes
-    ) VALUES (
-      ${session.id},
-      ${body.company_name.trim()},
-      ${body.contact_name   ?? null},
-      ${body.contact_title  ?? null},
-      ${body.email          ?? null},
-      ${body.phone          ?? null},
-      ${body.linkedin       ?? null},
-      ${body.website        ?? null},
-      ${body.country        ?? 'DK'},
-      ${body.industry       ?? null},
-      ${body.stage_id       ?? null},
-      ${JSON.stringify(body.products ?? [])}::jsonb,
-      ${body.deal_value_dkk ?? 0},
-      ${body.deal_type      ?? 'recurring'},
-      ${body.expected_close_date ?? null},
-      ${body.probability    ?? 0},
-      ${body.notes          ?? null}
-    )
-    RETURNING *
-  `;
-  return NextResponse.json(lead, { status: 201 });
+  // Empty-string form fields must become NULL, not be passed through as-is —
+  // an empty string in a date column crashes the driver ("Invalid time value").
+  const expectedCloseDate = body.expected_close_date?.trim() ? body.expected_close_date : null;
+
+  try {
+    const [lead] = await sql`
+      INSERT INTO meridian_leads (
+        owner_id, company_name, contact_name, contact_title,
+        email, phone, linkedin, website, country, industry,
+        stage_id, products, deal_value_dkk, deal_type,
+        expected_close_date, probability, notes
+      ) VALUES (
+        ${session.id},
+        ${body.company_name.trim()},
+        ${body.contact_name   || null},
+        ${body.contact_title  || null},
+        ${body.email          || null},
+        ${body.phone          || null},
+        ${body.linkedin       || null},
+        ${body.website        || null},
+        ${body.country        ?? 'DK'},
+        ${body.industry       || null},
+        ${body.stage_id       ?? null},
+        ${JSON.stringify(body.products ?? [])}::jsonb,
+        ${body.deal_value_dkk ?? 0},
+        ${body.deal_type      ?? 'recurring'},
+        ${expectedCloseDate},
+        ${body.probability    ?? 0},
+        ${body.notes          || null}
+      )
+      RETURNING *
+    `;
+    return NextResponse.json(lead, { status: 201 });
+  } catch (err) {
+    console.error('[meridian/crm/leads] POST failed:', err);
+    return NextResponse.json({ error: 'Database error', detail: String(err) }, { status: 500 });
+  }
 }
