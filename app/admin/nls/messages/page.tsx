@@ -33,6 +33,7 @@ export default function NlsMessagesPage() {
   const [showNewChannel, setShowNewChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelMembers, setNewChannelMembers] = useState<Set<string>>(new Set());
+  const [sendError, setSendError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<{ id: number; name: string; slug: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -86,15 +87,40 @@ export default function NlsMessagesPage() {
   async function send() {
     if (!body.trim() || !active || sending) return;
     setSending(true);
+    setSendError(null);
     const trimmed = body.trim();
-    setBody('');
     const url = active.type === 'channel'
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
-    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: trimmed }) }).then(r => r.json()) as Message;
-    setSending(false);
-    setMessages(prev => [...prev, resp]);
-    inputRef.current?.focus();
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: trimmed }) });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { error?: string };
+        setSendError(errBody.error ?? `Kunne ikke sende (fejl ${res.status})`);
+        return;
+      }
+      const resp = await res.json() as Message;
+      setBody('');
+      setMessages(prev => [...prev, resp]);
+    } catch {
+      setSendError('Netværksfejl — beskeden blev ikke sendt');
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  }
+
+  async function deleteChannel(channelId: number) {
+    if (!window.confirm('Slet kanalen? Alle beskeder i den forsvinder, og det kan ikke fortrydes.')) return;
+    const res = await fetch(`/api/channels/${channelId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({})) as { error?: string };
+      alert(errBody.error ?? 'Kunne ikke slette kanalen');
+      return;
+    }
+    setActive(null);
+    const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
+    setAllChannels(data);
   }
 
   async function startDm(userId: string) {
@@ -188,7 +214,11 @@ export default function NlsMessagesPage() {
           <>
             <div style={{ padding: '0 18px', height: 46, borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--s1)', flexShrink: 0 }}>
               <button onClick={() => setShowThread(false)} className="back-btn" style={{ display: 'none', background: 'none', border: 'none', color: 'var(--t2)', fontSize: 20, padding: '0 4px' }}>←</button>
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>{active.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)', flex: 1 }}>{active.name}</div>
+              {active.type === 'channel' && (
+                <button onClick={() => void deleteChannel(active.id)} title="Slet kanal"
+                  style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 12, padding: '4px 6px' }}>🗑</button>
+              )}
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {messages.length === 0 && <div style={{ textAlign: 'center', color: 'var(--t3)', fontSize: 13, marginTop: 40 }}>Ingen beskeder endnu</div>}
@@ -208,6 +238,9 @@ export default function NlsMessagesPage() {
               })}
               <div ref={bottomRef} />
             </div>
+            {sendError && (
+              <div style={{ padding: '8px 18px', background: 'var(--re2)', color: 'var(--re)', fontSize: 12, borderTop: '1px solid rgba(244,63,94,0.2)' }}>{sendError}</div>
+            )}
             <div style={{ padding: '12px 18px', borderTop: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea ref={inputRef} value={body} onChange={e => setBody(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}

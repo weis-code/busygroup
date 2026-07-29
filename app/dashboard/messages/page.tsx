@@ -35,6 +35,7 @@ export default function MessagesPage() {
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelMembers, setNewChannelMembers] = useState<Set<string>>(new Set());
   const [creatingChannel, setCreatingChannel] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
@@ -168,17 +169,41 @@ export default function MessagesPage() {
   async function send() {
     if (!body.trim() || !active || sending) return;
     setSending(true);
+    setSendError(null);
+    const trimmed = body.trim();
     const url = active.type === 'channel'
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
-    await fetch(url, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: body.trim() }),
-    });
-    setBody('');
-    setSending(false);
-    await loadMessages();
-    inputRef.current?.focus();
+    try {
+      const res = await fetch(url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: trimmed }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { error?: string };
+        setSendError(errBody.error ?? `Kunne ikke sende (fejl ${res.status})`);
+        return;
+      }
+      setBody('');
+      await loadMessages();
+    } catch {
+      setSendError('Netværksfejl — beskeden blev ikke sendt');
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  }
+
+  async function deleteChannel(channelId: number) {
+    if (!window.confirm('Slet kanalen? Alle beskeder i den forsvinder, og det kan ikke fortrydes.')) return;
+    const res = await fetch(`/api/channels/${channelId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({})) as { error?: string };
+      alert(errBody.error ?? 'Kunne ikke slette kanalen');
+      return;
+    }
+    setActive(null);
+    await loadChannels();
   }
 
   const groupedByCompany = channels.reduce<Record<string, Channel[]>>((acc, ch) => {
@@ -260,7 +285,13 @@ export default function MessagesPage() {
             {/* Thread header */}
             <div style={{ padding: '0 18px', height: 46, borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--s1)', flexShrink: 0 }}>
               <button onClick={() => setShowThread(false)} style={{ display: 'none', background: 'none', border: 'none', color: 'var(--t2)', fontSize: 20, padding: '0 4px' }} className="back-btn">←</button>
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>{active.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)', flex: 1 }}>{active.name}</div>
+              {active.type === 'channel' && (
+                <button onClick={() => void deleteChannel(active.id)} title="Slet kanal"
+                  style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 12, padding: '4px 6px' }}>
+                  🗑
+                </button>
+              )}
             </div>
 
             {/* Messages */}
@@ -302,6 +333,11 @@ export default function MessagesPage() {
             </div>
 
             {/* Input */}
+            {sendError && (
+              <div style={{ padding: '8px 18px', background: 'var(--re2)', color: 'var(--re)', fontSize: 12, borderTop: '1px solid rgba(244,63,94,0.2)' }}>
+                {sendError}
+              </div>
+            )}
             <div style={{ padding: '12px 18px', borderTop: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea ref={inputRef} value={body} onChange={e => setBody(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}

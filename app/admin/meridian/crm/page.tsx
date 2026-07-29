@@ -311,23 +311,35 @@ function StageColumn({ stage, leads, onCardClick, collapsed, onToggle }: {
 
 /* ── New Lead Modal ──────────────────────────────────── */
 function NewLeadModal({ stages, onClose, onCreated }: { stages: Stage[]; onClose: () => void; onCreated: () => void }) {
-  const [form, setForm] = useState({ company_name: '', contact_name: '', contact_title: '', email: '', phone: '', linkedin: '', website: '', country: 'DK', industry: '', stage_id: stages[0]?.id ?? 0, products: [] as string[], deal_value_dkk: '', deal_type: 'recurring', expected_close_date: '', probability: stages[0]?.probability ?? 0, notes: '' });
+  const [form, setForm] = useState({ company_name: '', contact_name: '', contact_title: '', email: '', phone: '', linkedin: '', website: '', country: 'DK', industry: '', stage_id: stages[0]?.id ?? null as number | null, products: [] as string[], deal_value_dkk: '', deal_type: 'recurring', expected_close_date: '', probability: stages[0]?.probability ?? 0, notes: '' });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toggle(product: string) {
     setForm(f => ({ ...f, products: f.products.includes(product) ? f.products.filter(p => p !== product) : [...f.products, product] }));
   }
 
   async function submit() {
-    if (!form.company_name.trim() || saving) return;
+    if (!form.company_name.trim() || saving || !form.stage_id) return;
     setSaving(true);
-    await fetch('/api/meridian/crm/leads', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, deal_value_dkk: Number(form.deal_value_dkk) || 0 }),
-    });
-    setSaving(false);
-    onCreated();
-    onClose();
+    setError(null);
+    try {
+      const res = await fetch('/api/meridian/crm/leads', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, deal_value_dkk: Number(form.deal_value_dkk) || 0 }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        setError(body.error ?? `Kunne ikke oprette lead (fejl ${res.status})`);
+        return;
+      }
+      onCreated();
+      onClose();
+    } catch {
+      setError('Netværksfejl — leadet blev ikke oprettet');
+    } finally {
+      setSaving(false);
+    }
   }
 
   const s = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -367,7 +379,8 @@ function NewLeadModal({ stages, onClose, onCreated }: { stages: Stage[]; onClose
           </div>
           <Field label="Værdi (kr./md.)"><input value={form.deal_value_dkk} onChange={s('deal_value_dkk')} type="number" placeholder="0" /></Field>
           <Field label="Stadie">
-            <select value={form.stage_id} onChange={e => { const st = stages.find(stg => stg.id === Number(e.target.value)); setForm(f => ({ ...f, stage_id: Number(e.target.value), probability: st?.probability ?? 0 })); }}>
+            <select value={form.stage_id ?? ''} onChange={e => { const st = stages.find(stg => stg.id === Number(e.target.value)); setForm(f => ({ ...f, stage_id: Number(e.target.value), probability: st?.probability ?? 0 })); }}>
+              {stages.length === 0 && <option value="">Indlæser stadier…</option>}
               {stages.map(stg => <option key={stg.id} value={stg.id}>{stg.name}</option>)}
             </select>
           </Field>
@@ -376,8 +389,11 @@ function NewLeadModal({ stages, onClose, onCreated }: { stages: Stage[]; onClose
         <Section label="NOTER">
           <textarea value={form.notes} onChange={s('notes')} rows={3} placeholder="Fritekst…" style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, padding: '7px 9px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 6, color: 'var(--t1)', resize: 'vertical' }} />
         </Section>
+        {error && (
+          <div style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--re2)', borderRadius: 7, fontSize: 12, color: 'var(--re)' }}>{error}</div>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button onClick={() => void submit()} disabled={!form.company_name.trim() || saving}
+          <button onClick={() => void submit()} disabled={!form.company_name.trim() || saving || !form.stage_id}
             style={{ flex: 1, background: 'var(--bl)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             {saving ? 'Opretter…' : 'Opret lead'}
           </button>
