@@ -15,24 +15,16 @@ function isGroup(e: NavEntry): e is NavGroup { return 'group' in e && e.group ==
 const COMPANY_META: Record<CompanySlug, { name: string; short: string; color: string }> = {
   nls:         { name: 'NextLevel Sales',            short: 'NLS',  color: 'var(--bl)' },
   meridian:    { name: 'Meridian',                   short: 'MD',   color: 'var(--gr)' },
-  quorex:      { name: 'Quorex',                     short: 'QX',   color: 'var(--pu)' },
-  reminder:    { name: 'BusyReminder',               short: 'BR',   color: 'var(--ye)' },
   group:       { name: 'NL Group',                   short: 'GRP',  color: 'var(--t2)' },
-  creatorrate: { name: 'CreatorRate',                short: 'CR',   color: '#f43f5e' },
-  nlca:        { name: 'Next Level Creator Agency',  short: 'NLCA', color: '#06b6d4' },
 };
 
 const COMPANY_HOME: Record<CompanySlug, string> = {
   nls:         '/admin/nls',
   meridian:    '/admin/meridian',
-  quorex:      '/admin/quorex',
-  reminder:    '/admin/reminder',
   group:       '/admin/group',
-  creatorrate: '/admin/creatorrate',
-  nlca:        '/admin/nlca',
 };
 
-const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian', 'creatorrate', 'nlca'];
+const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian'];
 
 /* ── Nav section header helper ──────────────────────── */
 function sectionItem(section: string, href: string, label: string, icon: React.ReactNode, adminOnly?: boolean): NavItem {
@@ -71,22 +63,6 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('PLATFORM',     '/admin/meridian/board',               'Board',          <BoardIcon />),
     sectionItem('',             '/admin/meridian/messages',            'Beskeder',       <ChatIcon />),
   ],
-  quorex: [
-    sectionItem('OVERSIGT',  '/admin/quorex',           'Overblik', <GridIcon />),
-    sectionItem('VÆKST',     '/admin/quorex/mrr',       'MRR',      <BarIcon />),
-    sectionItem('',          '/admin/quorex/customers', 'Kunder',   <PeopleIcon />),
-    sectionItem('',          '/admin/quorex/stripe',    'Stripe',   <PortalIcon />),
-    sectionItem('PLATFORM',  '/admin/quorex/board',     'Board',    <BoardIcon />),
-    sectionItem('',          '/admin/quorex/messages',  'Beskeder', <ChatIcon />),
-  ],
-  reminder: [
-    sectionItem('OVERSIGT',  '/admin/reminder',           'Overblik', <GridIcon />),
-    sectionItem('VÆKST',     '/admin/reminder/mrr',       'MRR',      <BarIcon />),
-    sectionItem('',          '/admin/reminder/customers', 'Kunder',   <PeopleIcon />),
-    sectionItem('',          '/admin/reminder/stripe',    'Stripe',   <PortalIcon />),
-    sectionItem('PLATFORM',  '/admin/reminder/board',     'Board',    <BoardIcon />),
-    sectionItem('',          '/admin/reminder/messages',  'Beskeder', <ChatIcon />),
-  ],
   group: [
     sectionItem('KONCERN',  '/admin/group',            'Koncern Overblik', <GridIcon />),
     sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
@@ -101,23 +77,6 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('FINANS',   '/admin/group/finance',       'Økonomi',          <BarIcon />),
     sectionItem('SYSTEM',   '/admin/companies',        'Virksomheder',     <BuildingIcon />),
     sectionItem('',         '/admin/settings',         'Indstillinger',    <GearIcon />),
-  ],
-  creatorrate: [
-    sectionItem('OVERSIGT',  '/admin/creatorrate',           'Overblik',  <GridIcon />),
-    sectionItem('CREATORS',  '/admin/creatorrate/creators',  'Creators',  <PeopleIcon />),
-    sectionItem('SUPPORT',   '/admin/creatorrate/tickets',   'Tickets',   <TaskIcon />),
-    sectionItem('PLATFORM',  '/admin/creatorrate/board',     'Board',     <BoardIcon />),
-    sectionItem('',          '/admin/creatorrate/messages',  'Beskeder',  <ChatIcon />),
-    sectionItem('',          '/admin/settings',              'Indstillinger', <GearIcon />),
-  ],
-  nlca: [
-    sectionItem('OVERSIGT',  '/admin/nlca',                       'Overblik',        <GridIcon />),
-    sectionItem('CREATORS',  '/admin/nlca/creators',              'Creators',        <PeopleIcon />),
-    sectionItem('',          '/admin/nlca/payouts',               'Udbetalinger',    <EuroIcon />),
-    sectionItem('TEAM',      '/admin/nlca/managers',              'Managers',        <TeamIcon />, true),
-    sectionItem('',          '/admin/nlca/country-managers',      'Landsmanagere',   <GlobeIcon />, true),
-    sectionItem('PLATFORM',  '/admin/nlca/board',                 'Board',           <BoardIcon />),
-    sectionItem('',          '/admin/nlca/messages',              'Beskeder',        <ChatIcon />),
   ],
 };
 
@@ -134,35 +93,11 @@ const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; ico
     { href: '/admin/customers',         label: 'Kunder',     icon: <PeopleIcon /> },
     { href: '/admin/meridian/messages', label: 'Beskeder',   icon: <ChatIcon /> },
   ],
-  quorex: [
-    { href: '/admin/quorex',           label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/quorex/board',     label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/quorex/messages',  label: 'Beskeder', icon: <ChatIcon /> },
-    { href: '/admin/quorex/customers', label: 'Kunder',   icon: <PeopleIcon /> },
-  ],
-  reminder: [
-    { href: '/admin/reminder',           label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/reminder/board',     label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/reminder/messages',  label: 'Beskeder', icon: <ChatIcon /> },
-    { href: '/admin/reminder/customers', label: 'Kunder',   icon: <PeopleIcon /> },
-  ],
   group: [
     { href: '/admin/group',           label: 'Overblik',  icon: <GridIcon /> },
     { href: '/admin/crm',             label: 'CRM',       icon: <CrmIcon /> },
     { href: '/admin/companies',       label: 'Firmaer',   icon: <BuildingIcon /> },
     { href: '/admin/messages',        label: 'Beskeder',  icon: <ChatIcon /> },
-  ],
-  creatorrate: [
-    { href: '/admin/creatorrate',          label: 'Overblik', icon: <GridIcon /> },
-    { href: '/admin/creatorrate/board',    label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/creatorrate/messages', label: 'Beskeder', icon: <ChatIcon /> },
-    { href: '/admin/settings',             label: 'Indst.',   icon: <GearIcon /> },
-  ],
-  nlca: [
-    { href: '/admin/nlca',              label: 'Overblik',    icon: <GridIcon /> },
-    { href: '/admin/nlca/creators',     label: 'Creators',    icon: <PeopleIcon /> },
-    { href: '/admin/nlca/payouts',      label: 'Udbet.',      icon: <EuroIcon /> },
-    { href: '/admin/nlca/messages',     label: 'Beskeder',    icon: <ChatIcon /> },
   ],
 };
 
@@ -175,6 +110,8 @@ const sellerNav: NavEntry[] = [
   { href: '/dashboard/leaderboard', label: 'Leaderboard',   icon: <TrophyIcon /> },
   { href: '/dashboard/board',       label: 'Mit board',     icon: <BoardIcon /> },
   { href: '/dashboard/messages',    label: 'Beskeder',      icon: <ChatIcon /> },
+  { href: '/dashboard/assistant',   label: 'Opgave-assistent', icon: <BotIcon /> },
+  { href: '/dashboard/calls',       label: 'Opkalds-feedback',  icon: <PhoneIcon /> },
   { href: '/dashboard/settings',    label: 'Indstillinger', icon: <GearIcon /> },
 ];
 
@@ -189,11 +126,7 @@ const sellerBottomNav = [
 /* ── inferCompany: map any pathname to a company context ── */
 function inferCompany(pathname: string): CompanySlug {
   if (pathname.startsWith('/admin/meridian'))    return 'meridian';
-  if (pathname.startsWith('/admin/quorex'))      return 'quorex';
-  if (pathname.startsWith('/admin/reminder'))    return 'reminder';
   if (pathname.startsWith('/admin/group'))       return 'group';
-  if (pathname.startsWith('/admin/creatorrate')) return 'creatorrate';
-  if (pathname.startsWith('/admin/nlca'))        return 'nlca';
 
   // CRM belongs to Group
   if (pathname.startsWith('/admin/crm'))         return 'group';
@@ -217,8 +150,7 @@ function isActive(href: string, pathname: string): boolean {
 }
 
 const PAGE_LABELS: Record<string, string> = {
-  nls: 'Oversigt', meridian: 'Overblik', quorex: 'Overblik', reminder: 'Overblik',
-  creatorrate: 'Overblik', group: 'Koncern Overblik', nlca: 'Overblik',
+  nls: 'Oversigt', meridian: 'Overblik', group: 'Koncern Overblik',
   board: 'Board', messages: 'Beskeder', sitreps: 'Sitreps',
   followups: 'Follow-ups', presence: 'Tilstedeværelse', targets: 'Targets',
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
@@ -227,12 +159,10 @@ const PAGE_LABELS: Record<string, string> = {
   crm: 'CRM Pipeline', contacts: 'Virksomheder', activity: 'Aktivitetsfeed', support: 'Support',
   'my-customers': 'Mine Kunder',
   finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
-  mrr: 'MRR', stripe: 'Stripe', revenue: 'Omsætning', absence: 'Fravær',
+  revenue: 'Omsætning', absence: 'Fravær',
   employees: 'Medarbejdere',
-  creators: 'Creators', payouts: 'Udbetalinger', managers: 'Managers',
   recruitment: 'Rekruttering', hr: 'HR',
-  'ai-receptionist': 'AI Receptionist',
-  busyreminder: 'BusyReminder', hjemmeside: 'Hjemmeside',
+  assistant: 'Opgave-assistent', calls: 'Opkalds-feedback',
 };
 
 function getPageLabel(pathname: string): string {
@@ -274,7 +204,6 @@ function AppShellInner({ role, name, children }: Props) {
 
   const displayCompany: CompanySlug =
     role === 'SELLER' ? 'nls' :
-    role === 'NLCA_MANAGER' ? 'nlca' :
     inferCompany(pathname);
   const meta = COMPANY_META[displayCompany];
 
@@ -285,7 +214,7 @@ function AppShellInner({ role, name, children }: Props) {
     if (role !== 'SELLER') setActiveCompany(displayCompany);
   }, [displayCompany, role, setActiveCompany]);
 
-  const visibleCompanies = role === 'NLCA_MANAGER' ? (['nlca'] as CompanySlug[]) : COMPANY_ORDER;
+  const visibleCompanies = COMPANY_ORDER;
 
   useEffect(() => {
     let mounted = true;
@@ -408,67 +337,53 @@ function AppShellInner({ role, name, children }: Props) {
         {/* Company switcher (admin/manager only) */}
         {role !== 'SELLER' && (
           <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--bd)', position: 'relative' }}>
-            {role === 'NLCA_MANAGER' ? (
-              <div style={{
+            <button
+              onClick={() => setSwitcherOpen(o => !o)}
+              style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '7px 10px', borderRadius: 7, border: '1px solid var(--bd)',
-                background: 'var(--s2)',
-              }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
-                <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
-                <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400 }}>{meta.name}</span>
-              </div>
-            ) : (
-              <>
-                <button
-                  onClick={() => setSwitcherOpen(o => !o)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                    padding: '7px 10px', borderRadius: 7, border: '1px solid var(--bd)',
-                    background: 'var(--s2)', cursor: 'pointer',
-                    transition: 'border-color 0.12s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
-                  <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
-                  <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400, marginRight: 2 }}>{meta.name}</span>
-                  <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, flexShrink: 0, transform: switcherOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                    <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
+                background: 'var(--s2)', cursor: 'pointer',
+                transition: 'border-color 0.12s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
+              <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400, marginRight: 2 }}>{meta.name}</span>
+              <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, flexShrink: 0, transform: switcherOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
 
-                {switcherOpen && (
-                  <div style={{
-                    position: 'absolute', top: '100%', left: 10, right: 10, zIndex: 100,
-                    background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 9,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden', marginTop: 2,
-                  }}>
-                    {visibleCompanies.map(slug => {
-                      const m = COMPANY_META[slug];
-                      const isActive = slug === displayCompany;
-                      return (
-                        <button key={slug} onClick={() => switchCompany(slug)} style={{
-                          display: 'flex', alignItems: 'center', gap: 9, width: '100%',
-                          padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
-                          background: isActive ? 'var(--bl2)' : 'transparent',
-                          borderBottom: '1px solid var(--bd)',
-                          transition: 'background 0.1s',
-                        }}
-                          onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--s2)'; }}
-                          onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                        >
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                          <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--bl)' : 'var(--t1)' }}>{m.short}</span>
-                          <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 2 }}>{m.name}</span>
-                          {isActive && <svg style={{ marginLeft: 'auto' }} width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4l3 3 6-6" stroke="var(--bl)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
+            {switcherOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 10, right: 10, zIndex: 100,
+                background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 9,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden', marginTop: 2,
+              }}>
+                {visibleCompanies.map(slug => {
+                  const m = COMPANY_META[slug];
+                  const isActive = slug === displayCompany;
+                  return (
+                    <button key={slug} onClick={() => switchCompany(slug)} style={{
+                      display: 'flex', alignItems: 'center', gap: 9, width: '100%',
+                      padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
+                      background: isActive ? 'var(--bl2)' : 'transparent',
+                      borderBottom: '1px solid var(--bd)',
+                      transition: 'background 0.1s',
+                    }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--s2)'; }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--bl)' : 'var(--t1)' }}>{m.short}</span>
+                      <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 2 }}>{m.name}</span>
+                      {isActive && <svg style={{ marginLeft: 'auto' }} width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4l3 3 6-6" stroke="var(--bl)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
@@ -604,5 +519,6 @@ function TeamIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15
 function TaskIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="2" width="10" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> }
 function CrmIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M10 3l1.5 1.5L14 2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="7" x2="14" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="10" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
 function EuroIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M9.5 5.5A2.5 2.5 0 007 8a2.5 2.5 0 002.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="5" y1="7" x2="8.5" y2="7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="5" y1="9" x2="8.5" y2="9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg> }
-function GlobeIcon()     { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.4"/><ellipse cx="7.5" cy="7.5" rx="2.5" ry="6" stroke="currentColor" strokeWidth="1.2"/><line x1="1.5" y1="7.5" x2="13.5" y2="7.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="2.5" y1="5" x2="12.5" y2="5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/><line x1="2.5" y1="10" x2="12.5" y2="10" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg> }
 function TicketIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 5.5a1.5 1.5 0 000 3V11a1 1 0 001 1h8a1 1 0 001-1V8.5a1.5 1.5 0 000-3V4a1 1 0 00-1-1H3a1 1 0 00-1 1v1.5z" stroke="currentColor" strokeWidth="1.3"/><line x1="5.5" y1="3" x2="5.5" y2="12" stroke="currentColor" strokeWidth="1" strokeDasharray="1.5 1.5"/></svg> }
+function BotIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="4.5" width="10" height="8" rx="2" stroke="currentColor" strokeWidth="1.4"/><line x1="7.5" y1="4.5" x2="7.5" y2="2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7.5" cy="1.4" r="1" fill="currentColor"/><circle cx="5.3" cy="8.3" r="1" fill="currentColor"/><circle cx="9.7" cy="8.3" r="1" fill="currentColor"/></svg> }
+function PhoneIcon()     { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 2.5h2l1 3-1.5 1.2a8 8 0 004.8 4.8L10.5 10l3 1v2a1 1 0 01-1 1C6.5 14 1 8.5 1 3.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg> }

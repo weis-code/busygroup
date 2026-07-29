@@ -65,20 +65,29 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = sessionFromRequest(req);
-  if (!session || session.role === 'SELLER') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   await ensureMessengerTables();
 
   const { company_id, name, description } = await req.json();
-  if (!company_id || !name) {
+
+  // Sellers can only create channels in their own company — ignore any
+  // client-supplied company_id and look theirs up server-side.
+  let resolvedCompanyId = company_id;
+  if (session.role === 'SELLER') {
+    const [u] = await sql`SELECT company_id FROM users WHERE id = ${session.id}`;
+    resolvedCompanyId = u?.company_id ?? null;
+  }
+
+  if (!resolvedCompanyId || !name) {
     return NextResponse.json({ error: 'company_id og name kræves' }, { status: 400 });
   }
 
   const [channel] = await sql`
     INSERT INTO channels (company_id, name, description, created_by)
-    VALUES (${company_id}, ${name.toLowerCase().replace(/\s+/g, '-')}, ${description ?? null}, ${session.id})
+    VALUES (${resolvedCompanyId}, ${name.toLowerCase().replace(/\s+/g, '-')}, ${description ?? null}, ${session.id})
     RETURNING *
   `;
   await sql`INSERT INTO channel_members (channel_id, user_id) VALUES (${channel.id}, ${session.id}) ON CONFLICT DO NOTHING`;

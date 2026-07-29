@@ -742,4 +742,53 @@ export async function register() {
     `;
     await sql2`CREATE INDEX IF NOT EXISTS meridian_ticket_msgs_ticket_idx ON meridian_ticket_messages(ticket_id)`;
   } catch (err) { console.error('[NLS] meridian_ticket_messages failed:', err); }
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS task_documents (
+        id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id        UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        filename       TEXT NOT NULL,
+        storage_key    TEXT NOT NULL,
+        content_type   TEXT,
+        extracted_text TEXT,
+        uploaded_by    UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at     TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`CREATE INDEX IF NOT EXISTS task_documents_task_idx ON task_documents(task_id)`;
+  } catch (err) { console.error('[NLS] task_documents failed:', err); }
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS task_chat_messages (
+        id         SERIAL PRIMARY KEY,
+        task_id    UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role       TEXT NOT NULL CHECK (role IN ('user','assistant')),
+        content    TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`CREATE INDEX IF NOT EXISTS task_chat_messages_task_user_idx ON task_chat_messages(task_id, user_id)`;
+  } catch (err) { console.error('[NLS] task_chat_messages failed:', err); }
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS sales_calls (
+        id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id          UUID REFERENCES tasks(id) ON DELETE SET NULL,
+        seller_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        filename         TEXT NOT NULL,
+        storage_key      TEXT NOT NULL,
+        duration_seconds INTEGER,
+        status           TEXT NOT NULL DEFAULT 'processing' CHECK (status IN ('processing','done','failed')),
+        transcript       TEXT,
+        feedback         TEXT,
+        error            TEXT,
+        created_at       TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`CREATE INDEX IF NOT EXISTS sales_calls_seller_idx ON sales_calls(seller_id)`;
+  } catch (err) { console.error('[NLS] sales_calls failed:', err); }
 }

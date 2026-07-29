@@ -31,6 +31,10 @@ export default function MessagesPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [creatingDm, setCreatingDm] = useState(false);
+  const [newChannelModal, setNewChannelModal] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelMembers, setNewChannelMembers] = useState<Set<string>>(new Set());
+  const [creatingChannel, setCreatingChannel] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
@@ -73,15 +77,58 @@ export default function MessagesPage() {
     setMessages(data);
   }
 
-  async function openDmModal() {
-    setDmModal(true);
+  async function loadUsers() {
     if (users.length > 0) return;
     setLoadingUsers(true);
     try {
-      const data = await fetch('/api/admin/sellers').then(r => r.json()) as User[];
+      const data = await fetch('/api/users').then(r => r.json()) as User[];
       setUsers(Array.isArray(data) ? data.filter(u => u.id !== myId) : []);
     } finally {
       setLoadingUsers(false);
+    }
+  }
+
+  async function openDmModal() {
+    setDmModal(true);
+    await loadUsers();
+  }
+
+  async function openNewChannelModal() {
+    setNewChannelName('');
+    setNewChannelMembers(new Set());
+    setNewChannelModal(true);
+    await loadUsers();
+  }
+
+  function toggleNewChannelMember(userId: string) {
+    setNewChannelMembers(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
+    });
+  }
+
+  async function createChannel() {
+    if (!newChannelName.trim() || creatingChannel) return;
+    setCreatingChannel(true);
+    try {
+      const channel = await fetch('/api/channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newChannelName.trim() }),
+      }).then(r => r.json()) as Channel;
+      await Promise.all(Array.from(newChannelMembers).map(userId =>
+        fetch(`/api/channels/${channel.id}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId }),
+        })
+      ));
+      setNewChannelModal(false);
+      await loadChannels();
+      selectChannel(channel);
+    } finally {
+      setCreatingChannel(false);
     }
   }
 
@@ -149,12 +196,20 @@ export default function MessagesPage() {
       }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Beskeder</span>
-          <button onClick={openDmModal} title="Ny direkte besked"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t2)', fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 5, transition: 'color 0.12s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--t1)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--t2)')}>
-            ✎
-          </button>
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button onClick={openNewChannelModal} title="Ny kanal"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t2)', fontSize: 18, lineHeight: 1, padding: '2px 6px', borderRadius: 5, transition: 'color 0.12s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--t1)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--t2)')}>
+              +
+            </button>
+            <button onClick={openDmModal} title="Ny direkte besked"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t2)', fontSize: 18, lineHeight: 1, padding: '2px 4px', borderRadius: 5, transition: 'color 0.12s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--t1)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--t2)')}>
+              ✎
+            </button>
+          </div>
         </div>
 
         {/* Channels */}
@@ -298,6 +353,63 @@ export default function MessagesPage() {
                   </button>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New channel modal */}
+      {newChannelModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setNewChannelModal(false)}>
+          <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 12, width: 340, maxHeight: 480, display: 'flex', flexDirection: 'column', boxShadow: '0 16px 48px rgba(0,0,0,0.4)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Ny kanal</span>
+              <button onClick={() => setNewChannelModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 18 }}>✕</button>
+            </div>
+            <div style={{ padding: '14px 18px' }}>
+              <input
+                value={newChannelName}
+                onChange={e => setNewChannelName(e.target.value)}
+                placeholder="Kanalnavn, fx projekter"
+                autoFocus
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div style={{ padding: '0 18px 4px', fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Tilføj medlemmer</div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+              {loadingUsers ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Indlæser…</div>
+              ) : (
+                users.map(u => {
+                  const checked = newChannelMembers.has(u.id);
+                  return (
+                    <button key={u.id} onClick={() => toggleNewChannelMember(u.id)}
+                      style={{ width: '100%', textAlign: 'left', padding: '9px 18px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t1)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                      <span style={{
+                        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                        border: `1.5px solid ${checked ? 'var(--bl)' : 'var(--bd)'}`,
+                        background: checked ? 'var(--bl)' : 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#fff',
+                      }}>{checked ? '✓' : ''}</span>
+                      <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>
+                        {u.name.charAt(0).toUpperCase()}
+                      </span>
+                      <span>{u.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid var(--bd)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setNewChannelModal(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
+              <button onClick={createChannel} disabled={!newChannelName.trim() || creatingChannel}
+                style={{ background: 'var(--bl)', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600, opacity: creatingChannel ? 0.7 : 1 }}>
+                {creatingChannel ? 'Opretter…' : 'Opret kanal'}
+              </button>
             </div>
           </div>
         </div>

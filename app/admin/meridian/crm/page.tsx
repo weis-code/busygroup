@@ -60,7 +60,11 @@ function StageEditorModal({ stages: initial, onClose, onSaved }: {
 
   async function deleteStage(id: number) {
     if (migrateStageId === null) return;
-    await fetch(`/api/meridian/crm/stages/${id}?migrate_to=${migrateStageId}`, { method: 'DELETE' });
+    await fetch(`/api/meridian/crm/stages/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ move_leads_to_stage_id: migrateStageId }),
+    });
     setStages(prev => prev.filter(s => s.id !== id));
     setDeleteConfirm(null); setMigrateStageId(null);
   }

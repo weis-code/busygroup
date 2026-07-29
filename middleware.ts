@@ -24,25 +24,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  if (session.role === 'NLCA_MANAGER') {
-    const allowed =
-      pathname.startsWith('/admin/nlca') ||
-      pathname.startsWith('/api/nlca') ||
-      pathname.startsWith('/api/auth') ||
-      pathname.startsWith('/api/messages') ||
-      pathname.startsWith('/api/channels') ||
-      pathname.startsWith('/api/dm') ||
-      pathname.startsWith('/api/kanban') ||
-      pathname.startsWith('/api/companies') ||
-      pathname.startsWith('/api/admin/sellers');
-    if (!allowed) {
-      if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      return NextResponse.redirect(new URL('/admin/nlca', req.url));
-    }
-  }
-
   if (pathname === '/') {
-    const dest = session.role === 'SELLER' ? '/dashboard' : session.role === 'NLCA_MANAGER' ? '/admin/nlca' : '/admin';
+    const dest = session.role === 'SELLER' ? '/dashboard' : '/admin';
     return NextResponse.redirect(new URL(dest, req.url));
   }
 

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CompanySlug } from '@/lib/company-context';
 
-const VALID: CompanySlug[] = ['nls', 'meridian', 'quorex', 'reminder', 'group'];
+const VALID: CompanySlug[] = ['nls', 'meridian', 'group'];
 
 export default function AdminRedirect() {
   const router = useRouter();

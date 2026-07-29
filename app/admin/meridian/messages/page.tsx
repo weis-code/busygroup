@@ -31,6 +31,7 @@ export default function MeridianMessagesPage() {
   const [showNewDm, setShowNewDm]   = useState(false);
   const [showNewCh, setShowNewCh]   = useState(false);
   const [newChName, setNewChName]   = useState('');
+  const [newChMembers, setNewChMembers] = useState<Set<string>>(new Set());
   const [users, setUsers]       = useState<User[]>([]);
   const [companyId, setCompanyId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -44,7 +45,7 @@ export default function MeridianMessagesPage() {
       fetch('/api/auth/me').then(r => r.json()) as Promise<{ id: string }>,
       fetch('/api/channels').then(r => r.json()) as Promise<Channel[]>,
       fetch('/api/dm').then(r => r.json()) as Promise<DmConv[]>,
-      fetch('/api/admin/sellers').then(r => r.json()) as Promise<User[]>,
+      fetch('/api/users').then(r => r.json()) as Promise<User[]>,
       fetch('/api/companies').then(r => r.json()) as Promise<{ id: number; name: string; slug: string }[]>,
     ]);
     setMyId(me.id ?? '');
@@ -95,10 +96,21 @@ export default function MeridianMessagesPage() {
     setDms(await fetch('/api/dm').then(r => r.json()) as DmConv[]);
   }
 
+  function toggleNewChMember(userId: string) {
+    setNewChMembers(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
+    });
+  }
+
   async function createChannel() {
     if (!newChName.trim() || !companyId) return;
-    await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newChName.trim(), company_id: companyId }) });
-    setNewChName(''); setShowNewCh(false);
+    const channel = await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newChName.trim(), company_id: companyId }) }).then(r => r.json()) as Channel;
+    await Promise.all(Array.from(newChMembers).map(userId =>
+      fetch(`/api/channels/${channel.id}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
+    ));
+    setNewChName(''); setNewChMembers(new Set()); setShowNewCh(false);
     setAll(await fetch('/api/channels').then(r => r.json()) as Channel[]);
   }
 
@@ -210,6 +222,19 @@ export default function MeridianMessagesPage() {
           <div className="modal-box" style={{ background: 'var(--s1)', borderRadius: 13, padding: 24, width: 360, maxWidth: '94vw', boxShadow: '0 40px 80px rgba(0,0,0,0.7)' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny kanal · {COMPANY_LABEL}</div>
             <div><label>Kanalnavn</label><input value={newChName} onChange={e => setNewChName(e.target.value)} placeholder="e.g. projekter" autoFocus /></div>
+            <div style={{ marginTop: 14, fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Tilføj medlemmer</div>
+            <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 4 }}>
+              {users.filter(u => u.id !== myId).map(u => {
+                const checked = newChMembers.has(u.id);
+                return (
+                  <button key={u.id} onClick={() => toggleNewChMember(u.id)}
+                    style={{ width: '100%', textAlign: 'left', padding: '7px 4px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--t1)' }}>
+                    <span style={{ width: 14, height: 14, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${checked ? 'var(--bl)' : 'var(--bd)'}`, background: checked ? 'var(--bl)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff' }}>{checked ? '✓' : ''}</span>
+                    {u.name}
+                  </button>
+                );
+              })}
+            </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowNewCh(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>
               <button onClick={createChannel} disabled={!newChName.trim()} style={{ background: 'var(--bl)', color: '#fff', borderRadius: 7, padding: '8px 16px', fontSize: 12, fontWeight: 600 }}>Opret</button>

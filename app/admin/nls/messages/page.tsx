@@ -32,6 +32,7 @@ export default function NlsMessagesPage() {
   const [showNewDm, setShowNewDm] = useState(false);
   const [showNewChannel, setShowNewChannel] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelMembers, setNewChannelMembers] = useState<Set<string>>(new Set());
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<{ id: number; name: string; slug: string }[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,7 @@ export default function NlsMessagesPage() {
       fetch('/api/auth/me').then(r => r.json()) as Promise<{ id: string }>,
       fetch('/api/channels').then(r => r.json()) as Promise<Channel[]>,
       fetch('/api/dm').then(r => r.json()) as Promise<DmConv[]>,
-      fetch('/api/admin/sellers').then(r => r.json()) as Promise<User[]>,
+      fetch('/api/users').then(r => r.json()) as Promise<User[]>,
       fetch('/api/companies').then(r => r.json()) as Promise<{ id: number; name: string; slug: string }[]>,
     ]);
     setMyId(me.id ?? '');
@@ -103,15 +104,30 @@ export default function NlsMessagesPage() {
     setDms(data);
   }
 
+  function toggleNewChannelMember(userId: string) {
+    setNewChannelMembers(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
+    });
+  }
+
   async function createChannel() {
     if (!newChannelName.trim()) return;
     const nlsCompany = companies.find(c => c.slug === 'nls');
     if (!nlsCompany) return;
-    await fetch('/api/channels', {
+    const channel = await fetch('/api/channels', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newChannelName.trim(), company_id: nlsCompany.id }),
-    });
+    }).then(r => r.json()) as Channel;
+    await Promise.all(Array.from(newChannelMembers).map(userId =>
+      fetch(`/api/channels/${channel.id}/members`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      })
+    ));
     setNewChannelName('');
+    setNewChannelMembers(new Set());
     setShowNewChannel(false);
     const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
     setAllChannels(data);
@@ -232,6 +248,19 @@ export default function NlsMessagesPage() {
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>Ny kanal · NLS</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><label>Kanalnavn</label><input value={newChannelName} onChange={e => setNewChannelName(e.target.value)} placeholder="e.g. projekter" autoFocus /></div>
+            </div>
+            <div style={{ marginTop: 14, fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Tilføj medlemmer</div>
+            <div style={{ maxHeight: 200, overflowY: 'auto', marginTop: 4 }}>
+              {users.filter(u => u.id !== myId).map(u => {
+                const checked = newChannelMembers.has(u.id);
+                return (
+                  <button key={u.id} onClick={() => toggleNewChannelMember(u.id)}
+                    style={{ width: '100%', textAlign: 'left', padding: '7px 4px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--t1)' }}>
+                    <span style={{ width: 14, height: 14, borderRadius: 4, flexShrink: 0, border: `1.5px solid ${checked ? 'var(--bl)' : 'var(--bd)'}`, background: checked ? 'var(--bl)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff' }}>{checked ? '✓' : ''}</span>
+                    {u.name}
+                  </button>
+                );
+              })}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowNewChannel(false)} style={{ background: 'var(--s2)', color: 'var(--t2)', border: '1px solid var(--bd)', borderRadius: 7, padding: '8px 14px', fontSize: 12 }}>Annuller</button>

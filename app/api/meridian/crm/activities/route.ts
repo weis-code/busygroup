@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       ${body.direction ?? 'outbound'}, ${body.title ?? null},
       ${body.body ?? null}, ${body.outcome ?? null},
       ${body.next_action ?? null}, ${body.next_action_date ?? null},
-      ${body.occurred_at ? body.occurred_at : 'NOW()'}
+      COALESCE(${body.occurred_at ?? null}::timestamptz, NOW())
     )
     RETURNING *
   `;

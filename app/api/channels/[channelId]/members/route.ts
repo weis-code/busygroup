@@ -18,8 +18,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cha
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ channelId: string }> }) {
   const session = sessionFromRequest(req);
-  if (!session || session.role === 'SELLER') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { channelId } = await params;

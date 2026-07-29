@@ -48,7 +48,7 @@ export default function GroupTicketsPage() {
     try {
       const params = new URLSearchParams({ source: 'group', type: 'dev' });
       if (statusFilter !== 'all') params.set('status', statusFilter);
-      const data = await fetch(`/api/creatorrate/tickets?${params}`).then(r => r.json()) as Ticket[];
+      const data = await fetch(`/api/tickets?${params}`).then(r => r.json()) as Ticket[];
       setTickets(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function GroupTicketsPage() {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch('/api/creatorrate/tickets', {
+      const res = await fetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,7 +90,7 @@ export default function GroupTicketsPage() {
   }
 
   async function updateStatus(id: number, status: string) {
-    await fetch(`/api/creatorrate/tickets/${id}`, {
+    await fetch(`/api/tickets/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
