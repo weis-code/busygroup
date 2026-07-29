@@ -916,4 +916,20 @@ export async function register() {
       }
     }
   } catch (err) { console.error('[NLS] Meridian shared pipeline stage seed failed:', err); }
+
+  // Fase 4: unify Meridian's support tickets onto the shared cr_tickets schema
+  // (previously its own meridian_tickets/meridian_ticket_messages tables, which had
+  // never actually been created in production — 0 rows, a dead feature, same class
+  // of bug Fase 0 fixed elsewhere). customer_id/customer_name/category/resolved_at/
+  // resolved_by are Meridian's fields with no cr_tickets equivalent; category holds
+  // Meridian's finer-grained type (billing/technical/...) separately from cr_tickets'
+  // own type (dev/support), which stays fixed at 'support' for every Meridian ticket.
+  try {
+    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_id INTEGER REFERENCES customers(id) NULL`;
+    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_name TEXT`;
+    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS category TEXT`;
+    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ NULL`;
+    await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS resolved_by UUID REFERENCES users(id) NULL`;
+    await sql2`ALTER TABLE cr_ticket_comments ADD COLUMN IF NOT EXISTS is_internal BOOLEAN NOT NULL DEFAULT false`;
+  } catch (err) { console.error('[NLS] cr_tickets Meridian-compat columns failed:', err); }
 }
