@@ -180,8 +180,8 @@ export default function MessagesPage() {
         body: JSON.stringify({ body: trimmed }),
       });
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({})) as { error?: string };
-        setSendError(errBody.error ?? `Kunne ikke sende (fejl ${res.status})`);
+        const errBody = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        setSendError([errBody.error, errBody.detail].filter(Boolean).join(': ') || `Kunne ikke sende (fejl ${res.status})`);
         return;
       }
       setBody('');
