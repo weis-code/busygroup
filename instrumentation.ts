@@ -847,4 +847,22 @@ export async function register() {
     `;
     await sql2`CREATE INDEX IF NOT EXISTS sales_calls_seller_idx ON sales_calls(seller_id)`;
   } catch (err) { console.error('[NLS] sales_calls failed:', err); }
+
+  // Archive dead legacy tables (rester af det gamle agent/outreach-system og forladte
+  // chat/board-implementeringer) — renamed, never dropped, so the data is preserved.
+  // Idempotent: once renamed, the source table no longer exists so this is a no-op.
+  const legacyTables = [
+    'leads', 'lead_products', 'pipeline_stages', 'products',
+    'sc_clients', 'sc_client_sellers', 'sc_deals', 'sc_goals', 'sc_products', 'sc_task_types',
+    'agents', 'agent_logs', 'imap_accounts', 'briefs', 'outreach_sequences', 'daily_digest', 'import_sessions',
+    'chat_conversations', 'chat_members', 'chat_messages',
+    'project_boards', 'project_columns', 'project_tasks', 'project_board_members', 'project_task_comments',
+  ];
+  for (const t of legacyTables) {
+    try {
+      await sql2.unsafe(`ALTER TABLE IF EXISTS ${t} RENAME TO _legacy_${t}`);
+    } catch (err) {
+      console.error(`[NLS] legacy table rename failed for ${t}:`, err);
+    }
+  }
 }
