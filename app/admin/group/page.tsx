@@ -11,6 +11,12 @@ interface CompanyData {
 interface ChartEntry { month: string; label: string; total: number; [key: string]: number | string | undefined }
 interface BreakEven { totalFixedCosts: number; currentRevenue: number; margin: number; percentage: number | null }
 interface Overview { kpis: KPIs; companies: CompanyData[]; chart: ChartEntry[]; breakEven: BreakEven }
+interface CrmOverview {
+  totalValue: number; totalCount: number;
+  byWorkspace: { workspace_id: number | null; workspace_name: string; count: number; value: number }[];
+}
+interface Candidate { id: number; stage: string; company_name: string | null }
+interface TicketRow { id: number; status: string; priority: string }
 interface KanbanColumn { id: number; name: string; color: string; position: number }
 interface KanbanCard {
   id: number; column_id: number; title: string; body: string | null;
@@ -39,6 +45,12 @@ export default function GroupPage() {
   // Finance state
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Cross-company CRM/HR/tickets state — sections hide themselves if the
+  // fetch 403s (some of these are ADMIN-only) rather than showing an error.
+  const [crm, setCrm] = useState<CrmOverview | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
+  const [tickets, setTickets] = useState<TicketRow[] | null>(null);
 
   // Board state
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
@@ -73,7 +85,31 @@ export default function GroupPage() {
     setBoardLoaded(true);
   }
 
-  useEffect(() => { loadOverview(); }, []);
+  async function loadCrm() {
+    try {
+      const data = await fetch('/api/crm/overview').then(r => r.ok ? r.json() : null) as CrmOverview | null;
+      if (data) setCrm(data);
+    } catch { /* noop */ }
+  }
+
+  async function loadCandidates() {
+    try {
+      const data = await fetch('/api/hr/candidates').then(r => r.ok ? r.json() : null);
+      if (Array.isArray(data)) setCandidates(data as Candidate[]);
+    } catch { /* noop */ }
+  }
+
+  async function loadTickets() {
+    try {
+      const sources = ['group', 'creatorrate', 'meridian'];
+      const results = await Promise.all(
+        sources.map(s => fetch(`/api/tickets?source=${s}&status=open`).then(r => r.ok ? r.json() : []))
+      );
+      setTickets(results.flat().filter((t): t is TicketRow => !!t && typeof t === 'object'));
+    } catch { /* noop */ }
+  }
+
+  useEffect(() => { loadOverview(); loadCrm(); loadCandidates(); loadTickets(); }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -259,6 +295,84 @@ export default function GroupPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* CRM pipeline across companies */}
+                {crm && (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                      Pipeline på tværs af selskaber
+                    </div>
+                    <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 10, padding: '16px 18px' }}>
+                      <div style={{ display: 'flex', gap: 28, marginBottom: 14 }}>
+                        <div>
+                          <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Samlet pipeline</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>{fmt(crm.totalValue)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Åbne deals</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>{crm.totalCount}</div>
+                        </div>
+                        <a href="/admin/crm" style={{ marginLeft: 'auto', alignSelf: 'flex-end', fontSize: 12, color: 'var(--bl)', textDecoration: 'none' }}>Åbn CRM →</a>
+                      </div>
+                      {crm.byWorkspace.length === 0 ? (
+                        <div style={{ fontSize: 12, color: 'var(--t3)' }}>Ingen åbne deals</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                          {crm.byWorkspace.map(w => (
+                            <div key={w.workspace_id ?? 'group'} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 12, color: 'var(--t2)', flex: 1 }}>{w.workspace_name}</span>
+                              <span style={{ fontSize: 12, color: 'var(--t3)' }}>{w.count} deals</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', width: 110, textAlign: 'right' }}>{fmt(w.value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recruitment across companies */}
+                {candidates && (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                      Rekruttering
+                    </div>
+                    <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 10, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Aktive kandidater</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>
+                          {candidates.filter(c => !['hired', 'stopped'].includes(c.stage)).length}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+                        på tværs af {new Set(candidates.map(c => c.company_name).filter(Boolean)).size} selskaber
+                      </div>
+                      <a href="/admin/hr/recruitment" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--bl)', textDecoration: 'none' }}>Åbn rekruttering →</a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Support/tickets across companies */}
+                {tickets && (
+                  <div style={{ marginTop: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                      Support &amp; tickets
+                    </div>
+                    <div style={{ background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 10, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Åbne tickets</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>{tickets.length}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Akutte</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: tickets.some(t => t.priority === 'urgent') ? 'var(--re)' : 'var(--t1)' }}>
+                          {tickets.filter(t => t.priority === 'urgent').length}
+                        </div>
+                      </div>
+                      <a href="/admin/group/tickets" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--bl)', textDecoration: 'none' }}>Åbn tickets →</a>
+                    </div>
                   </div>
                 )}
               </>
