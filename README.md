@@ -1,6 +1,6 @@
-# NextLevelGroup Agent Dashboard
+# BusyGroup
 
-AI-drevet salgsagent dashboard til BusyConsulting's svenske og danske marked.
+Intern platform til at drive og følge op på tværs af koncernens selskaber: **Next Level Sales**, **Meridian Consulting**, **NextLevel Group**, **Quorex**, **BusyReminder**, **CreatorRate** og **Next Level Creator Agency**.
 
 ## Setup
 
@@ -9,51 +9,38 @@ AI-drevet salgsagent dashboard til BusyConsulting's svenske og danske marked.
 npm install
 
 # 2. Konfigurér environment variabler
-# Åbn .env.local og indsæt dine API nøgler
+# Opret .env.local med DATABASE_URL (Postgres) og evt. S3/OpenAI-nøgler til
+# dokument-upload og opkalds-transskribering
 
-# 3. Seed databasen med testdata
-npx tsx lib/seed.ts
-
-# 4. Start development serveren
+# 3. Start development serveren
 npm run dev
 ```
 
 Dashboard: **http://localhost:3000**
 
-## Kør agenter
-
-```bash
-# Start agent runner (kører alle cron jobs)
-npx tsx agents/runner.ts
-```
-
-Eller klik "Kør nu" i dashboardet.
+Databaseskemaet oprettes/migreres automatisk ved boot via `instrumentation.ts` (Next.js' `register()`-hook) — der er ikke noget separat migrationstrin.
 
 ## Arkitektur
 
-- Dashboard: http://localhost:3000
-- Database: ./nextlevelgroup.db (SQLite via better-sqlite3)
-- Agenter: /agents/ — cron schedule via runner.ts
-- Slack: #nextlevelgroup-ledelse, #agent-salg-sverige, #agent-alerts
+- **Next.js 14** (App Router, TypeScript), deployet på **Railway**
+- **Postgres** som eneste datalag (via `postgres`-pakken, tagged-template SQL i `lib/db.ts`)
+- Autentificering: cookie-baseret session (`lib/auth.ts`), roller `ADMIN` / `MANAGER` / `SELLER` (+ legacy `NLCA_MANAGER`)
+- Selskabskontekst: `companies`-tabellen + `company_id` på brugere/data, håndteret i `lib/company-context.tsx`
 
-## Agent planlægning
+## Moduler pr. selskab
 
-| Agent | Tidspunkt | Beskrivelse |
-|-------|-----------|-------------|
-| CSO Agent | Mandag 07:00 | Pipeline analyse + ugentlig rapport |
-| SE Prospecting | Mandag 08:00 | Finder 20 nye svenske leads |
-| SE Outreach | Mandag 09:00 | LinkedIn DMs til nye leads (på svensk) |
-| SE Follow-up | Daglig 08:30 | 4-trins follow-up sekvenser |
-| SE Booking | Daglig 09:00 | Booker møder med interesserede leads |
+- **Next Level Sales** (`app/admin/nls`, `app/dashboard`) — opgave-/kommissionsstyring (`tasks`, `sales`, `pay_periods`, `targets`), daglige mål, sitreps, opkaldsfeedback (transskribering + AI-feedback via `lib/transcription.ts`)
+- **Meridian Consulting** (`app/admin/meridian`) — CRM-pipeline (`meridian_leads`), kunde-abonnementer (`customers`/`customer_products`), support-tickets (`meridian_tickets`)
+- **NextLevel Group** (`app/admin/group`) — koncern-CRM (`crm_*`), HR/rekruttering (`hr_candidates`), finans-overblik, kunde-håndtering (`handovers`, `portal_access`)
+- Fælles på tværs af selskaber: Messenger (kanaler + DM, `messenger_messages`), Kanban-boards (`kanban_*`), support/dev-tickets (`cr_tickets`)
 
 ## Tech Stack
 
 - Next.js 14 (App Router, TypeScript)
-- Tailwind CSS (dark theme)
-- @xyflow/react – org chart
-- Recharts – pipeline analytics
-- @dnd-kit/core – kanban drag-and-drop
-- better-sqlite3 – SQLite database
-- @anthropic-ai/sdk – Claude API
-- @slack/web-api – Slack integration
-- sonner – toast notifikationer
+- Postgres (`postgres`-pakken)
+- @dnd-kit/core — kanban drag-and-drop
+- @xyflow/react — org chart
+- Recharts — analytics
+- @anthropic-ai/sdk — Claude API (opgave-assistent, opkalds-feedback)
+- @aws-sdk/client-s3 — dokument-/lydfil-upload
+- bcryptjs — password hashing
