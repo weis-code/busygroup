@@ -7,6 +7,31 @@ export async function register() {
 
   const { default: sql } = await import('./lib/db');
 
+  // Table-name collision fix: a dead, unused CreatorRate/Supabase customer-portal
+  // sync previously created its own "customers"/"customer_products" tables (TEXT/UUID
+  // ids, portal_password_hash, contract_start, etc.) before this app's own CREATE
+  // TABLE IF NOT EXISTS ever ran — so its own intended schema (company_id, name,
+  // am_user_id/kam_user_id) silently never got created, breaking Meridian's customer
+  // list, handovers, portal_access, and finance MRR rollups on every boot since.
+  // Confirmed dead — rename out of the way (never drop) so this app's real schema
+  // can finally be created under the name the rest of the code expects.
+  try {
+    const [oldCustomers] = await sql`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'customers' AND column_name = 'company_id'
+    `;
+    if (!oldCustomers) {
+      await sql`ALTER TABLE IF EXISTS customers RENAME TO _legacy_creatorrate_customers`;
+    }
+    const [oldCustomerProducts] = await sql`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'customer_products' AND column_name = 'product_name'
+    `;
+    if (!oldCustomerProducts) {
+      await sql`ALTER TABLE IF EXISTS customer_products RENAME TO _legacy_creatorrate_customer_products`;
+    }
+  } catch (err) { console.error('[NLS] customers/customer_products collision rename failed:', err); }
+
   // Each section below runs in its own try/catch so one failing statement can't
   // silently block every section after it — this used to be one giant try block,
   // and a failure partway through left everything after it (including the HR/
@@ -925,16 +950,18 @@ export async function register() {
   // Meridian's finer-grained type (billing/technical/...) separately from cr_tickets'
   // own type (dev/support), which stays fixed at 'support' for every Meridian ticket.
   try {
-    // No REFERENCES constraint: the "customers" table in production is a separate,
-    // unrelated CreatorRate/Supabase-imported table with a TEXT/UUID id and none of
-    // the columns (company_id, name, am_user_id...) the rest of this codebase's
-    // "customers" model assumes — a pre-existing table-name collision unrelated to
-    // this migration. Storing customer_id unconstrained avoids coupling to that.
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_id INTEGER NULL`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS customer_name TEXT`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS category TEXT`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ NULL`;
     await sql2`ALTER TABLE cr_tickets ADD COLUMN IF NOT EXISTS resolved_by UUID REFERENCES users(id) NULL`;
     await sql2`ALTER TABLE cr_ticket_comments ADD COLUMN IF NOT EXISTS is_internal BOOLEAN NOT NULL DEFAULT false`;
+
+    // Now that the customers table-name collision above is resolved, the real
+    // customers(id) is INTEGER/SERIAL — safe to add the FK we couldn't before.
+    const [existingFk] = await sql2`SELECT 1 FROM pg_constraint WHERE conname = 'cr_tickets_customer_id_fkey'`;
+    if (!existingFk) {
+      await sql2`ALTER TABLE cr_tickets ADD CONSTRAINT cr_tickets_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id)`;
+    }
   } catch (err) { console.error('[NLS] cr_tickets Meridian-compat columns failed:', err); }
 }
