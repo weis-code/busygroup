@@ -2,110 +2,97 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { CompanyProvider, useCompany } from '@/lib/company-context';
-import type { CompanySlug } from '@/lib/company-context';
 
 interface NavItem  { href: string; label: string; icon: React.ReactNode; section?: string; adminOnly?: boolean }
-interface NavGroup { group: true; label: string; icon: React.ReactNode; adminOnly?: boolean; children: NavItem[] }
-type NavEntry = NavItem | NavGroup
+type NavEntry = NavItem
 
-function isGroup(e: NavEntry): e is NavGroup { return 'group' in e && e.group === true; }
-
-/* ── Company metadata ───────────────────────────────── */
+/* ── Company metadata (used only for the topbar's "you're looking at" badge —
+   navigation itself is no longer gated by picking a company first) ────── */
+type CompanySlug = 'nls' | 'meridian' | 'group';
 const COMPANY_META: Record<CompanySlug, { name: string; short: string; color: string }> = {
   nls:         { name: 'NextLevel Sales',            short: 'NLS',  color: 'var(--bl)' },
   meridian:    { name: 'Meridian',                   short: 'MD',   color: 'var(--gr)' },
   group:       { name: 'NL Group',                   short: 'GRP',  color: 'var(--t2)' },
 };
 
-const COMPANY_HOME: Record<CompanySlug, string> = {
-  nls:         '/admin/nls',
-  meridian:    '/admin/meridian',
-  group:       '/admin/group',
-};
-
-const COMPANY_ORDER: CompanySlug[] = ['group', 'nls', 'meridian'];
-
 /* ── Nav section header helper ──────────────────────── */
 function sectionItem(section: string, href: string, label: string, icon: React.ReactNode, adminOnly?: boolean): NavItem {
   return { href, label, icon, section, adminOnly };
 }
 
-/* ── Nav arrays per company ─────────────────────────── */
-const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
-  nls: [
-    sectionItem('OVERSIGT',   '/admin/nls',              'Oversigt',        <GridIcon />),
-    sectionItem('STYRING',    '/admin/sitreps',          'Sitreps',         <NoteIcon />),
-    sectionItem('',           '/admin/followups',        'Follow-ups',      <FollowIcon />),
-    sectionItem('',           '/admin/presence',         'Tilstedeværelse', <UserCheckIcon />),
-    sectionItem('',           '/admin/targets',          'Targets',         <TargetIcon />),
-    sectionItem('',           '/admin/daily',            'Daglige mål',     <BarIcon />),
-    sectionItem('',           '/admin/nls/absence',      'Fravær',          <CalendarIcon />),
-    sectionItem('',           '/admin/tasks',            'Opgaver',         <TaskIcon />),
-    sectionItem('TEAM',       '/admin/sellers',          'Sælgere',         <TeamIcon />),
-    sectionItem('',           '/admin/hr/employees',     'Medarbejdere',    <PeopleIcon />),
-    sectionItem('',           '/admin/hr/recruitment',   'Rekruttering',    <TargetIcon />, true),
-    sectionItem('',           '/admin/sales',            'Mine salg',       <SalesIcon />),
-    sectionItem('',           '/admin/periods',          'Lønperioder',     <CalendarIcon />),
-    sectionItem('',           '/admin/revenue',          'Revenue',         <BarIcon />),
-    sectionItem('PLATFORM',   '/admin/nls/board',        'Board',           <BoardIcon />),
-    sectionItem('',           '/admin/nls/messages',     'Beskeder',        <ChatIcon />),
-    sectionItem('AI-VÆRKTØJER', '/dashboard/assistant',  'Opgave-assistent', <BotIcon />),
-    sectionItem('',           '/dashboard/calls',        'Opkalds-feedback', <PhoneIcon />),
-  ],
-  meridian: [
-    sectionItem('OVERSIGT',     '/admin/meridian',                     'Overblik',       <GridIcon />),
-    sectionItem('SALG',         '/admin/meridian/crm',                 'Min pipeline',   <CrmIcon />),
-    sectionItem('',             '/admin/meridian/crm/activity',        'Aktivitet',      <BarIcon />),
-    sectionItem('KUNDER',       '/admin/customers',                    'Kunder',         <PeopleIcon />),
-    sectionItem('',             '/admin/handover',                     'Handover',       <HandoverIcon />),
-    sectionItem('',             '/admin/meridian/support',             'Support',        <TicketIcon />),
-    sectionItem('PRODUKTER',    '/admin/meridian/products',            'Produktkatalog', <TaskIcon />),
-    sectionItem('KLIENTPORTAL', '/admin/portal',                       'Portal',         <PortalIcon />),
-    sectionItem('TEAM',         '/admin/meridian/team',                'AM / KAM',       <TeamIcon />),
-    sectionItem('',             '/admin/hr/employees',                 'Medarbejdere',   <PeopleIcon />),
-    sectionItem('',             '/admin/hr/recruitment',               'Rekruttering',   <TargetIcon />, true),
-    sectionItem('',             '/admin/meridian/absence',             'Fravær',         <CalendarIcon />),
-    sectionItem('PLATFORM',     '/admin/meridian/board',               'Board',          <BoardIcon />),
-    sectionItem('',             '/admin/meridian/messages',            'Beskeder',       <ChatIcon />),
-  ],
-  group: [
-    sectionItem('KONCERN',  '/admin/group',            'Koncern Overblik', <GridIcon />),
-    sectionItem('',         '/admin/group/board',      'Mit board',        <BoardIcon />),
-    sectionItem('',         '/admin/group/tickets',    'Dev tickets',      <TaskIcon />),
-    sectionItem('',         '/admin/messages',         'Beskeder',         <ChatIcon />),
-    sectionItem('CRM',      '/admin/crm',                  'Pipeline',         <CrmIcon />),
-    sectionItem('',         '/admin/crm/companies',        'Virksomheder',     <BuildingIcon />),
-    sectionItem('',         '/admin/group/my-customers',  'Mine Kunder',      <EuroIcon />),
-    sectionItem('TEAM',     '/admin/hr/employees',         'Medarbejdere',     <TeamIcon />),
-    sectionItem('',         '/admin/hr/recruitment',       'Rekruttering',     <TargetIcon />, true),
-    sectionItem('',         '/admin/group/absence',        'Fravær',           <CalendarIcon />),
-    sectionItem('FINANS',   '/admin/group/finance',       'Økonomi',          <BarIcon />),
-    sectionItem('SYSTEM',   '/admin/companies',        'Virksomheder',     <BuildingIcon />),
-    sectionItem('',         '/admin/settings',         'Indstillinger',    <GearIcon />),
-  ],
-};
+/* ── Koncern-wide nav: always visible, no company switch required ──────── */
+const KONCERN_NAV: NavEntry[] = [
+  sectionItem('KONCERN', '/admin/group',          'Koncern Overblik', <GridIcon />),
+  sectionItem('',        '/admin/crm',            'CRM Pipeline',      <CrmIcon />),
+  sectionItem('',        '/admin/hr/employees',   'Medarbejdere',      <PeopleIcon />),
+  sectionItem('',        '/admin/hr/recruitment', 'Rekruttering',      <TargetIcon />, true),
+  sectionItem('',        '/admin/companies',      'Virksomheder',      <BuildingIcon />),
+  sectionItem('',        '/admin/settings',       'Indstillinger',     <GearIcon />),
+];
 
-const COMPANY_BOTTOM_NAV: Record<CompanySlug, { href: string; label: string; icon: React.ReactNode }[]> = {
-  nls: [
-    { href: '/admin/nls',          label: 'Oversigt', icon: <GridIcon /> },
-    { href: '/admin/nls/board',    label: 'Board',    icon: <BoardIcon /> },
-    { href: '/admin/sitreps',      label: 'Sitreps',  icon: <NoteIcon /> },
-    { href: '/admin/nls/messages', label: 'Beskeder', icon: <ChatIcon /> },
-  ],
-  meridian: [
-    { href: '/admin/meridian',          label: 'Oversigt',   icon: <GridIcon /> },
-    { href: '/admin/meridian/board',    label: 'Board',      icon: <BoardIcon /> },
-    { href: '/admin/customers',         label: 'Kunder',     icon: <PeopleIcon /> },
-    { href: '/admin/meridian/messages', label: 'Beskeder',   icon: <ChatIcon /> },
-  ],
-  group: [
-    { href: '/admin/group',           label: 'Overblik',  icon: <GridIcon /> },
-    { href: '/admin/crm',             label: 'CRM',       icon: <CrmIcon /> },
-    { href: '/admin/companies',       label: 'Firmaer',   icon: <BuildingIcon /> },
-    { href: '/admin/messages',        label: 'Beskeder',  icon: <ChatIcon /> },
-  ],
-};
+/* ── Company-specific tools: still grouped by company (the business models
+   genuinely differ), but collapsible in the SAME sidebar rather than behind
+   a switcher — everything reachable from one screen at once. ───────────── */
+interface CompanyGroup { key: CompanySlug; label: string; color: string; children: NavItem[] }
+const COMPANY_GROUPS: CompanyGroup[] = [
+  {
+    key: 'nls', label: 'Next Level Sales', color: COMPANY_META.nls.color,
+    children: [
+      { href: '/admin/nls',              label: 'Oversigt',          icon: <GridIcon /> },
+      { href: '/admin/sitreps',          label: 'Sitreps',           icon: <NoteIcon /> },
+      { href: '/admin/followups',        label: 'Follow-ups',        icon: <FollowIcon /> },
+      { href: '/admin/presence',         label: 'Tilstedeværelse',   icon: <UserCheckIcon /> },
+      { href: '/admin/targets',          label: 'Targets',           icon: <TargetIcon /> },
+      { href: '/admin/daily',            label: 'Daglige mål',       icon: <BarIcon /> },
+      { href: '/admin/nls/absence',      label: 'Fravær',            icon: <CalendarIcon /> },
+      { href: '/admin/tasks',            label: 'Opgaver',           icon: <TaskIcon /> },
+      { href: '/admin/sellers',          label: 'Sælgere',           icon: <TeamIcon /> },
+      { href: '/admin/sales',            label: 'Mine salg',         icon: <SalesIcon /> },
+      { href: '/admin/periods',          label: 'Lønperioder',       icon: <CalendarIcon /> },
+      { href: '/admin/revenue',          label: 'Revenue',           icon: <BarIcon /> },
+      { href: '/admin/nls/board',        label: 'Board',             icon: <BoardIcon /> },
+      { href: '/admin/nls/messages',     label: 'Beskeder',          icon: <ChatIcon /> },
+      { href: '/dashboard/assistant',    label: 'Opgave-assistent',  icon: <BotIcon /> },
+      { href: '/dashboard/calls',        label: 'Opkalds-feedback',  icon: <PhoneIcon /> },
+    ],
+  },
+  {
+    key: 'meridian', label: 'Meridian', color: COMPANY_META.meridian.color,
+    children: [
+      { href: '/admin/meridian',              label: 'Overblik',        icon: <GridIcon /> },
+      { href: '/admin/meridian/crm',           label: 'Min pipeline',    icon: <CrmIcon /> },
+      { href: '/admin/meridian/crm/activity',  label: 'Aktivitet',       icon: <BarIcon /> },
+      { href: '/admin/customers',              label: 'Kunder',          icon: <PeopleIcon /> },
+      { href: '/admin/handover',               label: 'Handover',        icon: <HandoverIcon /> },
+      { href: '/admin/meridian/support',       label: 'Support',         icon: <TicketIcon /> },
+      { href: '/admin/meridian/products',      label: 'Produktkatalog',  icon: <TaskIcon /> },
+      { href: '/admin/portal',                 label: 'Portal',          icon: <PortalIcon /> },
+      { href: '/admin/meridian/team',          label: 'AM / KAM',        icon: <TeamIcon /> },
+      { href: '/admin/meridian/absence',       label: 'Fravær',          icon: <CalendarIcon /> },
+      { href: '/admin/meridian/board',         label: 'Board',           icon: <BoardIcon /> },
+      { href: '/admin/meridian/messages',      label: 'Beskeder',        icon: <ChatIcon /> },
+    ],
+  },
+  {
+    key: 'group', label: 'Group (drift)', color: COMPANY_META.group.color,
+    children: [
+      { href: '/admin/group/board',        label: 'Mit board',    icon: <BoardIcon /> },
+      { href: '/admin/group/tickets',      label: 'Dev tickets',  icon: <TaskIcon /> },
+      { href: '/admin/messages',           label: 'Beskeder',     icon: <ChatIcon /> },
+      { href: '/admin/crm/companies',      label: 'Virksomheder', icon: <BuildingIcon /> },
+      { href: '/admin/group/my-customers', label: 'Mine Kunder', icon: <EuroIcon /> },
+      { href: '/admin/group/absence',      label: 'Fravær',       icon: <CalendarIcon /> },
+      { href: '/admin/group/finance',      label: 'Økonomi',      icon: <BarIcon /> },
+    ],
+  },
+];
+
+const UNIFIED_BOTTOM_NAV: { href: string; label: string; icon: React.ReactNode }[] = [
+  { href: '/admin/group',     label: 'Overblik',  icon: <GridIcon /> },
+  { href: '/admin/crm',       label: 'CRM',       icon: <CrmIcon /> },
+  { href: '/admin/companies', label: 'Firmaer',   icon: <BuildingIcon /> },
+  { href: '/admin/messages',  label: 'Beskeder',  icon: <ChatIcon /> },
+];
 
 const sellerNav: NavEntry[] = [
   { href: '/dashboard',             label: 'Overblik',      icon: <GridIcon /> },
@@ -129,24 +116,18 @@ const sellerBottomNav = [
   { href: '/dashboard/settings', label: 'Profil',   icon: <GearIcon /> },
 ];
 
-/* ── inferCompany: map any pathname to a company context ── */
+/* ── inferCompany: purely cosmetic now — colors/labels the topbar badge,
+   doesn't gate which nav items are visible ─────────────────────────────── */
 function inferCompany(pathname: string): CompanySlug {
   if (pathname.startsWith('/admin/meridian'))    return 'meridian';
   if (pathname.startsWith('/admin/group'))       return 'group';
-
-  // CRM belongs to Group
   if (pathname.startsWith('/admin/crm'))         return 'group';
-
-  // Shared pages that belong to specific company contexts
   if (pathname.startsWith('/admin/customers'))   return 'meridian';
   if (pathname.startsWith('/admin/handover'))    return 'meridian';
   if (pathname.startsWith('/admin/portal'))      return 'meridian';
-
-  // Group-level shared pages
   if (pathname.startsWith('/admin/companies'))   return 'group';
   if (pathname.startsWith('/admin/messages'))    return 'group';
   if (pathname.startsWith('/admin/settings'))    return 'group';
-
   return 'nls';
 }
 
@@ -193,34 +174,26 @@ interface Props {
   children: React.ReactNode;
 }
 
-/* ── Default export wraps with provider ─────────────── */
 export default function AppShell({ role, name, children }: Props) {
-  return (
-    <CompanyProvider>
-      <AppShellInner role={role} name={name}>{children}</AppShellInner>
-    </CompanyProvider>
-  );
-}
-
-/* ── Inner shell (consumes context) ─────────────────── */
-function AppShellInner({ role, name, children }: Props) {
   const pathname = usePathname();
   const router   = useRouter();
-  const { setActiveCompany } = useCompany();
 
-  const displayCompany: CompanySlug =
-    role === 'SELLER' ? 'nls' :
-    inferCompany(pathname);
+  const displayCompany: CompanySlug = role === 'SELLER' ? 'nls' : inferCompany(pathname);
   const meta = COMPANY_META[displayCompany];
 
-  const [switcherOpen, setSwitcherOpen] = useState(false);
-  const [unreadCount, setUnreadCount]  = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const active = COMPANY_GROUPS.find(g => g.children.some(c => isActive(c.href, pathname)));
+    return new Set(active ? [active.label] : []);
+  });
 
+  // Auto-expand whichever company section you navigate into — never
+  // force-collapses a section you opened manually elsewhere.
   useEffect(() => {
-    if (role !== 'SELLER') setActiveCompany(displayCompany);
-  }, [displayCompany, role, setActiveCompany]);
-
-  const visibleCompanies = COMPANY_ORDER;
+    const active = COMPANY_GROUPS.find(g => g.children.some(c => isActive(c.href, pathname)));
+    if (active) setOpenGroups(prev => prev.has(active.label) ? prev : new Set(prev).add(active.label));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   useEffect(() => {
     let mounted = true;
@@ -235,14 +208,15 @@ function AppShellInner({ role, name, children }: Props) {
     return () => { mounted = false; clearInterval(id); };
   }, []);
 
-  const nav       = role === 'SELLER' ? sellerNav : COMPANY_NAV[displayCompany];
-  const bottomNav = role === 'SELLER' ? sellerBottomNav : COMPANY_BOTTOM_NAV[displayCompany];
+  const bottomNav = role === 'SELLER' ? sellerBottomNav : UNIFIED_BOTTOM_NAV;
   const color     = avatarColor(name);
 
-  function switchCompany(slug: CompanySlug) {
-    setActiveCompany(slug);
-    router.push(COMPANY_HOME[slug]);
-    setSwitcherOpen(false);
+  function toggleGroup(label: string) {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label); else next.add(label);
+      return next;
+    });
   }
 
   async function logout() {
@@ -251,41 +225,12 @@ function AppShellInner({ role, name, children }: Props) {
     router.refresh();
   }
 
-  /* Render nav items with section headers */
-  function renderNav(entries: NavEntry[]) {
+  /* Render flat nav items with section headers */
+  function renderFlatNav(entries: NavEntry[]) {
     const result: React.ReactNode[] = [];
     let lastSection = '__init__';
 
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
-      if (isGroup(entry)) {
-        if (entry.adminOnly && role !== 'ADMIN') continue;
-        result.push(
-          <details key={`group-${i}`} style={{ marginBottom: 2 }}>
-            <summary style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 10px', borderRadius: 7, cursor: 'pointer',
-              color: 'var(--t3)', fontSize: 13, fontWeight: 500, listStyle: 'none',
-            }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ opacity: 0.7 }}>{entry.icon}</span>
-                {entry.label}
-              </span>
-              <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4 }}>
-                <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </summary>
-            <div style={{ marginLeft: 12, borderLeft: '1px solid var(--bd)', paddingLeft: 8, marginBottom: 4 }}>
-              {entry.children.map(child => (
-                <NavLink key={child.href} href={child.href} label={child.label} icon={child.icon}
-                  active={isActive(child.href, pathname)} badge={child.label === 'Beskeder' && unreadCount > 0} />
-              ))}
-            </div>
-          </details>
-        );
-        continue;
-      }
-
+    for (const entry of entries) {
       const section = entry.section ?? '';
       if (section !== '' && section !== lastSection) {
         result.push(
@@ -340,63 +285,45 @@ function AppShellInner({ role, name, children }: Props) {
           </div>
         </div>
 
-        {/* Company switcher (admin/manager only) */}
-        {role !== 'SELLER' && (
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--bd)', position: 'relative' }}>
-            <button
-              onClick={() => setSwitcherOpen(o => !o)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                padding: '7px 10px', borderRadius: 7, border: '1px solid var(--bd)',
-                background: 'var(--s2)', cursor: 'pointer',
-                transition: 'border-color 0.12s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block', flexShrink: 0 }} />
-              <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{meta.short}</span>
-              <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 400, marginRight: 2 }}>{meta.name}</span>
-              <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, flexShrink: 0, transform: switcherOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-
-            {switcherOpen && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 10, right: 10, zIndex: 100,
-                background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 9,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)', overflow: 'hidden', marginTop: 2,
-              }}>
-                {visibleCompanies.map(slug => {
-                  const m = COMPANY_META[slug];
-                  const isActive = slug === displayCompany;
-                  return (
-                    <button key={slug} onClick={() => switchCompany(slug)} style={{
-                      display: 'flex', alignItems: 'center', gap: 9, width: '100%',
-                      padding: '9px 12px', border: 'none', cursor: 'pointer', textAlign: 'left',
-                      background: isActive ? 'var(--bl2)' : 'transparent',
-                      borderBottom: '1px solid var(--bd)',
-                      transition: 'background 0.1s',
-                    }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--s2)'; }}
-                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                    >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, display: 'inline-block', flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--bl)' : 'var(--t1)' }}>{m.short}</span>
-                      <span style={{ fontSize: 11, color: 'var(--t3)', marginLeft: 2 }}>{m.name}</span>
-                      {isActive && <svg style={{ marginLeft: 'auto' }} width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4l3 3 6-6" stroke="var(--bl)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Nav */}
         <nav style={{ flex: 1, padding: '8px 10px', overflowY: 'auto' }}>
-          {renderNav(nav)}
+          {role === 'SELLER' ? renderFlatNav(sellerNav) : (
+            <>
+              {renderFlatNav(KONCERN_NAV)}
+              <div style={{ padding: '12px 10px 4px', fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase' }}>
+                SELSKABER
+              </div>
+              {COMPANY_GROUPS.map(g => {
+                const open = openGroups.has(g.label);
+                return (
+                  <div key={g.key} style={{ marginBottom: 2 }}>
+                    <button onClick={() => toggleGroup(g.label)} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      width: '100%', padding: '8px 10px', borderRadius: 7, cursor: 'pointer',
+                      background: 'none', border: 'none',
+                      color: 'var(--t2)', fontSize: 13, fontWeight: 600,
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.color, display: 'inline-block', flexShrink: 0 }} />
+                        {g.label}
+                      </span>
+                      <svg width="9" height="6" viewBox="0 0 9 6" fill="none" style={{ opacity: 0.4, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                        <path d="M1 1l3.5 4L8 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                    {open && (
+                      <div style={{ marginLeft: 12, borderLeft: '1px solid var(--bd)', paddingLeft: 8, marginBottom: 4 }}>
+                        {g.children.map(child => (
+                          <NavLink key={child.href} href={child.href} label={child.label} icon={child.icon}
+                            active={isActive(child.href, pathname)} badge={child.label === 'Beskeder' && unreadCount > 0} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         {/* User row */}
@@ -449,12 +376,6 @@ function AppShellInner({ role, name, children }: Props) {
 
         {/* Main content */}
         <main className="main-content" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-          {switcherOpen && (
-            <div
-              style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-              onClick={() => setSwitcherOpen(false)}
-            />
-          )}
           {children}
         </main>
       </div>
