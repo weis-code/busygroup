@@ -11,6 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = sessionFromRequest(req);
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
   const { id } = await params;
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
 
   const [lead] = await sql`
     SELECT
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     FROM crm_deals d
     LEFT JOIN crm_pipeline_stages s ON s.id = d.stage_id
     WHERE d.id = ${Number(id)} AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      ${ownerFilter}
   `;
   if (!lead) return notFound();
 
@@ -42,6 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const session = sessionFromRequest(req);
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
   const { id } = await params;
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
 
   const body = await req.json() as {
     company_name?: string; contact_name?: string; contact_title?: string;
@@ -73,6 +76,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         notes            = COALESCE(${body.notes || null}, notes),
         updated_at       = NOW()
       WHERE id = ${Number(id)} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+        ${ownerFilter}
       RETURNING
         id, owner_id,
         prospect_company AS company_name, prospect_name AS contact_name, contact_title,
@@ -105,10 +109,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const session = sessionFromRequest(req);
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
   const { id } = await params;
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
 
   const [existing] = await sql`
     SELECT id FROM crm_deals WHERE id = ${Number(id)}
       AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      ${ownerFilter}
   `;
   if (!existing) return notFound();
   await sql`DELETE FROM crm_deals WHERE id = ${Number(id)}`;

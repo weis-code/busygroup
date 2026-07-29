@@ -11,12 +11,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
   const [deal] = await sql`
     SELECT d.*, u.name AS owner_name, co.name AS portfolio_company_name
     FROM crm_deals d
     LEFT JOIN users u ON u.id::text = d.owner_id
     LEFT JOIN companies co ON co.id = d.company_id
     WHERE d.id = ${Number(id)}
+      ${ownerFilter}
   `;
   if (!deal) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
 
@@ -50,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     country, lost_reason,
   } = body;
 
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
   const [deal] = await sql`
     UPDATE crm_deals SET
       title            = COALESCE(${title?.trim() ?? null}, title),
@@ -66,6 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       country          = COALESCE(${(country as string) ?? null}, country),
       lost_reason      = COALESCE(${lost_reason?.trim() ?? null}, lost_reason)
     WHERE id = ${Number(id)}
+      ${ownerFilter}
     RETURNING *
   `;
 

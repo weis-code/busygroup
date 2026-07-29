@@ -15,8 +15,10 @@ export async function GET(req: NextRequest) {
   const country  = searchParams.get('country');
   const search   = searchParams.get('search');
 
-  // Shared team pipeline — everyone with Meridian CRM access sees every lead,
-  // not just the ones they personally created.
+  // Personal CRM: everyone below ADMIN sees only the leads they own; ADMIN
+  // (the owner) sees every AM's leads, unfiltered.
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
+
   const leads = await sql`
     SELECT
       d.id,
@@ -62,6 +64,7 @@ export async function GET(req: NextRequest) {
       AND (${stageId ?? null}::int IS NULL OR d.stage_id = ${stageId ?? null}::int)
       AND (${country ?? null} IS NULL OR d.country = ${country ?? null})
       AND (${search ?? null} IS NULL OR d.prospect_company ILIKE ${'%' + (search ?? '') + '%'} OR d.prospect_name ILIKE ${'%' + (search ?? '') + '%'})
+      ${ownerFilter}
     ORDER BY d.created_at DESC
   `;
   return NextResponse.json(leads);
@@ -87,10 +90,21 @@ export async function POST(req: NextRequest) {
   // an empty string in a date column crashes the driver ("Invalid time value").
   const expectedCloseDate = body.expected_close_date?.trim() ? body.expected_close_date : null;
 
+  // crm_deals.stage (TEXT) mirrors the owner's own stage.key — Meridian's
+  // default stages now use the exact same keys as Group's, so this is a
+  // direct copy, not a guess.
+  let legacyStage = 'lead';
+  if (body.stage_id) {
+    const [stage] = await sql`
+      SELECT key FROM crm_pipeline_stages WHERE id = ${body.stage_id} AND owner_id = ${session.id}
+    `;
+    if (stage) legacyStage = stage.key;
+  }
+
   try {
     const [lead] = await sql`
       INSERT INTO crm_deals (
-        owner_id, workspace_id, title,
+        owner_id, workspace_id, title, stage,
         prospect_company, prospect_name, contact_title,
         prospect_email, prospect_phone, linkedin, website, country, industry,
         stage_id, products, value, deal_type,
@@ -99,6 +113,7 @@ export async function POST(req: NextRequest) {
         ${session.id},
         (SELECT id FROM companies WHERE slug = 'meridian'),
         ${body.company_name.trim()},
+        ${legacyStage},
         ${body.company_name.trim()},
         ${body.contact_name   || null},
         ${body.contact_title  || null},

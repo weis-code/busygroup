@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const [existing] = await sql`
     SELECT id FROM crm_pipeline_stages
-    WHERE id = ${id} AND owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    WHERE id = ${id} AND owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return notFound();
 
@@ -37,7 +37,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const [existing] = await sql`
     SELECT id, is_won, is_lost FROM crm_pipeline_stages
-    WHERE id = ${id} AND owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    WHERE id = ${id} AND owner_id = ${session.id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!existing) return notFound();
   if (existing.is_won || existing.is_lost) {
@@ -46,9 +46,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const body = await req.json().catch(() => ({})) as { move_leads_to_stage_id?: number };
   if (body.move_leads_to_stage_id) {
-    await sql`UPDATE crm_deals SET stage_id = ${body.move_leads_to_stage_id} WHERE stage_id = ${id}`;
+    await sql`UPDATE crm_deals SET stage_id = ${body.move_leads_to_stage_id} WHERE stage_id = ${id} AND owner_id = ${session.id}`;
   } else {
-    await sql`UPDATE crm_deals SET stage_id = NULL WHERE stage_id = ${id}`;
+    await sql`UPDATE crm_deals SET stage_id = NULL WHERE stage_id = ${id} AND owner_id = ${session.id}`;
   }
 
   await sql`DELETE FROM crm_pipeline_stages WHERE id = ${id}`;

@@ -6,20 +6,25 @@ export const dynamic = 'force-dynamic';
 
 function forbidden() { return NextResponse.json({ error: 'Forbidden' }, { status: 403 }); }
 
+// Kundeservice — koncern-wide by default (every company's customer support
+// tickets together, e.g. Meridian + CreatorRate), filterable down to one via
+// `source`. Deliberately excludes type='dev' (Group's internal dev backlog —
+// a different concept, not customer-facing, kept on its own page).
 export async function GET(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
 
   const { searchParams } = new URL(req.url);
+  const source      = searchParams.get('source'); // omitted = all support sources together
   const status      = searchParams.get('status');
-  const priority     = searchParams.get('priority');
-  const assignedTo   = searchParams.get('assigned_to');
-  const customerId   = searchParams.get('customer_id');
-  const search       = searchParams.get('search');
+  const priority    = searchParams.get('priority');
+  const assignedTo  = searchParams.get('assigned_to');
+  const customerId  = searchParams.get('customer_id');
+  const search      = searchParams.get('search');
 
   const tickets = await sql`
     SELECT
-      t.id, t.customer_id, t.customer_name, t.title AS subject, t.category AS type,
+      t.id, t.source, t.customer_id, t.customer_name, t.title AS subject, t.category AS type,
       t.status, t.priority, t.description, t.resolved_at,
       t.created_at, t.updated_at,
       u.name AS assigned_name,
@@ -28,7 +33,8 @@ export async function GET(req: NextRequest) {
     FROM cr_tickets t
     LEFT JOIN users u ON u.id = t.assignee_id
     LEFT JOIN cr_ticket_comments m ON m.ticket_id = t.id
-    WHERE t.source = 'meridian'
+    WHERE t.type = 'support'
+      ${source     ? sql`AND t.source = ${source}`                           : sql``}
       ${status     ? sql`AND t.status = ${status}`                          : sql``}
       ${priority   ? sql`AND t.priority = ${priority}`                      : sql``}
       ${assignedTo ? sql`AND t.assignee_id = ${assignedTo}::uuid`           : sql``}
@@ -47,7 +53,7 @@ export async function POST(req: NextRequest) {
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
 
   const body = await req.json() as {
-    customer_id?: number; customer_name?: string; subject: string;
+    source?: string; customer_id?: number; customer_name?: string; subject: string;
     description?: string; type?: string; priority?: string; assigned_to?: string;
   };
   if (!body.subject?.trim()) return NextResponse.json({ error: 'subject required' }, { status: 400 });
@@ -62,11 +68,11 @@ export async function POST(req: NextRequest) {
     INSERT INTO cr_tickets
       (source, type, customer_id, customer_name, title, description, category, priority, assignee_id, created_by)
     VALUES
-      ('meridian', 'support', ${body.customer_id ?? null}, ${customerName}, ${body.subject.trim()},
+      (${body.source ?? 'meridian'}, 'support', ${body.customer_id ?? null}, ${customerName}, ${body.subject.trim()},
        ${body.description ?? null}, ${body.type ?? 'general'}, ${body.priority ?? 'normal'},
        ${body.assigned_to ?? null}, ${session.id})
     RETURNING
-      id, customer_id, customer_name, title AS subject, category AS type,
+      id, source, customer_id, customer_name, title AS subject, category AS type,
       status, priority, description, resolved_at, created_at, updated_at
   `;
   return NextResponse.json(ticket, { status: 201 });

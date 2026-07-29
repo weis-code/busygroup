@@ -14,6 +14,13 @@ export async function GET(req: NextRequest) {
   const stage     = req.nextUrl.searchParams.get('stage');
   const country   = req.nextUrl.searchParams.get('country');
   const companyId = req.nextUrl.searchParams.get('company_id');
+  // 'workspace' narrows to one company's pipeline (slug, e.g. 'meridian', or
+  // 'group' for NL Group's own workspace_id IS NULL rows). Omitted = everyone's
+  // pipeline together, which is the koncern-wide default (for ADMIN).
+  const workspace = req.nextUrl.searchParams.get('workspace');
+  // Personal CRM: everyone below ADMIN only sees the deals they own. The
+  // owner (ADMIN) sees everyone's, across every company, unfiltered.
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
 
   let deals;
   try {
@@ -21,6 +28,7 @@ export async function GET(req: NextRequest) {
       SELECT d.*,
              u.name AS owner_name,
              co.name AS portfolio_company_name,
+             w.name AS workspace_name,
              (SELECT COUNT(*)::int FROM crm_touchpoints t WHERE t.deal_id = d.id) AS touchpoint_count,
              (SELECT json_build_object(
                'id', t.id, 'type', t.type, 'next_action', t.next_action,
@@ -33,11 +41,17 @@ export async function GET(req: NextRequest) {
       FROM crm_deals d
       LEFT JOIN users u ON u.id::text = d.owner_id
       LEFT JOIN companies co ON co.id = d.company_id
+      LEFT JOIN companies w ON w.id = d.workspace_id
       WHERE d.status = ${status}
-        AND d.workspace_id IS NULL
+        AND (
+          ${workspace} IS NULL
+          OR (${workspace} = 'group' AND d.workspace_id IS NULL)
+          OR w.slug = ${workspace}
+        )
         AND (${stage} IS NULL OR d.stage = ${stage})
         AND (${country} IS NULL OR d.country = ${country})
         AND (${companyId} IS NULL OR d.company_id = ${companyId}::int)
+        ${ownerFilter}
       ORDER BY d.created_at DESC
     `;
   } catch {
@@ -55,6 +69,7 @@ export async function GET(req: NextRequest) {
       FROM crm_deals d
       LEFT JOIN users u ON u.id::text = d.owner_id
       WHERE d.status = ${status}
+        ${ownerFilter}
       ORDER BY d.created_at DESC
     `;
   }

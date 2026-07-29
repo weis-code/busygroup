@@ -34,6 +34,7 @@ export default function AdminMessagesPage() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [companies, setCompanies] = useState<{ id: number; name: string }[]>([]);
   const [showNewChannel, setShowNewChannel] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
@@ -174,11 +175,14 @@ export default function AdminMessagesPage() {
     await loadChannels();
   }
 
-  const groupedByCompany = channels.reduce<Record<string, Channel[]>>((acc, ch) => {
-    const key = ch.company_name ?? 'Andet';
-    (acc[key] ??= []).push(ch);
-    return acc;
-  }, {});
+  const groupedByCompany = channels
+    .filter(ch => !companyFilter || ch.company_name === companyFilter)
+    .reduce<Record<string, Channel[]>>((acc, ch) => {
+      const key = ch.company_name ?? 'Andet';
+      (acc[key] ??= []).push(ch);
+      return acc;
+    }, {});
+  const companyNames = Array.from(new Set(channels.map(ch => ch.company_name).filter(Boolean))).sort();
 
   return (
     <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
@@ -194,6 +198,16 @@ export default function AdminMessagesPage() {
             <button onClick={() => setShowNewDm(true)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 16, padding: '0 4px', cursor: 'pointer', minHeight: 44, minWidth: 44 }} title="Ny DM">✉</button>
           </div>
         </div>
+
+        {companyNames.length > 1 && (
+          <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--bd)' }}>
+            <select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)}
+              style={{ width: '100%', fontSize: 12, padding: '6px 8px' }}>
+              <option value="">Alle virksomheder</option>
+              {companyNames.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+        )}
 
         {Object.entries(groupedByCompany).map(([company, chs]) => (
           <div key={company}>

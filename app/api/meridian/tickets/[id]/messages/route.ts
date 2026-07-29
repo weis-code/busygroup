@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json() as { body: string; is_internal?: boolean };
   if (!body.body?.trim()) return NextResponse.json({ error: 'body required' }, { status: 400 });
 
-  const [ticket] = await sql`SELECT id FROM cr_tickets WHERE id = ${Number(id)} AND source = 'meridian'`;
+  const [ticket] = await sql`SELECT id FROM cr_tickets WHERE id = ${Number(id)} AND type = 'support'`;
   if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const [msg] = await sql`

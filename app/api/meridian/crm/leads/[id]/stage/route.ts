@@ -12,15 +12,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const { stage_id, lost_reason } = await req.json() as { stage_id: number; lost_reason?: string };
 
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
   const [existing] = await sql`
-    SELECT id FROM crm_deals WHERE id = ${Number(id)}
+    SELECT id, owner_id FROM crm_deals WHERE id = ${Number(id)}
       AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      ${ownerFilter}
   `;
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // The stage belongs to the deal's own owner's personal pipeline — not
+  // necessarily the session's (an ADMIN can move a deal that isn't theirs).
   const [stage] = await sql`
     SELECT * FROM crm_pipeline_stages WHERE id = ${stage_id}
-      AND owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND owner_id = ${existing.owner_id} AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
   `;
   if (!stage) return NextResponse.json({ error: 'Stage not found' }, { status: 404 });
 
@@ -28,6 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const [lead] = await sql`
     UPDATE crm_deals SET
       stage_id    = ${stage_id},
+      stage       = ${stage.key},
       probability = ${stage.probability},
       status      = CASE WHEN ${stage.is_won}::boolean THEN 'won' WHEN ${stage.is_lost}::boolean THEN 'lost' ELSE 'open' END,
       won_at      = CASE WHEN ${stage.is_won}::boolean  THEN ${now}::timestamptz ELSE NULL END,

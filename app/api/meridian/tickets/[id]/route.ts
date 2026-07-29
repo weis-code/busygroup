@@ -13,13 +13,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const [ticket] = await sql`
     SELECT
-      t.id, t.customer_id, t.customer_name, t.title AS subject, t.category AS type,
+      t.id, t.source, t.customer_id, t.customer_name, t.title AS subject, t.category AS type,
       t.status, t.priority, t.description, t.resolved_at,
       t.created_at, t.updated_at,
       u.name AS assigned_name
     FROM cr_tickets t
     LEFT JOIN users u ON u.id = t.assignee_id
-    WHERE t.id = ${Number(id)} AND t.source = 'meridian'
+    WHERE t.id = ${Number(id)} AND t.type = 'support'
   `;
   if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
@@ -47,9 +47,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       resolved_at = CASE WHEN ${body.status ?? ''} = 'resolved' AND resolved_at IS NULL THEN NOW() ELSE resolved_at END,
       resolved_by = CASE WHEN ${body.status ?? ''} = 'resolved' AND resolved_by IS NULL THEN ${session.id}::uuid ELSE resolved_by END,
       updated_at  = NOW()
-    WHERE id = ${Number(id)} AND source = 'meridian'
+    WHERE id = ${Number(id)} AND type = 'support'
     RETURNING
-      id, customer_id, customer_name, title AS subject, category AS type,
+      id, source, customer_id, customer_name, title AS subject, category AS type,
       status, priority, description, resolved_at, created_at, updated_at
   `;
   if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 });

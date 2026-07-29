@@ -10,6 +10,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Personal CRM: everyone below ADMIN sees only their own pipeline stats;
+  // ADMIN (the owner) sees the whole Meridian team's combined.
+  const ownerFilter    = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
+  const ownerFilterT   = session.role === 'ADMIN' ? sql`` : sql`AND t.owner_id = ${session.id}`;
+  const stagesOwnerFilter = session.role === 'ADMIN' ? sql`` : sql`AND s.owner_id = ${session.id}`;
+
   const today      = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 7) + '-01';
   const weekStart  = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
@@ -20,8 +26,9 @@ export async function GET(req: NextRequest) {
       COUNT(d.id)::int AS lead_count,
       COALESCE(SUM(d.value), 0)::int AS total_value
     FROM crm_pipeline_stages s
-    LEFT JOIN crm_deals d ON d.stage_id = s.id
-    WHERE s.owner_id IS NULL AND s.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+    LEFT JOIN crm_deals d ON d.stage_id = s.id ${ownerFilter}
+    WHERE s.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      ${stagesOwnerFilter}
     GROUP BY s.id, s.label, s.color, s.probability, s.is_won, s.is_lost, s.position
     ORDER BY s.position
   `;
@@ -34,13 +41,15 @@ export async function GET(req: NextRequest) {
     JOIN crm_pipeline_stages s ON s.id = d.stage_id
     WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND NOT s.is_won AND NOT s.is_lost
+      ${ownerFilter}
   `;
 
   const [wonMonth] = await sql`
     SELECT COUNT(*)::int AS count, COALESCE(SUM(value), 0)::int AS value
-    FROM crm_deals
-    WHERE workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
-      AND won_at >= ${monthStart}::date
+    FROM crm_deals d
+    WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      AND d.won_at >= ${monthStart}::date
+      ${ownerFilter}
   `;
 
   const [activitiesWeek] = await sql`
@@ -49,6 +58,7 @@ export async function GET(req: NextRequest) {
     JOIN crm_deals d ON d.id = t.deal_id
     WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND t.occurred_at >= ${weekStart}::timestamptz
+      ${ownerFilterT}
   `;
 
   const nextActions = await sql`
@@ -58,6 +68,7 @@ export async function GET(req: NextRequest) {
     WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND t.next_action_date IS NOT NULL
       AND t.next_action IS NOT NULL
+      ${ownerFilterT}
     ORDER BY t.next_action_date ASC
     LIMIT 20
   `;

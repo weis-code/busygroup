@@ -17,6 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     outcome?: string; next_action?: string; next_action_date?: string | null; occurred_at?: string;
   };
 
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
   const [updated] = await sql`
     UPDATE crm_touchpoints t SET
       type             = COALESCE(${body.type      ?? null}, type),
@@ -30,6 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       AND EXISTS (
         SELECT 1 FROM crm_deals d
         WHERE d.id = t.deal_id AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+          ${ownerFilter}
       )
     RETURNING id, owner_id, deal_id AS lead_id, type, direction, title, body,
               outcome, next_action, next_action_date, occurred_at, created_at
@@ -47,12 +49,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!session || session.role === 'SELLER' || session.role === 'NLCA_MANAGER') return forbidden();
   const { id } = await params;
 
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
   const [existing] = await sql`
     SELECT t.id FROM crm_touchpoints t
     WHERE t.id = ${Number(id)}
       AND EXISTS (
         SELECT 1 FROM crm_deals d
         WHERE d.id = t.deal_id AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+          ${ownerFilter}
       )
   `;
   if (!existing) return notFound();

@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const leadId = searchParams.get('lead_id');
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
 
   const activities = await sql`
     SELECT t.id, t.owner_id, t.deal_id AS lead_id, t.type, t.direction, t.title, t.body,
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
     JOIN crm_deals d ON d.id = t.deal_id
     WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND (${leadId ?? null}::int IS NULL OR t.deal_id = ${leadId ?? null}::int)
+      ${ownerFilter}
     ORDER BY t.occurred_at DESC, t.created_at DESC
     LIMIT 200
   `;
@@ -40,9 +42,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'lead_id and type required' }, { status: 400 });
   }
 
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
   const [lead] = await sql`
     SELECT id FROM crm_deals WHERE id = ${body.lead_id}
       AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
+      ${ownerFilter}
   `;
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
 

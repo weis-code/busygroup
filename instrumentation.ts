@@ -910,37 +910,11 @@ export async function register() {
     await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS probability INTEGER DEFAULT 0`;
     await sql2`ALTER TABLE crm_deals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
     await sql2`ALTER TABLE crm_touchpoints ADD COLUMN IF NOT EXISTS occurred_at TIMESTAMPTZ DEFAULT NOW()`;
-    // Meridian's pipeline is a shared team pipeline (one board everyone with CRM
-    // access sees and works in), not a private per-person one like Group's owner_id
-    // scoping — so stage rows need to exist without an owner.
-    await sql2`ALTER TABLE crm_pipeline_stages ALTER COLUMN owner_id DROP NOT NULL`;
   } catch (err) { console.error('[NLS] crm_* Meridian-compat columns failed:', err); }
-
-  try {
-    const [existing] = await sql2`
-      SELECT id FROM crm_pipeline_stages
-      WHERE owner_id IS NULL AND workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
-      LIMIT 1
-    `;
-    if (!existing) {
-      const MERIDIAN_DEFAULT_STAGES = [
-        { key: 'identificeret',   label: 'Identificeret',  color: '#4a5d78', probability: 5,   position: 0, is_won: false, is_lost: false },
-        { key: 'foerste_kontakt', label: 'Første kontakt', color: '#4f8ef7', probability: 15,  position: 1, is_won: false, is_lost: false },
-        { key: 'i_dialog',        label: 'I dialog',       color: '#4f8ef7', probability: 30,  position: 2, is_won: false, is_lost: false },
-        { key: 'moede_booket',    label: 'Møde booket',    color: '#a78bfa', probability: 50,  position: 3, is_won: false, is_lost: false },
-        { key: 'tilbud_sendt',    label: 'Tilbud sendt',   color: '#f59e0b', probability: 75,  position: 4, is_won: false, is_lost: false },
-        { key: 'forhandling',     label: 'Forhandling',    color: '#ff6b35', probability: 85,  position: 5, is_won: false, is_lost: false },
-        { key: 'vundet',          label: 'Vundet',         color: '#2dd4a0', probability: 100, position: 6, is_won: true,  is_lost: false },
-        { key: 'tabt',            label: 'Tabt',           color: '#f43f5e', probability: 0,   position: 7, is_won: false, is_lost: true  },
-      ];
-      for (const s of MERIDIAN_DEFAULT_STAGES) {
-        await sql2`
-          INSERT INTO crm_pipeline_stages (owner_id, workspace_id, key, label, color, probability, position, is_won, is_lost)
-          VALUES (NULL, (SELECT id FROM companies WHERE slug = 'meridian'), ${s.key}, ${s.label}, ${s.color}, ${s.probability}, ${s.position}, ${s.is_won}, ${s.is_lost})
-        `;
-      }
-    }
-  } catch (err) { console.error('[NLS] Meridian shared pipeline stage seed failed:', err); }
+  // Meridian's pipeline stages are per-owner, seeded lazily on first use —
+  // same personal-CRM model as Group's, just scoped to workspace_id=meridian
+  // so a person's Meridian stages don't collide with their Group ones. See
+  // app/api/meridian/crm/stages/route.ts's seedStages().
 
   // Fase 4: unify Meridian's support tickets onto the shared cr_tickets schema
   // (previously its own meridian_tickets/meridian_ticket_messages tables, which had

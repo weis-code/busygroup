@@ -36,19 +36,24 @@ export async function GET(req: NextRequest) {
   const source = req.nextUrl.searchParams.get('source') ?? 'group';
   const type   = req.nextUrl.searchParams.get('type');
   const status = req.nextUrl.searchParams.get('status');
+  // source=all means "every company's tickets together" — the koncern-wide
+  // default for the unified kundeservice view — filterable back down to one
+  // company via the normal `source` param.
+  const sourceFilter = source === 'all' ? sql`` : sql`AND t.source = ${source}`;
 
   const tickets = await sql`
     SELECT
-      t.id, t.type, t.status, t.priority, t.title, t.description,
-      t.reporter_name, t.reporter_email,
+      t.id, t.source, t.type, t.status, t.priority, t.title, t.description,
+      t.customer_id, t.customer_name, t.category,
+      t.reporter_name, t.reporter_email, t.resolved_at,
       t.created_at, t.updated_at,
       a.name AS assignee_name,
       c.name AS created_by_name
     FROM cr_tickets t
     LEFT JOIN users a ON a.id = t.assignee_id
     LEFT JOIN users c ON c.id = t.created_by
-    WHERE
-      t.source = ${source}
+    WHERE TRUE
+      ${sourceFilter}
       AND (${type}::text   IS NULL OR t.type   = ${type})
       AND (${status}::text IS NULL OR t.status = ${status})
     ORDER BY

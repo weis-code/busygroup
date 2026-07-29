@@ -23,6 +23,7 @@ interface Deal {
   id: number; title: string; value: number | null; stage: string; status: string;
   product: string | null; country: string | null; company_id: number | null;
   portfolio_company_name: string | null;
+  workspace_name: string | null;
   prospect_name: string | null; prospect_company: string | null;
   prospect_phone: string | null; prospect_email: string | null;
   owner_name: string; touchpoint_count: number;
@@ -1202,8 +1203,9 @@ export default function CrmPipelinePage() {
   const [loading, setLoading]       = useState(true);
 
   // Filter state
-  const [filterCountry, setFilterCountry]   = useState('');
-  const [filterCompany, setFilterCompany]   = useState('');
+  const [filterCountry, setFilterCountry]     = useState('');
+  const [filterCompany, setFilterCompany]     = useState('');
+  const [filterWorkspace, setFilterWorkspace] = useState(''); // '' = alle selskaber (koncern-wide default)
   const [wonCollapsed, setWonCollapsed]     = useState(true);
   const [lostCollapsed, setLostCollapsed]   = useState(true);
 
@@ -1212,6 +1214,7 @@ export default function CrmPipelinePage() {
       const sp = new URLSearchParams({ status: 'open' });
       if (filterCountry) sp.set('country', filterCountry);
       if (filterCompany) sp.set('company_id', filterCompany);
+      if (filterWorkspace) sp.set('workspace', filterWorkspace);
       const res = await fetch(`/api/crm/deals?${sp}`);
       const rows = await res.json() as Deal[];
       if (Array.isArray(rows)) {
@@ -1261,7 +1264,7 @@ export default function CrmPipelinePage() {
   useEffect(() => {
     if (!loading) loadDeals();
   // eslint-disable-line react-hooks/exhaustive-deps
-  }, [filterCountry, filterCompany]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filterCountry, filterCompany, filterWorkspace]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleStageChange(stage: string) {
     if (!selectedDeal) return;
@@ -1318,8 +1321,13 @@ export default function CrmPipelinePage() {
               <option value="">Alle firmaer</option>
               {portfolioCompanies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            {(filterCountry || filterCompany) && (
-              <button onClick={() => { setFilterCountry(''); setFilterCompany(''); }} style={{ fontSize: 10, color: 'var(--re)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>✕ Ryd</button>
+            <select value={filterWorkspace} onChange={e => setFilterWorkspace(e.target.value)} style={{ fontSize: 11, padding: '5px 8px', width: 'auto', minWidth: 140 }} title="Hvilket selskabs pipeline">
+              <option value="">Alle selskaber</option>
+              <option value="group">NextLevel Group</option>
+              <option value="meridian">Meridian</option>
+            </select>
+            {(filterCountry || filterCompany || filterWorkspace) && (
+              <button onClick={() => { setFilterCountry(''); setFilterCompany(''); setFilterWorkspace(''); }} style={{ fontSize: 10, color: 'var(--re)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>✕ Ryd</button>
             )}
           </div>
 
