@@ -48,6 +48,8 @@ const COMPANY_NAV: Record<CompanySlug, NavEntry[]> = {
     sectionItem('',           '/admin/revenue',          'Revenue',         <BarIcon />),
     sectionItem('PLATFORM',   '/admin/nls/board',        'Board',           <BoardIcon />),
     sectionItem('',           '/admin/nls/messages',     'Beskeder',        <ChatIcon />),
+    sectionItem('AI-VÆRKTØJER', '/dashboard/assistant',  'Opgave-assistent', <BotIcon />),
+    sectionItem('',           '/dashboard/calls',        'Opkalds-feedback', <PhoneIcon />),
   ],
   meridian: [
     sectionItem('OVERSIGT',     '/admin/meridian',                     'Overblik',       <GridIcon />),

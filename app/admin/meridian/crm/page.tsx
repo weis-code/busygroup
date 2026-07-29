@@ -507,8 +507,18 @@ export default function MeridianCrmPage() {
     void loadOverview();
   }
 
+  async function assignStage(leadId: number, stageId: number) {
+    await fetch(`/api/meridian/crm/leads/${leadId}/stage`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage_id: stageId }),
+    });
+    await loadLeads();
+    void loadOverview();
+  }
+
   const activeStages = stages.filter(s => !s.is_won && !s.is_lost);
   const wonLostStages = stages.filter(s => s.is_won || s.is_lost);
+  const unassignedLeads = leads.filter(l => l.stage_id === null);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -554,6 +564,27 @@ export default function MeridianCrmPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: k.color }}>{k.value}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Leads without a stage — recovery banner for a previous bug that orphaned leads on stage deletion */}
+      {unassignedLeads.length > 0 && (
+        <div style={{ flexShrink: 0, background: 'rgba(245,158,11,0.06)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '10px 24px' }}>
+          <div style={{ fontSize: 12, color: 'var(--ye)', fontWeight: 700, marginBottom: 8 }}>
+            ⚠ {unassignedLeads.length} lead{unassignedLeads.length > 1 ? 's' : ''} uden fase — vælg en fase for at få dem tilbage på boardet
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {unassignedLeads.map(l => (
+              <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s1)', border: '1px solid var(--bd)', borderRadius: 7, padding: '5px 8px' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t1)' }}>{l.company_name}</span>
+                <select value="" onChange={e => e.target.value && void assignStage(l.id, Number(e.target.value))}
+                  style={{ fontSize: 11, padding: '3px 6px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 5, color: 'var(--t1)' }}>
+                  <option value="" disabled>Vælg fase…</option>
+                  {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

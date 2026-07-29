@@ -74,11 +74,18 @@ export async function POST(req: NextRequest) {
   const { company_id, name, description } = await req.json();
 
   // Sellers can only create channels in their own company — ignore any
-  // client-supplied company_id and look theirs up server-side.
+  // client-supplied company_id and resolve it server-side. SELLER accounts
+  // rarely have users.company_id set (the seller-creation form never asks
+  // for it), so fall back to the NLS company — SELLER is NLS's role.
   let resolvedCompanyId = company_id;
   if (session.role === 'SELLER') {
     const [u] = await sql`SELECT company_id FROM users WHERE id = ${session.id}`;
-    resolvedCompanyId = u?.company_id ?? null;
+    if (u?.company_id) {
+      resolvedCompanyId = u.company_id;
+    } else {
+      const [nls] = await sql`SELECT id FROM companies WHERE slug = 'nls'`;
+      resolvedCompanyId = nls?.id ?? null;
+    }
   }
 
   if (!resolvedCompanyId || !name) {
