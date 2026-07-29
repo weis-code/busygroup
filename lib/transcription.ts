@@ -4,7 +4,7 @@ export async function transcribeAudio(buffer: Buffer, filename: string, contentT
   }
 
   const form = new FormData();
-  form.append('file', new Blob([buffer], { type: contentType }), filename);
+  form.append('file', new Blob([new Uint8Array(buffer)], { type: contentType }), filename);
   form.append('model', 'whisper-1');
 
   const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
