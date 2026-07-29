@@ -34,7 +34,7 @@ async function ensureMessengerTables() {
     )
   `;
   await sql`
-    CREATE TABLE IF NOT EXISTS messages (
+    CREATE TABLE IF NOT EXISTS messenger_messages (
       id                  SERIAL PRIMARY KEY,
       channel_id          INT REFERENCES channels(id) ON DELETE CASCADE,
       dm_conversation_id  INT REFERENCES dm_conversations(id) ON DELETE CASCADE,

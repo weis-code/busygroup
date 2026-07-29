@@ -34,7 +34,7 @@ async function ensureMessengerTables() {
     )
   `;
   await sql`
-    CREATE TABLE IF NOT EXISTS messages (
+    CREATE TABLE IF NOT EXISTS messenger_messages (
       id                  SERIAL PRIMARY KEY,
       channel_id          INT REFERENCES channels(id) ON DELETE CASCADE,
       dm_conversation_id  INT REFERENCES dm_conversations(id) ON DELETE CASCADE,
@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
     SELECT dc.*,
            ua.name AS participant_a_name,
            ub.name AS participant_b_name,
-           (SELECT body FROM messages m WHERE m.dm_conversation_id = dc.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1) AS last_message,
-           (SELECT created_at FROM messages m WHERE m.dm_conversation_id = dc.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1) AS last_message_at
+           (SELECT body FROM messenger_messages m WHERE m.dm_conversation_id = dc.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1) AS last_message,
+           (SELECT created_at FROM messenger_messages m WHERE m.dm_conversation_id = dc.id AND m.deleted_at IS NULL ORDER BY m.created_at DESC LIMIT 1) AS last_message_at
     FROM dm_conversations dc
     JOIN users ua ON ua.id = dc.participant_a
     JOIN users ub ON ub.id = dc.participant_b

@@ -67,8 +67,8 @@ export default function NlsMessagesPage() {
     const url = active.type === 'channel'
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
-    const data = await fetch(url).then(r => r.json()) as Message[];
-    setMessages(data);
+    const raw = await fetch(url).then(r => r.json()) as unknown;
+    setMessages(Array.isArray(raw) ? raw as Message[] : []);
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,15 +119,15 @@ export default function NlsMessagesPage() {
       return;
     }
     setActive(null);
-    const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
-    setAllChannels(data);
+    const data = await fetch('/api/channels').then(r => r.json()) as unknown;
+    setAllChannels(Array.isArray(data) ? data as Channel[] : []);
   }
 
   async function startDm(userId: string) {
     await fetch('/api/dm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ other_user_id: userId }) });
     setShowNewDm(false);
-    const data = await fetch('/api/dm').then(r => r.json()) as DmConv[];
-    setDms(data);
+    const data = await fetch('/api/dm').then(r => r.json()) as unknown;
+    setDms(Array.isArray(data) ? data as DmConv[] : []);
   }
 
   function toggleNewChannelMember(userId: string) {
@@ -155,8 +155,8 @@ export default function NlsMessagesPage() {
     setNewChannelName('');
     setNewChannelMembers(new Set());
     setShowNewChannel(false);
-    const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
-    setAllChannels(data);
+    const data = await fetch('/api/channels').then(r => r.json()) as unknown;
+    setAllChannels(Array.isArray(data) ? data as Channel[] : []);
   }
 
   return (

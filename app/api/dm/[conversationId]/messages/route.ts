@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ conv
     const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '50');
     const messages = await sql`
       SELECT m.*, u.name AS sender_name
-      FROM messages m
+      FROM messenger_messages m
       JOIN users u ON u.id = m.sender_id
       WHERE m.dm_conversation_id = ${conversationId} AND m.deleted_at IS NULL
       ORDER BY m.created_at DESC
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ con
     if (!conv) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const [msg] = await sql`
-      INSERT INTO messages (dm_conversation_id, sender_id, body)
+      INSERT INTO messenger_messages (dm_conversation_id, sender_id, body)
       VALUES (${conversationId}, ${session.id}, ${body.trim()})
       RETURNING *
     `;

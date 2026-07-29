@@ -23,7 +23,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ c
       }
     }
 
-    await sql`DELETE FROM messages WHERE channel_id = ${channelId}`;
+    await sql`DELETE FROM messenger_messages WHERE channel_id = ${channelId}`;
     await sql`DELETE FROM channel_members WHERE channel_id = ${channelId}`;
     await sql`DELETE FROM channels WHERE id = ${channelId}`;
 

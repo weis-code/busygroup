@@ -73,8 +73,8 @@ export default function AdminMessagesPage() {
     const url = active.type === 'channel'
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
-    const data = await fetch(url).then(r => r.json()) as Message[];
-    setMessages(data);
+    const raw = await fetch(url).then(r => r.json()) as unknown;
+    setMessages(Array.isArray(raw) ? raw as Message[] : []);
   }
 
   async function startDm(userId: string) {

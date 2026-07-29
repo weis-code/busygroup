@@ -41,6 +41,11 @@ export default function MeridianMessagesPage() {
 
   const channels = allChannels.filter(c => c.company_name === COMPANY_LABEL);
 
+  async function reloadChannels() {
+    const raw = await fetch('/api/channels').then(r => r.json()) as unknown;
+    setAll(Array.isArray(raw) ? raw as Channel[] : []);
+  }
+
   async function loadAll() {
     const [me, chs, dmsData, usersData, comps] = await Promise.all([
       fetch('/api/auth/me').then(r => r.json()) as Promise<{ id: string }>,
@@ -65,7 +70,8 @@ export default function MeridianMessagesPage() {
   async function loadMessages() {
     if (!active) return;
     const url = active.type === 'channel' ? `/api/channels/${active.id}/messages` : `/api/dm/${active.id}/messages`;
-    setMessages(await fetch(url).then(r => r.json()) as Message[]);
+    const raw = await fetch(url).then(r => r.json()) as unknown;
+    setMessages(Array.isArray(raw) ? raw as Message[] : []);
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,13 +118,14 @@ export default function MeridianMessagesPage() {
       return;
     }
     setActive(null);
-    setAll(await fetch('/api/channels').then(r => r.json()) as Channel[]);
+    void reloadChannels();
   }
 
   async function startDm(userId: string) {
     await fetch('/api/dm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ other_user_id: userId }) });
     setShowNewDm(false);
-    setDms(await fetch('/api/dm').then(r => r.json()) as DmConv[]);
+    const raw = await fetch('/api/dm').then(r => r.json()) as unknown;
+    setDms(Array.isArray(raw) ? raw as DmConv[] : []);
   }
 
   function toggleNewChMember(userId: string) {
@@ -136,7 +143,7 @@ export default function MeridianMessagesPage() {
       fetch(`/api/channels/${channel.id}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) })
     ));
     setNewChName(''); setNewChMembers(new Set()); setShowNewCh(false);
-    setAll(await fetch('/api/channels').then(r => r.json()) as Channel[]);
+    void reloadChannels();
   }
 
   return (

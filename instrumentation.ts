@@ -457,7 +457,7 @@ export async function register() {
   `;
 
   await sql`
-    CREATE TABLE IF NOT EXISTS messages (
+    CREATE TABLE IF NOT EXISTS messenger_messages (
       id SERIAL PRIMARY KEY,
       channel_id INTEGER REFERENCES channels(id) NULL,
       dm_conversation_id INTEGER NULL,

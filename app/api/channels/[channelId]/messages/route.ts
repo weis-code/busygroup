@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chan
     const messages = before
       ? await sql`
           SELECT m.*, u.name AS sender_name
-          FROM messages m
+          FROM messenger_messages m
           JOIN users u ON u.id = m.sender_id
           WHERE m.channel_id = ${channelId} AND m.deleted_at IS NULL AND m.id < ${before}
           ORDER BY m.created_at DESC
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chan
         `
       : await sql`
           SELECT m.*, u.name AS sender_name
-          FROM messages m
+          FROM messenger_messages m
           JOIN users u ON u.id = m.sender_id
           WHERE m.channel_id = ${channelId} AND m.deleted_at IS NULL
           ORDER BY m.created_at DESC
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
     if (!channel) return NextResponse.json({ error: 'Kanalen findes ikke længere' }, { status: 404 });
 
     const [msg] = await sql`
-      INSERT INTO messages (channel_id, sender_id, body)
+      INSERT INTO messenger_messages (channel_id, sender_id, body)
       VALUES (${channelId}, ${session.id}, ${body.trim()})
       RETURNING *
     `;

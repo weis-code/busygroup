@@ -46,7 +46,8 @@ export default function MessagesPage() {
   }
 
   async function loadChannels() {
-    const data = await fetch('/api/channels').then(r => r.json()) as Channel[];
+    const raw = await fetch('/api/channels').then(r => r.json()) as unknown;
+    const data = Array.isArray(raw) ? raw as Channel[] : [];
     setChannels(data);
     if (!active && data.length > 0) {
       selectChannel(data[0]);
@@ -54,8 +55,8 @@ export default function MessagesPage() {
   }
 
   async function loadDms() {
-    const data = await fetch('/api/dm').then(r => r.json()) as DmConv[];
-    setDms(data);
+    const raw = await fetch('/api/dm').then(r => r.json()) as unknown;
+    setDms(Array.isArray(raw) ? raw as DmConv[] : []);
   }
 
   function selectChannel(ch: Channel) {
@@ -74,8 +75,8 @@ export default function MessagesPage() {
     const url = active.type === 'channel'
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
-    const data = await fetch(url).then(r => r.json()) as Message[];
-    setMessages(data);
+    const raw = await fetch(url).then(r => r.json()) as unknown;
+    setMessages(Array.isArray(raw) ? raw as Message[] : []);
   }
 
   async function loadUsers() {
