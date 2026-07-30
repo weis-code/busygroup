@@ -97,6 +97,35 @@ export async function GET(req: NextRequest) {
     WHERE c.slug NOT IN ('group', 'quorex', 'reminder')
   `;
 
+  // One-time project revenue this month, per company (falls back to created_at
+  // when no invoice date was set, so it still lands in a month)
+  const onetimeNow = await sql`
+    SELECT c.slug, COALESCE(SUM(p.amount), 0)::numeric AS amount
+    FROM finance_onetime_projects p
+    JOIN companies c ON c.id = p.company_id
+    WHERE COALESCE(p.invoiced_date, p.created_at::date) >= ${monthStart}::date
+      AND COALESCE(p.invoiced_date, p.created_at::date) <= ${today}::date
+    GROUP BY c.slug
+  `;
+  const onetimeNowMap: Record<string, number> = {};
+  for (const r of onetimeNow) onetimeNowMap[r.slug] = Number(r.amount);
+
+  // One-time project revenue for the 6-month chart, per company
+  const onetimeChart = await sql`
+    SELECT
+      TO_CHAR(DATE_TRUNC('month', COALESCE(p.invoiced_date, p.created_at::date)), 'YYYY-MM') AS month,
+      c.slug,
+      COALESCE(SUM(p.amount), 0)::numeric AS amount
+    FROM finance_onetime_projects p
+    JOIN companies c ON c.id = p.company_id
+    WHERE COALESCE(p.invoiced_date, p.created_at::date) >= (DATE_TRUNC('month', NOW()) - INTERVAL '5 months')
+    GROUP BY 1, 2
+  `;
+  const onetimeByMonthSlug: Record<string, Record<string, number>> = {};
+  for (const r of onetimeChart) {
+    (onetimeByMonthSlug[r.month] ??= {})[r.slug] = Number(r.amount);
+  }
+
   // Headcount
   const [{ headcount }] = await sql`
     SELECT COUNT(*)::int AS headcount
@@ -108,11 +137,12 @@ export async function GET(req: NextRequest) {
   const costsMap: Record<string, number> = {};
   for (const r of fixedCosts) costsMap[r.slug] = Number(r.fixed_costs);
 
-  const nlsRev = Number(nlsRevenue.amount);
+  const nlsRev = Number(nlsRevenue.amount) + (onetimeNowMap['nls'] ?? 0);
 
   // Build per-company data: use meridianMrr for meridian, mrr_entries for others
   const companies = mrrNow.map(c => {
-    const revenue = c.slug === 'meridian' ? meridianMrr : Number(c.mrr_amount);
+    const recurring = c.slug === 'meridian' ? meridianMrr : Number(c.mrr_amount);
+    const revenue = recurring + (onetimeNowMap[c.slug] ?? 0);
     return {
       slug:       c.slug,
       name:       c.name,
@@ -138,9 +168,7 @@ export async function GET(req: NextRequest) {
 
   const allCompanies = [nlsCompany, ...companies];
 
-  const saasRevenue = meridianMrr + companies
-    .filter(c => c.slug !== 'meridian')
-    .reduce((s, c) => s + c.revenue, 0);
+  const saasRevenue = companies.reduce((s, c) => s + c.revenue, 0);
   const totalRevenue = nlsRev + saasRevenue;
   const totalFixedCosts = Object.values(costsMap).reduce((a, b) => a + b, 0);
   const ebitda = totalRevenue - totalFixedCosts;
@@ -149,6 +177,7 @@ export async function GET(req: NextRequest) {
   const monthSet = new Set<string>();
   for (const r of nlsChart) monthSet.add(r.month);
   for (const r of mrrChart) monthSet.add(r.month);
+  for (const m of Object.keys(onetimeByMonthSlug)) monthSet.add(m);
   const months = Array.from(monthSet).sort();
 
   const mrrByMonthSlug: Record<string, Record<string, number>> = {};
@@ -163,8 +192,13 @@ export async function GET(req: NextRequest) {
     '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Dec',
   };
   const chart = months.map(m => {
-    const mm    = mrrByMonthSlug[m] ?? {};
-    const nls   = nlsByMonth[m] ?? 0;
+    const onetimeSlugs = onetimeByMonthSlug[m] ?? {};
+    const mm: Record<string, number> = { ...(mrrByMonthSlug[m] ?? {}) };
+    for (const [slug, amount] of Object.entries(onetimeSlugs)) {
+      if (slug === 'nls') continue; // folded into `nls` below instead
+      mm[slug] = (mm[slug] ?? 0) + amount;
+    }
+    const nls = (nlsByMonth[m] ?? 0) + (onetimeSlugs['nls'] ?? 0);
     const total = nls + Object.values(mm).reduce((a, b) => a + b, 0);
     return { month: m, label: MONTH_LABELS[m.slice(5)] ?? m, nls, ...mm, total };
   });
