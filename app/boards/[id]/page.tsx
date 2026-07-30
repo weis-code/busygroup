@@ -18,7 +18,7 @@ interface BoardCardT {
   position: number; assignees: string[]; labels: Label[]; due_date: string | null;
   start_date: string | null; cover_color: string | null; priority: string;
   checklist: ChecklistItem[]; is_archived: boolean; created_by: string | null;
-  created_at: string; updated_at: string; comment_count?: number;
+  created_at: string; updated_at: string; comment_count?: number; completed_at: string | null;
 }
 interface BoardList { id: number; board_id: number; title: string; position: number; color: string | null; is_archived: boolean }
 interface Member { user_id: string; role: string; name: string; email: string; company_name: string | null; joined_at: string }
@@ -46,6 +46,7 @@ function initials(name: string) { return name.split(' ').map(p => p[0]).join('')
 
 function dueDateState(card: BoardCardT): 'future' | 'today' | 'overdue' | 'done' | null {
   if (!card.due_date) return null;
+  if (card.completed_at) return 'done';
   if (card.checklist.length > 0 && card.checklist.every(i => i.checked)) return 'done';
   const due = new Date(card.due_date);
   const today = new Date();
@@ -82,9 +83,10 @@ function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
 }
 
 /* ── Card item ─────────────────────────────────────────── */
-function CardItem({ card, members, onClick }: { card: BoardCardT; members: Member[]; onClick: () => void }) {
+function CardItem({ card, members, onClick, onToggleDone }: { card: BoardCardT; members: Member[]; onClick: () => void; onToggleDone: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `card-${card.id}` });
   const due = dueDateState(card);
+  const done = !!card.completed_at;
   const checkDone = card.checklist.filter(i => i.checked).length;
   const checkTotal = card.checklist.length;
   const assignedMembers = card.assignees.map(id => members.find(m => m.user_id === id)).filter(Boolean) as Member[];
@@ -111,7 +113,20 @@ function CardItem({ card, members, onClick }: { card: BoardCardT; members: Membe
             ))}
           </div>
         )}
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)', marginBottom: 6, lineHeight: 1.4 }}>{card.title}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleDone(); }}
+            title={done ? 'Markér som ikke færdig' : 'Markér som færdig'}
+            style={{
+              flexShrink: 0, marginTop: 2, width: 16, height: 16, borderRadius: '50%',
+              border: `2px solid ${done ? 'var(--gr)' : 'var(--bd2)'}`, background: done ? 'var(--gr)' : 'transparent',
+              cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: 9, fontWeight: 700, lineHeight: 1, transition: 'all 0.15s',
+            }}>
+            {done ? '✓' : ''}
+          </button>
+          <div style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--t3)' : 'var(--t1)', lineHeight: 1.4, textDecoration: done ? 'line-through' : 'none' }}>{card.title}</div>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {card.description && <span style={{ fontSize: 11, color: 'var(--t3)' }}>📝</span>}
           {checkTotal > 0 && (
@@ -146,10 +161,11 @@ function CardItem({ card, members, onClick }: { card: BoardCardT; members: Membe
 }
 
 /* ── List column ───────────────────────────────────────── */
-function ListColumn({ list, cards, members, onAddCard, onOpenCard, onRename, onArchiveList, onDeleteList, canEdit }: {
+function ListColumn({ list, cards, members, onAddCard, onOpenCard, onToggleDone, onRename, onArchiveList, onDeleteList, canEdit }: {
   list: BoardList; cards: BoardCardT[]; members: Member[];
   onAddCard: (listId: number, title: string) => void;
   onOpenCard: (cardId: number) => void;
+  onToggleDone: (cardId: number) => void;
   onRename: (listId: number, title: string) => void;
   onArchiveList: (listId: number) => void;
   onDeleteList: (listId: number) => void;
@@ -202,7 +218,7 @@ function ListColumn({ list, cards, members, onAddCard, onOpenCard, onRename, onA
 
       <div ref={setDropRef} style={{ background: 'var(--s1)', border: `1px solid ${isOver ? 'var(--bl)' : 'var(--bd)'}`, borderRadius: 9, padding: 8, minHeight: 100, flex: 1, overflowY: 'auto', transition: 'border-color 0.1s' }}>
         <SortableContext items={cards.map(c => `card-${c.id}`)} strategy={verticalListSortingStrategy}>
-          {cards.map(card => <CardItem key={card.id} card={card} members={members} onClick={() => onOpenCard(card.id)} />)}
+          {cards.map(card => <CardItem key={card.id} card={card} members={members} onClick={() => onOpenCard(card.id)} onToggleDone={() => onToggleDone(card.id)} />)}
         </SortableContext>
         {canEdit && (
           adding ? (
@@ -318,6 +334,8 @@ function CardModal({ card, board, members, onPatch, onArchive, onClose }: {
     label_added: a => `${a.user_name ?? 'Nogen'} opdaterede labels`,
     comment_added: a => `${a.user_name ?? 'Nogen'} kommenterede`,
     archived: a => `${a.user_name ?? 'Nogen'} arkiverede kortet`,
+    completed: a => `${a.user_name ?? 'Nogen'} markerede kortet som færdigt`,
+    reopened: a => `${a.user_name ?? 'Nogen'} genåbnede kortet`,
   };
 
   const feed = [
@@ -353,7 +371,7 @@ function CardModal({ card, board, members, onPatch, onArchive, onClose }: {
                 onBlur={saveTitle} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveTitle(); }}
                 style={{ fontSize: 19, fontWeight: 700, width: '100%', resize: 'none' }} />
             ) : (
-              <div onClick={() => canEdit && setEditingTitle(true)} style={{ fontSize: 19, fontWeight: 700, color: 'var(--t1)', marginBottom: 10, cursor: canEdit ? 'text' : 'default' }}>{card.title}</div>
+              <div onClick={() => canEdit && setEditingTitle(true)} style={{ fontSize: 19, fontWeight: 700, color: card.completed_at ? 'var(--t3)' : 'var(--t1)', textDecoration: card.completed_at ? 'line-through' : 'none', marginBottom: 10, cursor: canEdit ? 'text' : 'default' }}>{card.title}</div>
             )}
 
             {canEdit && (
@@ -511,6 +529,10 @@ function CardModal({ card, board, members, onPatch, onArchive, onClose }: {
 
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Handlinger</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                  <button onClick={() => onPatch({ completed_at: card.completed_at ? null : new Date().toISOString() })}
+                    className="btn btn-sm btn-ghost" style={{ justifyContent: 'flex-start', color: card.completed_at ? 'var(--gr)' : undefined }}>
+                    {card.completed_at ? '✓ Færdig — klik for at genåbne' : '○ Markér som fuldført'}
+                  </button>
                   <button onClick={onArchive} className="btn btn-sm btn-ghost" style={{ justifyContent: 'flex-start' }}>🗄 Arkivér</button>
                 </div>
               </>
@@ -625,6 +647,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
   const [showFilters, setShowFilters] = useState(false);
   const [filterAssignee, setFilterAssignee] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [showDone, setShowDone] = useState(true);
   const [dragActive, setDragActive] = useState<{ type: 'card' | 'list'; id: number } | null>(null);
 
   const load = useCallback(async () => {
@@ -662,6 +685,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
 
   function filterCards(cards: BoardCardT[]) {
     return cards.filter(c => {
+      if (!showDone && c.completed_at) return false;
       if (filterAssignee && !c.assignees.includes(filterAssignee)) return false;
       if (filterPriority && c.priority !== filterPriority) return false;
       return true;
@@ -672,6 +696,12 @@ export default function BoardPage({ params }: { params: { id: string } }) {
     setBoard(prev => prev ? { ...prev, cards: prev.cards.map(c => c.id === cardId ? { ...c, ...patch } : c) } : prev);
     await fetch(`/api/boards/${board!.id}/cards/${cardId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
     await load();
+  }
+
+  async function toggleDone(cardId: number) {
+    const card = board!.cards.find(c => c.id === cardId);
+    if (!card) return;
+    await patchCard(cardId, { completed_at: card.completed_at ? null : new Date().toISOString() });
   }
 
   async function archiveCard(cardId: number) {
@@ -817,6 +847,10 @@ export default function BoardPage({ params }: { params: { id: string } }) {
             <option value="">Alle prioriteter</option>
             {Object.entries(PRIORITY_META).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
           </select>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--t2)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} style={{ width: 'auto' }} />
+            Vis færdige
+          </label>
         </div>
       )}
 
@@ -828,7 +862,7 @@ export default function BoardPage({ params }: { params: { id: string } }) {
                 <ListColumn key={list.id} list={list}
                   cards={filterCards(board.cards.filter(c => c.list_id === list.id)).sort((a, b) => a.position - b.position)}
                   members={board.members}
-                  onAddCard={addCard} onOpenCard={setActiveCardId}
+                  onAddCard={addCard} onOpenCard={setActiveCardId} onToggleDone={toggleDone}
                   onRename={renameList} onArchiveList={archiveList} onDeleteList={deleteList}
                   canEdit={canEdit}
                 />

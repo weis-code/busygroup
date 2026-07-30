@@ -1133,4 +1133,9 @@ export async function register() {
       await sql2`DROP TABLE IF EXISTS kanban_boards`;
     }
   } catch (err) { console.error('[NLS] boards system migration failed:', err); }
+
+  // "Mark as done" on board cards — independent of which list a card sits in.
+  try {
+    await sql2`ALTER TABLE board_cards ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ NULL`;
+  } catch (err) { console.error('[NLS] board_cards.completed_at add failed:', err); }
 }

@@ -57,6 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     priority: 'priority' in body ? body.priority : current.priority,
     checklist: 'checklist' in body ? body.checklist : current.checklist,
     is_archived: 'is_archived' in body ? body.is_archived : current.is_archived,
+    completed_at: 'completed_at' in body ? body.completed_at : current.completed_at,
   };
 
   const [updated] = await sql`
@@ -67,6 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       due_date = ${merged.due_date}, start_date = ${merged.start_date},
       cover_color = ${merged.cover_color}, priority = ${merged.priority},
       checklist = ${sql.json(merged.checklist ?? [])}, is_archived = ${merged.is_archived},
+      completed_at = ${merged.completed_at},
       updated_at = NOW()
     WHERE id = ${cardId}
     RETURNING *
@@ -89,6 +91,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if ('is_archived' in body && body.is_archived && !current.is_archived) {
     await logActivity(Number(cardId), Number(id), session.id, 'archived');
+  }
+  if ('completed_at' in body && !!body.completed_at !== !!current.completed_at) {
+    await logActivity(Number(cardId), Number(id), session.id, body.completed_at ? 'completed' : 'reopened');
   }
 
   return NextResponse.json(updated);
