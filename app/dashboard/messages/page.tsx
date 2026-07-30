@@ -4,10 +4,20 @@ import { useEffect, useRef, useState } from 'react';
 
 interface Channel { id: number; name: string; company_name: string; company_color: string; is_general: boolean }
 interface DmConv { id: number; participant_a: string; participant_b: string; participant_a_name: string; participant_b_name: string; last_message: string | null; last_message_at: string | null }
-interface Message { id: number; sender_id: string; sender_name: string; body: string; created_at: string }
+interface Message {
+  id: number; sender_id: string; sender_name: string; body: string; created_at: string;
+  attachment_name?: string | null; attachment_type?: string | null; attachment_size?: number | null;
+}
 interface User { id: string; name: string; role: string }
 
-type ActiveView = { type: 'channel'; id: number; name: string } | { type: 'dm'; id: number; name: string } | null;
+type ActiveView = { type: 'channel'; id: number } | { type: 'dm'; id: number } | null;
+
+function fmtSize(bytes?: number | null) {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function formatTime(iso: string) {
   const d = new Date(iso);
@@ -36,9 +46,22 @@ export default function MessagesPage() {
   const [newChannelMembers, setNewChannelMembers] = useState<Set<string>>(new Set());
   const [creatingChannel, setCreatingChannel] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval>>();
+
+  function threadTitle(a: ActiveView): string {
+    if (!a) return '';
+    if (a.type === 'channel') {
+      const ch = channels.find(c => c.id === a.id);
+      return ch ? `#${ch.name}` : '';
+    }
+    const dm = dms.find(d => d.id === a.id);
+    if (!dm) return '';
+    return dm.participant_a === myId ? dm.participant_b_name : dm.participant_a_name;
+  }
 
   async function loadMe() {
     const me = await fetch('/api/auth/me').then(r => r.json()) as { id: string };
@@ -60,13 +83,12 @@ export default function MessagesPage() {
   }
 
   function selectChannel(ch: Channel) {
-    setActive({ type: 'channel', id: ch.id, name: `#${ch.name}` });
+    setActive({ type: 'channel', id: ch.id });
     setShowThread(true);
   }
 
   function selectDm(dm: DmConv) {
-    const otherName = dm.participant_a === myId ? dm.participant_b_name : dm.participant_a_name;
-    setActive({ type: 'dm', id: dm.id, name: otherName });
+    setActive({ type: 'dm', id: dm.id });
     setShowThread(true);
   }
 
@@ -134,7 +156,7 @@ export default function MessagesPage() {
     }
   }
 
-  async function startDm(userId: string, userName: string) {
+  async function startDm(userId: string) {
     if (creatingDm) return;
     setCreatingDm(true);
     try {
@@ -144,7 +166,7 @@ export default function MessagesPage() {
         body: JSON.stringify({ other_user_id: userId }),
       }).then(r => r.json()) as DmConv;
       await loadDms();
-      setActive({ type: 'dm', id: conv.id, name: userName });
+      setActive({ type: 'dm', id: conv.id });
       setShowThread(true);
       setDmModal(false);
     } finally {
@@ -168,7 +190,7 @@ export default function MessagesPage() {
   }, [messages]);
 
   async function send() {
-    if (!body.trim() || !active || sending) return;
+    if ((!body.trim() && !pendingFile) || !active || sending) return;
     setSending(true);
     setSendError(null);
     const trimmed = body.trim();
@@ -176,16 +198,25 @@ export default function MessagesPage() {
       ? `/api/channels/${active.id}/messages`
       : `/api/dm/${active.id}/messages`;
     try {
-      const res = await fetch(url, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: trimmed }),
-      });
+      let res: Response;
+      if (pendingFile) {
+        const fd = new FormData();
+        fd.append('body', trimmed);
+        fd.append('file', pendingFile);
+        res = await fetch(url, { method: 'POST', body: fd });
+      } else {
+        res = await fetch(url, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ body: trimmed }),
+        });
+      }
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({})) as { error?: string; detail?: string };
         setSendError([errBody.error, errBody.detail].filter(Boolean).join(': ') || `Kunne ikke sende (fejl ${res.status})`);
         return;
       }
       setBody('');
+      setPendingFile(null);
       await loadMessages();
     } catch {
       setSendError('Netværksfejl — beskeden blev ikke sendt');
@@ -286,7 +317,7 @@ export default function MessagesPage() {
             {/* Thread header */}
             <div style={{ padding: '0 18px', height: 46, borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--s1)', flexShrink: 0 }}>
               <button onClick={() => setShowThread(false)} style={{ display: 'none', background: 'none', border: 'none', color: 'var(--t2)', fontSize: 20, padding: '0 4px' }} className="back-btn">←</button>
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)', flex: 1 }}>{active.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)', flex: 1 }}>{threadTitle(active)}</div>
               {active.type === 'channel' && (
                 <button onClick={() => void deleteChannel(active.id)} title="Slet kanal"
                   style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 12, padding: '4px 6px' }}>
@@ -303,8 +334,10 @@ export default function MessagesPage() {
               {messages.map((msg, i) => {
                 const isOwn = msg.sender_id === myId;
                 const showName = !isOwn && (i === 0 || messages[i - 1].sender_id !== msg.sender_id);
+                const isImage = !!msg.attachment_name && (msg.attachment_type ?? '').startsWith('image/');
+                const isFile = !!msg.attachment_name && !isImage;
                 return (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: isOwn ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, marginBottom: 2 }}>
+                  <div key={msg.id} style={{ display: 'flex', width: '100%', justifyContent: isOwn ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8, marginBottom: 2 }}>
                     {!isOwn && (
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--s3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--t2)', flexShrink: 0, marginBottom: 2 }}>
                         {msg.sender_name.charAt(0).toUpperCase()}
@@ -314,15 +347,37 @@ export default function MessagesPage() {
                       {showName && (
                         <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 3, marginLeft: 4 }}>{msg.sender_name}</div>
                       )}
-                      <div style={{
-                        background: isOwn ? 'var(--bl2)' : 'var(--s2)',
-                        border: `1px solid ${isOwn ? 'rgba(79,142,247,0.3)' : 'var(--bd)'}`,
-                        borderRadius: isOwn ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-                        padding: '8px 12px', fontSize: 13, color: 'var(--t1)', lineHeight: 1.5,
-                        wordBreak: 'break-word',
-                      }}>
-                        {msg.body}
-                      </div>
+                      {isImage && (
+                        <a href={`/api/messenger/attachments/${msg.id}`} target="_blank" rel="noreferrer" style={{ display: 'block', marginBottom: msg.body.trim() ? 4 : 0 }}>
+                          <img src={`/api/messenger/attachments/${msg.id}`} alt={msg.attachment_name ?? ''}
+                            style={{ maxWidth: 240, maxHeight: 240, borderRadius: 10, display: 'block', border: '1px solid var(--bd)', objectFit: 'cover' }} />
+                        </a>
+                      )}
+                      {isFile && (
+                        <a href={`/api/messenger/attachments/${msg.id}?download=1`}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                            background: isOwn ? 'var(--bl2)' : 'var(--s2)',
+                            border: `1px solid ${isOwn ? 'rgba(79,142,247,0.3)' : 'var(--bd)'}`,
+                            borderRadius: 10, fontSize: 12, color: 'var(--t1)', textDecoration: 'none',
+                            marginBottom: msg.body.trim() ? 4 : 0,
+                          }}>
+                          <span>📄</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{msg.attachment_name}</span>
+                          {msg.attachment_size != null && <span style={{ color: 'var(--t3)', flexShrink: 0 }}>{fmtSize(msg.attachment_size)}</span>}
+                        </a>
+                      )}
+                      {msg.body.trim() && (
+                        <div style={{
+                          background: isOwn ? 'var(--bl2)' : 'var(--s2)',
+                          border: `1px solid ${isOwn ? 'rgba(79,142,247,0.3)' : 'var(--bd)'}`,
+                          borderRadius: isOwn ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+                          padding: '8px 12px', fontSize: 13, color: 'var(--t1)', lineHeight: 1.5,
+                          wordBreak: 'break-word',
+                        }}>
+                          {msg.body}
+                        </div>
+                      )}
                       <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2, textAlign: isOwn ? 'right' : 'left', marginRight: 4, marginLeft: 4 }}>
                         {formatTime(msg.created_at)}
                       </div>
@@ -339,14 +394,31 @@ export default function MessagesPage() {
                 {sendError}
               </div>
             )}
+            {pendingFile && (
+              <div style={{ padding: '8px 18px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--s2)', border: '1px solid var(--bd)', borderRadius: 8, fontSize: 12, color: 'var(--t2)' }}>
+                  📎 {pendingFile.name}
+                  <button onClick={() => setPendingFile(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                </span>
+              </div>
+            )}
             <div style={{ padding: '12px 18px', borderTop: '1px solid var(--bd)', background: 'var(--s1)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <input ref={fileInputRef} type="file" hidden onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) setPendingFile(f);
+                e.target.value = '';
+              }} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} title="Vedhæft fil"
+                style={{ background: 'none', border: '1px solid var(--bd)', borderRadius: 8, color: 'var(--t2)', fontSize: 16, flexShrink: 0, minHeight: 44, minWidth: 44 }}>
+                📎
+              </button>
               <textarea ref={inputRef} value={body} onChange={e => setBody(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
                 placeholder="Skriv en besked…"
                 rows={1}
                 style={{ flex: 1, resize: 'none', borderRadius: 8, padding: '10px 12px', fontSize: 14, lineHeight: 1.4, minHeight: 44 }}
               />
-              <button onClick={send} disabled={!body.trim() || sending}
+              <button onClick={send} disabled={(!body.trim() && !pendingFile) || sending}
                 style={{ background: 'var(--bl)', color: '#fff', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, flexShrink: 0, minHeight: 44, minWidth: 44 }}>
                 ↑
               </button>
@@ -376,7 +448,7 @@ export default function MessagesPage() {
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Ingen brugere fundet</div>
               ) : (
                 users.map(u => (
-                  <button key={u.id} onClick={() => void startDm(u.id, u.name)} disabled={creatingDm}
+                  <button key={u.id} onClick={() => void startDm(u.id)} disabled={creatingDm}
                     style={{ width: '100%', textAlign: 'left', padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t1)', transition: 'background 0.1s' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'none')}>

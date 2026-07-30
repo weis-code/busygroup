@@ -559,6 +559,13 @@ export async function register() {
   } catch (err) { console.error('[NLS] messenger tables failed:', err); }
 
   try {
+    await sql`ALTER TABLE messenger_messages ADD COLUMN IF NOT EXISTS attachment_key TEXT`;
+    await sql`ALTER TABLE messenger_messages ADD COLUMN IF NOT EXISTS attachment_name TEXT`;
+    await sql`ALTER TABLE messenger_messages ADD COLUMN IF NOT EXISTS attachment_type TEXT`;
+    await sql`ALTER TABLE messenger_messages ADD COLUMN IF NOT EXISTS attachment_size INTEGER`;
+  } catch (err) { console.error('[NLS] messenger attachment columns failed:', err); }
+
+  try {
     await sql`
       CREATE TABLE IF NOT EXISTS cr_tickets (
         id            SERIAL PRIMARY KEY,
