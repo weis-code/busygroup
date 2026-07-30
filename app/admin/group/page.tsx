@@ -371,7 +371,7 @@ export default function GroupPage() {
                           {tickets.filter(t => t.priority === 'urgent').length}
                         </div>
                       </div>
-                      <a href="/admin/group/tickets" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--bl)', textDecoration: 'none' }}>Åbn tickets →</a>
+                      <a href="/admin/support" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--bl)', textDecoration: 'none' }}>Åbn tickets →</a>
                     </div>
                   </div>
                 )}

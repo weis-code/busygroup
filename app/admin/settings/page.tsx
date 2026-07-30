@@ -96,11 +96,13 @@ function GeneraltTab() {
 
 /* ── Virksomheder tab ─────────────────────────────────── */
 function VirksomhederTab() {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
-    fetch('/api/companies').then(r => r.json()).then(setCompanies);
+    fetch('/api/companies').then(r => r.json()).then(setAllCompanies);
   }, []);
+
+  const companies = allCompanies.filter(c => c.ownership_pct === 100);
 
   return (
     <div>
@@ -139,13 +141,13 @@ function VirksomhederTab() {
             </div>
           ))}
           {companies.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Ingen virksomheder endnu</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Ingen 100%-ejede virksomheder endnu</div>
           )}
         </div>
       </div>
-      <a href="/admin/crm/companies" style={{ fontSize: 12, color: 'var(--bl)', textDecoration: 'none' }}>
-        → CRM&apos;s virksomheds-/kontaktliste (åbner i sin egen visning, bruges også som filter i pipeline)
-      </a>
+      <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+        Viser kun selskaber vi ejer 100%. Selskaber med delvist ejerskab håndteres under Økonomi → Udbytte.
+      </div>
     </div>
   );
 }

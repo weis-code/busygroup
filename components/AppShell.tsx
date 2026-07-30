@@ -23,13 +23,14 @@ function sectionItem(section: string, href: string, label: string, icon: React.R
 /* ── Koncern-wide nav: always visible, no company switch required ──────── */
 const KONCERN_NAV: NavEntry[] = [
   sectionItem('KONCERN', '/admin/group',          'Koncern Overblik', <GridIcon />),
+  sectionItem('',        '/admin/finance',        'Økonomi',           <BarIcon />),
   sectionItem('',        '/admin/crm',            'CRM Pipeline',      <CrmIcon />),
   sectionItem('',        '/admin/messages',       'Beskeder',          <ChatIcon />),
   sectionItem('',        '/admin/group/board',    'Mit board',         <BoardIcon />),
   sectionItem('',        '/admin/absence',        'Fravær',            <CalendarIcon />),
   sectionItem('',        '/admin/hr/employees',   'Medarbejdere',      <PeopleIcon />),
   sectionItem('',        '/admin/hr/recruitment', 'Rekruttering',      <TargetIcon />, true),
-  sectionItem('',        '/admin/support',        'Kundeservice',      <TicketIcon />),
+  sectionItem('',        '/admin/support',        'Support',           <TicketIcon />),
   sectionItem('',        '/admin/settings',       'Indstillinger',     <GearIcon />),
 ];
 
@@ -63,15 +64,6 @@ const COMPANY_GROUPS: CompanyGroup[] = [
       { href: '/admin/handover',               label: 'Handover',        icon: <HandoverIcon /> },
       { href: '/admin/meridian/products',      label: 'Produktkatalog',  icon: <TaskIcon /> },
       { href: '/admin/meridian/team',          label: 'AM / KAM',        icon: <TeamIcon /> },
-    ],
-  },
-  {
-    key: 'group', label: 'Group (drift)', color: COMPANY_META.group.color,
-    children: [
-      { href: '/admin/group/tickets',      label: 'Dev tickets',  icon: <TaskIcon /> },
-      { href: '/admin/crm/companies',      label: 'Virksomheder', icon: <BuildingIcon /> },
-      { href: '/admin/group/my-customers', label: 'Mine Kunder', icon: <EuroIcon /> },
-      { href: '/admin/group/finance',      label: 'Økonomi',      icon: <BarIcon /> },
     ],
   },
 ];
@@ -132,8 +124,7 @@ const PAGE_LABELS: Record<string, string> = {
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
   periods: 'Lønperioder', settings: 'Indstillinger', companies: 'Virksomheder',
   customers: 'Kunder', handover: 'Handovers', portal: 'Klientportal',
-  crm: 'CRM Pipeline', contacts: 'Virksomheder', activity: 'Aktivitetsfeed', support: 'Kundeservice',
-  'my-customers': 'Mine Kunder',
+  crm: 'CRM Pipeline', contacts: 'Virksomheder', activity: 'Aktivitetsfeed', support: 'Support',
   finance: 'Økonomi', products: 'Produktkatalog', team: 'Team', payroll: 'Løn',
   revenue: 'Omsætning', absence: 'Fravær',
   employees: 'Medarbejdere',
@@ -427,13 +418,11 @@ function GearIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15
 function FollowIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 12.5l2.5-2.5m0 0l3-3 2 2 3-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="11.5" cy="4" r="1" fill="currentColor"/></svg> }
 function UserCheckIcon() { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1.5 13c0-2.5 2-4 4.5-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M9.5 11l1.5 1.5 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> }
 function BarIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2" y="7" width="3" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="6" y="4" width="3" height="9" rx="1" fill="currentColor" opacity=".7"/><rect x="10" y="2" width="3" height="11" rx="1" fill="currentColor"/></svg> }
-function BuildingIcon()  { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="2" width="10" height="11" rx="1" stroke="currentColor" strokeWidth="1.4"/><line x1="6" y1="2" x2="6" y2="13" stroke="currentColor" strokeWidth="1.2"/><rect x="4" y="5" width="1.5" height="2" rx=".5" fill="currentColor"/><rect x="8.5" y="5" width="1.5" height="2" rx=".5" fill="currentColor"/><rect x="8.5" y="9" width="1.5" height="2" rx=".5" fill="currentColor"/></svg> }
 function PeopleIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="5.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M12 7c1.2.6 2 1.8 2 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><path d="M9.5 2.5A2.5 2.5 0 1112 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
 function HandoverIcon()  { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 9.5h5l2-1.5 4 .5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 12l3-2.5M4.5 7V4a1 1 0 011-1h4a1 1 0 011 1v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
 function TeamIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M2 13c0-2.5 2.5-4.5 5.5-4.5S13 10.5 13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg> }
 function TaskIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="2" width="10" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4"/><path d="M5 7l2 2 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> }
 function CrmIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.4"/><path d="M1 13c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><path d="M10 3l1.5 1.5L14 2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="7" x2="14" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="10" y1="10" x2="13" y2="10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg> }
-function EuroIcon()      { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M9.5 5.5A2.5 2.5 0 007 8a2.5 2.5 0 002.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><line x1="5" y1="7" x2="8.5" y2="7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="5" y1="9" x2="8.5" y2="9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg> }
 function TicketIcon()    { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 5.5a1.5 1.5 0 000 3V11a1 1 0 001 1h8a1 1 0 001-1V8.5a1.5 1.5 0 000-3V4a1 1 0 00-1-1H3a1 1 0 00-1 1v1.5z" stroke="currentColor" strokeWidth="1.3"/><line x1="5.5" y1="3" x2="5.5" y2="12" stroke="currentColor" strokeWidth="1" strokeDasharray="1.5 1.5"/></svg> }
 function BotIcon()       { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="2.5" y="4.5" width="10" height="8" rx="2" stroke="currentColor" strokeWidth="1.4"/><line x1="7.5" y1="4.5" x2="7.5" y2="2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="7.5" cy="1.4" r="1" fill="currentColor"/><circle cx="5.3" cy="8.3" r="1" fill="currentColor"/><circle cx="9.7" cy="8.3" r="1" fill="currentColor"/></svg> }
 function PhoneIcon()     { return <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M3 2.5h2l1 3-1.5 1.2a8 8 0 004.8 4.8L10.5 10l3 1v2a1 1 0 01-1 1C6.5 14 1 8.5 1 3.5a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg> }
