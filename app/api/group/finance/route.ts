@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         COUNT(cu.id) FILTER (WHERE cu.status = 'onboarding')::int            AS onboarding_customers
       FROM companies co
       LEFT JOIN customers cu ON cu.company_id = co.id
-      WHERE co.slug != 'group'
+      WHERE co.slug NOT IN ('group', 'quorex')
       GROUP BY co.id, co.name, co.slug, co.color, co.logo_initials
       ORDER BY mrr DESC, co.name
     `;
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     // Try to get ownership_pct — column may not exist on older DB instances
     const ownershipMap: Record<number, number> = {};
     try {
-      const ownershipRows = await sql`SELECT id, ownership_pct FROM companies WHERE slug != 'group'`;
+      const ownershipRows = await sql`SELECT id, ownership_pct FROM companies WHERE slug NOT IN ('group', 'quorex')`;
       for (const r of ownershipRows) {
         ownershipMap[Number(r.id)] = Number(r.ownership_pct ?? 100);
       }

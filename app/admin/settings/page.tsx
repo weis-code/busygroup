@@ -102,7 +102,7 @@ function VirksomhederTab() {
     fetch('/api/companies').then(r => r.json()).then(setAllCompanies);
   }, []);
 
-  const companies = allCompanies.filter(c => c.ownership_pct === 100);
+  const companies = allCompanies.filter(c => c.ownership_pct === 100 && c.slug !== 'quorex');
 
   return (
     <div>

@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
     JOIN companies c ON c.id = d.source_company_id
     ORDER BY d.received_date DESC NULLS LAST, d.created_at DESC
   `;
-  return NextResponse.json(rows);
+  const normalized = rows.map(r => ({ ...r, ownership_pct: Number(r.ownership_pct) }));
+  return NextResponse.json(normalized);
 }
 
 export async function POST(req: NextRequest) {

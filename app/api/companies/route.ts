@@ -10,5 +10,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const companies = await sql`SELECT * FROM companies ORDER BY id`;
-  return NextResponse.json(companies);
+  const normalized = companies.map(c => ({ ...c, ownership_pct: Number(c.ownership_pct) }));
+  return NextResponse.json(normalized);
 }

@@ -958,4 +958,10 @@ export async function register() {
       WHERE kb.owner_user_id = u.id AND kb.company_id IS NULL AND u.company_id IS NOT NULL
     `;
   } catch (err) { console.error('[NLS] kanban_boards company_id backfill failed:', err); }
+
+  // Widen ownership_pct from INTEGER to NUMERIC(5,2) — minority stakes like
+  // 22.5% need a fractional percentage, which INTEGER can't represent.
+  try {
+    await sql2`ALTER TABLE companies ALTER COLUMN ownership_pct TYPE NUMERIC(5,2) USING ownership_pct::numeric`;
+  } catch (err) { console.error('[NLS] companies.ownership_pct widen failed:', err); }
 }

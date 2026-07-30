@@ -69,7 +69,7 @@ export default function FinancePage() {
 
   useEffect(() => { void loadAll(); }, [loadAll]);
 
-  const ownedCompanies = companies.filter(c => c.ownership_pct === 100 && c.slug !== 'group');
+  const ownedCompanies = companies.filter(c => c.ownership_pct === 100 && c.slug !== 'group' && c.slug !== 'quorex');
   const stakeCompanies = companies.filter(c => c.ownership_pct > 0 && c.ownership_pct < 100);
   const ownedRows = finance?.companies.filter(c => c.ownership_pct === 100) ?? [];
 
