@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, use } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DndContext, DragEndEvent, DragOverEvent, DragStartEvent,
@@ -609,8 +609,8 @@ function MembersPanel({ board, members, allUsers, canManage, onClose, onReload }
 }
 
 /* ── Main board page ────────────────────────────────────── */
-export default function BoardPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function BoardPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [board, setBoard] = useState<Board | null>(null);
