@@ -964,4 +964,173 @@ export async function register() {
   try {
     await sql2`ALTER TABLE companies ALTER COLUMN ownership_pct TYPE NUMERIC(5,2) USING ownership_pct::numeric`;
   } catch (err) { console.error('[NLS] companies.ownership_pct widen failed:', err); }
+
+  // Replace the old per-company kanban_* system with a standalone Trello-style
+  // board system (boards/board_lists/board_cards/...), not tied to any company.
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS boards (
+        id          SERIAL PRIMARY KEY,
+        title       TEXT NOT NULL,
+        description TEXT,
+        owner_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+        visibility  TEXT NOT NULL DEFAULT 'private',
+        company_id  INTEGER REFERENCES companies(id) NULL,
+        color       TEXT NOT NULL DEFAULT '#4f8ef7',
+        background  TEXT NULL,
+        is_archived BOOLEAN NOT NULL DEFAULT false,
+        created_at  TIMESTAMPTZ DEFAULT NOW(),
+        updated_at  TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`
+      CREATE TABLE IF NOT EXISTS board_members (
+        id          SERIAL PRIMARY KEY,
+        board_id    INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+        user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+        role        TEXT NOT NULL DEFAULT 'member',
+        invited_by  UUID REFERENCES users(id),
+        joined_at   TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(board_id, user_id)
+      )
+    `;
+    await sql2`
+      CREATE TABLE IF NOT EXISTS board_lists (
+        id          SERIAL PRIMARY KEY,
+        board_id    INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+        title       TEXT NOT NULL,
+        position    INTEGER NOT NULL DEFAULT 0,
+        color       TEXT NULL,
+        is_archived BOOLEAN NOT NULL DEFAULT false,
+        created_at  TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`
+      CREATE TABLE IF NOT EXISTS board_cards (
+        id           SERIAL PRIMARY KEY,
+        list_id      INTEGER REFERENCES board_lists(id) ON DELETE CASCADE,
+        board_id     INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+        title        TEXT NOT NULL,
+        description  TEXT,
+        position     INTEGER NOT NULL DEFAULT 0,
+        assignees    JSONB NOT NULL DEFAULT '[]',
+        labels       JSONB NOT NULL DEFAULT '[]',
+        due_date     TIMESTAMPTZ NULL,
+        start_date   DATE NULL,
+        cover_color  TEXT NULL,
+        priority     TEXT NOT NULL DEFAULT 'none',
+        checklist    JSONB NOT NULL DEFAULT '[]',
+        is_archived  BOOLEAN NOT NULL DEFAULT false,
+        created_by   UUID REFERENCES users(id),
+        created_at   TIMESTAMPTZ DEFAULT NOW(),
+        updated_at   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`
+      CREATE TABLE IF NOT EXISTS board_card_comments (
+        id         SERIAL PRIMARY KEY,
+        card_id    INTEGER REFERENCES board_cards(id) ON DELETE CASCADE,
+        author_id  UUID REFERENCES users(id),
+        body       TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql2`
+      CREATE TABLE IF NOT EXISTS board_card_activity (
+        id         SERIAL PRIMARY KEY,
+        card_id    INTEGER REFERENCES board_cards(id) ON DELETE CASCADE,
+        board_id   INTEGER REFERENCES boards(id) ON DELETE CASCADE,
+        user_id    UUID REFERENCES users(id),
+        type       TEXT NOT NULL,
+        data       JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
+    // One-time data migration from the old kanban_* tables, guarded by their
+    // existence — once migrated and dropped below, this becomes a no-op forever.
+    const [oldBoardsTable] = await sql2`
+      SELECT 1 FROM information_schema.tables WHERE table_name = 'kanban_boards'
+    `;
+    if (oldBoardsTable) {
+      // Only real personal boards (owner_user_id set) carry meaningful data —
+      // the old orphaned company-wide "Fælles board"/"Group board" rows (no
+      // owner, no cards) don't fit the new owner-required model and are dropped.
+      await sql2`
+        INSERT INTO boards (id, title, owner_id, visibility, color, created_at, updated_at)
+        SELECT id, name, owner_user_id, 'private', '#4f8ef7', created_at, created_at
+        FROM kanban_boards
+        WHERE owner_user_id IS NOT NULL
+        ON CONFLICT (id) DO NOTHING
+      `;
+      await sql2`SELECT setval('boards_id_seq', GREATEST((SELECT COALESCE(MAX(id), 0) FROM boards), 1))`;
+
+      await sql2`
+        INSERT INTO board_members (board_id, user_id, role, joined_at)
+        SELECT id, owner_id, 'admin', created_at FROM boards
+        ON CONFLICT (board_id, user_id) DO NOTHING
+      `;
+
+      await sql2`
+        INSERT INTO board_lists (id, board_id, title, position, color, created_at)
+        SELECT kc.id, kc.board_id, kc.name, kc.position, kc.color, kc.created_at
+        FROM kanban_columns kc
+        JOIN boards b ON b.id = kc.board_id
+        ON CONFLICT (id) DO NOTHING
+      `;
+      await sql2`SELECT setval('board_lists_id_seq', GREATEST((SELECT COALESCE(MAX(id), 0) FROM board_lists), 1))`;
+
+      await sql2`
+        INSERT INTO board_cards (id, list_id, board_id, title, description, position, assignees, labels, due_date, cover_color, priority, created_by, created_at, updated_at)
+        SELECT
+          kcd.id, kcd.column_id, kcd.board_id, kcd.title, kcd.description, kcd.position,
+          CASE WHEN kcd.assigned_to IS NOT NULL THEN jsonb_build_array(kcd.assigned_to::text) ELSE '[]'::jsonb END,
+          COALESCE(NULLIF(kcd.labels, '')::jsonb, '[]'::jsonb),
+          kcd.due_date::timestamptz,
+          kcd.cover_color,
+          CASE WHEN kcd.priority IN ('low','medium','high','urgent') THEN kcd.priority ELSE 'none' END,
+          kcd.created_by, kcd.created_at, kcd.updated_at
+        FROM kanban_cards kcd
+        JOIN boards b ON b.id = kcd.board_id
+        ON CONFLICT (id) DO NOTHING
+      `;
+      await sql2`SELECT setval('board_cards_id_seq', GREATEST((SELECT COALESCE(MAX(id), 0) FROM board_cards), 1))`;
+
+      const [oldChecklistTable] = await sql2`
+        SELECT 1 FROM information_schema.tables WHERE table_name = 'kanban_card_checklist'
+      `;
+      if (oldChecklistTable) {
+        await sql2`
+          UPDATE board_cards bc SET checklist = sub.items
+          FROM (
+            SELECT card_id, jsonb_agg(jsonb_build_object('id', id, 'text', text, 'checked', completed) ORDER BY position) AS items
+            FROM kanban_card_checklist
+            GROUP BY card_id
+          ) sub
+          WHERE bc.id = sub.card_id
+        `;
+      }
+
+      const [oldCommentsTable] = await sql2`
+        SELECT 1 FROM information_schema.tables WHERE table_name = 'kanban_card_comments'
+      `;
+      if (oldCommentsTable) {
+        await sql2`
+          INSERT INTO board_card_comments (id, card_id, author_id, body, created_at, updated_at)
+          SELECT kcc.id, kcc.card_id, kcc.user_id, kcc.body, kcc.created_at, kcc.created_at
+          FROM kanban_card_comments kcc
+          JOIN board_cards bc ON bc.id = kcc.card_id
+          ON CONFLICT (id) DO NOTHING
+        `;
+        await sql2`SELECT setval('board_card_comments_id_seq', GREATEST((SELECT COALESCE(MAX(id), 0) FROM board_card_comments), 1))`;
+      }
+
+      await sql2`DROP TABLE IF EXISTS kanban_card_checklist`;
+      await sql2`DROP TABLE IF EXISTS kanban_card_comments`;
+      await sql2`DROP TABLE IF EXISTS kanban_cards`;
+      await sql2`DROP TABLE IF EXISTS kanban_columns`;
+      await sql2`DROP TABLE IF EXISTS kanban_boards`;
+    }
+  } catch (err) { console.error('[NLS] boards system migration failed:', err); }
 }

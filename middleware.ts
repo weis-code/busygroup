@@ -6,7 +6,7 @@ const PUBLIC_PREFIXES = ['/login', '/api/auth', '/api/health', '/api/board', '/b
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) {
+  if (PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))) {
     return NextResponse.next();
   }
 

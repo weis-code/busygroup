@@ -26,7 +26,7 @@ const KONCERN_NAV: NavEntry[] = [
   sectionItem('',        '/admin/finance',        'Økonomi',           <BarIcon />),
   sectionItem('',        '/admin/crm',            'CRM Pipeline',      <CrmIcon />),
   sectionItem('',        '/admin/messages',       'Beskeder',          <ChatIcon />),
-  sectionItem('',        '/admin/group/board',    'Mit board',         <BoardIcon />),
+  sectionItem('',        '/boards',               'Boards',            <BoardIcon />),
   sectionItem('',        '/admin/absence',        'Fravær',            <CalendarIcon />),
   sectionItem('',        '/admin/hr/employees',   'Medarbejdere',      <PeopleIcon />),
   sectionItem('',        '/admin/hr/recruitment', 'Rekruttering',      <TargetIcon />, true),
@@ -71,6 +71,7 @@ const COMPANY_GROUPS: CompanyGroup[] = [
 const UNIFIED_BOTTOM_NAV: { href: string; label: string; icon: React.ReactNode }[] = [
   { href: '/admin/group',     label: 'Overblik',  icon: <GridIcon /> },
   { href: '/admin/crm',       label: 'CRM',       icon: <CrmIcon /> },
+  { href: '/boards',          label: 'Boards',    icon: <BoardIcon /> },
   { href: '/admin/messages',  label: 'Beskeder',  icon: <ChatIcon /> },
   { href: '/admin/settings',  label: 'Indst.',    icon: <GearIcon /> },
 ];
@@ -82,7 +83,7 @@ const sellerNav: NavEntry[] = [
   { href: '/dashboard/sitrep',      label: 'Sitrep',        icon: <NoteIcon /> },
   { href: '/dashboard/absence',     label: 'Fravær',        icon: <CalendarIcon /> },
   { href: '/dashboard/leaderboard', label: 'Leaderboard',   icon: <TrophyIcon /> },
-  { href: '/dashboard/board',       label: 'Mit board',     icon: <BoardIcon /> },
+  { href: '/boards',                label: 'Boards',        icon: <BoardIcon /> },
   { href: '/dashboard/messages',    label: 'Beskeder',      icon: <ChatIcon /> },
   { href: '/dashboard/assistant',   label: 'Opgave-assistent', icon: <BotIcon /> },
   { href: '/dashboard/calls',       label: 'Opkalds-feedback',  icon: <PhoneIcon /> },
@@ -91,7 +92,7 @@ const sellerNav: NavEntry[] = [
 
 const sellerBottomNav = [
   { href: '/dashboard',          label: 'Oversigt', icon: <GridIcon /> },
-  { href: '/dashboard/board',    label: 'Board',    icon: <BoardIcon /> },
+  { href: '/boards',             label: 'Boards',   icon: <BoardIcon /> },
   { href: '/dashboard/log',      label: 'Log',      icon: <SalesIcon /> },
   { href: '/dashboard/messages', label: 'Beskeder', icon: <ChatIcon /> },
   { href: '/dashboard/settings', label: 'Profil',   icon: <GearIcon /> },
@@ -119,7 +120,7 @@ function isActive(href: string, pathname: string): boolean {
 
 const PAGE_LABELS: Record<string, string> = {
   nls: 'Oversigt', meridian: 'Overblik', group: 'Koncern Overblik',
-  board: 'Board', messages: 'Beskeder', sitreps: 'Sitreps',
+  board: 'Board', boards: 'Boards', messages: 'Beskeder', sitreps: 'Sitreps',
   followups: 'Follow-ups', presence: 'Tilstedeværelse', targets: 'Targets',
   daily: 'Daglige mål', sales: 'Salgslog', sellers: 'Sælgere', tasks: 'Opgaver',
   periods: 'Lønperioder', settings: 'Indstillinger', companies: 'Virksomheder',
