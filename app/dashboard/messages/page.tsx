@@ -106,7 +106,7 @@ export default function MessagesPage() {
     setLoadingUsers(true);
     try {
       const data = await fetch('/api/users').then(r => r.json()) as User[];
-      setUsers(Array.isArray(data) ? data.filter(u => u.id !== myId) : []);
+      setUsers(Array.isArray(data) ? data : []);
     } finally {
       setLoadingUsers(false);
     }
@@ -444,10 +444,10 @@ export default function MessagesPage() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
               {loadingUsers ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Indlæser…</div>
-              ) : users.length === 0 ? (
+              ) : users.filter(u => u.id !== myId).length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Ingen brugere fundet</div>
               ) : (
-                users.map(u => (
+                users.filter(u => u.id !== myId).map(u => (
                   <button key={u.id} onClick={() => void startDm(u.id)} disabled={creatingDm}
                     style={{ width: '100%', textAlign: 'left', padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t1)', transition: 'background 0.1s' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
@@ -491,7 +491,7 @@ export default function MessagesPage() {
               {loadingUsers ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Indlæser…</div>
               ) : (
-                users.map(u => {
+                users.filter(u => u.id !== myId).map(u => {
                   const checked = newChannelMembers.has(u.id);
                   return (
                     <button key={u.id} onClick={() => toggleNewChannelMember(u.id)}

@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
 
   const { other_user_id } = await req.json();
   if (!other_user_id) return NextResponse.json({ error: 'other_user_id kræves' }, { status: 400 });
+  if (other_user_id === session.id) return NextResponse.json({ error: 'Du kan ikke starte en samtale med dig selv' }, { status: 400 });
 
   // Ensure consistent ordering for unique constraint
   const a = session.id < other_user_id ? session.id : other_user_id;
