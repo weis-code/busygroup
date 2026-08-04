@@ -27,7 +27,7 @@ export async function GET() {
     FROM users u
     LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date = ${today}
     LEFT JOIN sales s ON s.user_id = u.id AND s.date = ${today}
-    WHERE u.role = 'SELLER'
+    WHERE u.role = 'SELLER' AND u.is_active = TRUE
     GROUP BY u.id, u.name, dt.call_goal, dt.sales_goal, dt.calls_actual, dt.contacts_actual
     ORDER BY sales_today DESC, calls_today DESC, u.name
   `;
@@ -48,7 +48,7 @@ export async function GET() {
     FROM users u
     LEFT JOIN sales s ON s.user_id = u.id AND s.date >= ${periodStart} AND s.date <= ${periodEnd}
     LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date >= ${periodStart} AND dt.date <= ${periodEnd}
-    WHERE u.role = 'SELLER'
+    WHERE u.role = 'SELLER' AND u.is_active = TRUE
     GROUP BY u.id, u.name
     ORDER BY sales_month DESC, u.name
   `;
@@ -75,7 +75,7 @@ export async function GET() {
       ) AS revenue_goal
     FROM tasks t
     JOIN task_sellers ts ON ts.task_id = t.id
-    JOIN users u ON u.id = ts.user_id AND u.role = 'SELLER'
+    JOIN users u ON u.id = ts.user_id AND u.role = 'SELLER' AND u.is_active = TRUE
     LEFT JOIN sales s ON s.task_id = t.id AND s.user_id = u.id
       AND s.date >= ${periodStart} AND s.date <= ${periodEnd}
     WHERE t.status = 'active'

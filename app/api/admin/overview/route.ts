@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
   `;
 
   // Seller count: full-time SELLER role only (part-time excluded from FTE)
-  const [{ seller_count }] = await sql`SELECT COUNT(*)::int AS seller_count FROM users WHERE role = 'SELLER' AND is_part_time = FALSE`;
+  const [{ seller_count }] = await sql`SELECT COUNT(*)::int AS seller_count FROM users WHERE role = 'SELLER' AND is_part_time = FALSE AND is_active = TRUE`;
 
   // Desk count from settings
   const [deskSetting] = await sql`SELECT value FROM settings WHERE key = 'desk_count'`;
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
       WHERE date >= ${periodStart}::date AND date <= ${periodEnd}::date
       GROUP BY user_id
     ) dt ON dt.user_id = u.id
-    WHERE u.role = 'SELLER'
+    WHERE u.role = 'SELLER' AND u.is_active = TRUE
     ORDER BY u.name
   `;
 

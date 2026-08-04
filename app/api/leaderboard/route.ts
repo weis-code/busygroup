@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     LEFT JOIN sales s ON s.user_id = u.id
       AND s.date >= ${startDate} AND s.date <= ${endDate}
     LEFT JOIN task_sellers ts ON ts.user_id = u.id
-    WHERE u.role = 'SELLER'
+    WHERE u.role = 'SELLER' AND u.is_active = TRUE
     GROUP BY u.id, u.name
     ORDER BY activity_score DESC, total_sales DESC
   `;

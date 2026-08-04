@@ -608,6 +608,7 @@ export async function register() {
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact TEXT NULL`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_type TEXT DEFAULT 'full_time'`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS end_date DATE NULL`;
   } catch (err) { console.error('[NLS] users HR columns migration failed:', err); }
 
   try {

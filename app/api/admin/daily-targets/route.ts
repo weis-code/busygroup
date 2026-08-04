@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     LEFT JOIN sales s ON s.user_id = u.id AND s.date = ${date}
     LEFT JOIN absences ab ON ab.user_id = u.id AND ab.status = 'APPROVED'
       AND ab.start_date <= ${date} AND ab.end_date >= ${date}
-    WHERE u.role = 'SELLER'
+    WHERE u.role = 'SELLER' AND u.is_active = TRUE
     GROUP BY u.id, u.name, dt.call_goal, dt.sales_goal,
              dt.calls_actual, dt.contacts_actual, dt.meetings_booked_actual, dt.meetings_held_actual
     ORDER BY u.name

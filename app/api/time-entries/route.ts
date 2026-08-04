@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
            u.id AS user_id, u.name AS user_name, u.role
     FROM users u
     LEFT JOIN time_entries te ON te.user_id = u.id AND te.date = ${today}
-    WHERE u.role = 'SELLER'
+    WHERE u.role = 'SELLER' AND u.is_active = TRUE
     ORDER BY u.name
   `;
   return NextResponse.json({ entries, date: today });

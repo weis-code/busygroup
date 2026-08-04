@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 interface User {
   id: string; name: string; email: string; role: string;
   company_id: number | null; company_name: string | null; company_slug: string | null; company_color: string | null;
-  start_date: string | null; part_time: boolean; employment_type: string | null;
+  start_date: string | null; end_date: string | null; part_time: boolean; employment_type: string | null;
   phone: string | null; address: string | null; emergency_contact: string | null;
   is_active: boolean; created_at: string;
 }
@@ -27,6 +27,7 @@ export default function HREmployeesPage() {
   const [users, setUsers]         = useState<User[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [filterSlug, setFilter]   = useState('');
+  const [tab, setTab]             = useState<'active' | 'inactive'>('active');
   const [selected, setSelected]   = useState<User | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser]   = useState<User | null>(null);
@@ -45,7 +46,7 @@ export default function HREmployeesPage() {
     setLoading(true);
     try {
       const [u, c] = await Promise.all([
-        fetch('/api/hr/employees').then(r => r.json()),
+        fetch('/api/hr/employees?status=all').then(r => r.json()),
         fetch('/api/companies').then(r => r.json()),
       ]);
       setUsers(Array.isArray(u) ? u as User[] : []);
@@ -97,7 +98,10 @@ export default function HREmployeesPage() {
     await load();
   }
 
-  const filtered = filterSlug ? users.filter(u => u.company_slug === filterSlug) : users;
+  const byCompany   = filterSlug ? users.filter(u => u.company_slug === filterSlug) : users;
+  const activeUsers = byCompany.filter(u => u.is_active);
+  const pastUsers   = byCompany.filter(u => !u.is_active);
+  const filtered    = tab === 'active' ? activeUsers : pastUsers;
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -119,6 +123,22 @@ export default function HREmployeesPage() {
           </div>
         </div>
 
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid var(--bd)' }}>
+          {([
+            { key: 'active' as const,   label: `Aktive (${activeUsers.length})` },
+            { key: 'inactive' as const, label: `Tidligere medarbejdere (${pastUsers.length})` },
+          ]).map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '8px 4px 10px', marginRight: 18,
+                fontSize: 13, fontWeight: 600, color: tab === t.key ? 'var(--t1)' : 'var(--t3)',
+                borderBottom: tab === t.key ? '2px solid var(--bl)' : '2px solid transparent',
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <div style={{ color: 'var(--t3)', fontSize: 13, padding: '40px 0', textAlign: 'center' }}>Indlæser…</div>
         ) : (
@@ -126,14 +146,19 @@ export default function HREmployeesPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--bd)', background: 'var(--s2)' }}>
-                  {['Navn', 'Email', 'Rolle', 'Firma', 'Deltid', 'Oprettet'].map(h => (
+                  {(tab === 'active'
+                    ? ['Navn', 'Email', 'Rolle', 'Firma', 'Deltid', 'Oprettet']
+                    : ['Navn', 'Email', 'Rolle', 'Firma', 'Startdato', 'Stopdato']
+                  ).map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Ingen medarbejdere</td></tr>
+                  <tr><td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
+                    {tab === 'active' ? 'Ingen medarbejdere' : 'Ingen tidligere medarbejdere'}
+                  </td></tr>
                 )}
                 {filtered.map(u => (
                   <tr key={u.id} onClick={() => setSelected(u)}
@@ -146,8 +171,17 @@ export default function HREmployeesPage() {
                       <span style={{ fontSize: 10, fontWeight: 700, color: ROLE_COLORS[u.role] ?? 'var(--t2)', background: `${ROLE_COLORS[u.role] ?? 'var(--t2)'}22`, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>{u.role}</span>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--t2)' }}>{u.company_name ?? '—'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: u.part_time ? 'var(--ye)' : 'var(--t3)' }}>{u.part_time ? 'Ja' : 'Nej'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--t3)' }}>{fmtDate(u.created_at)}</td>
+                    {tab === 'active' ? (
+                      <>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: u.part_time ? 'var(--ye)' : 'var(--t3)' }}>{u.part_time ? 'Ja' : 'Nej'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--t3)' }}>{fmtDate(u.created_at)}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--t3)' }}>{u.start_date ? fmtDate(u.start_date) : '—'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--re)' }}>{u.end_date ? fmtDate(u.end_date) : '—'}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -225,6 +259,7 @@ function HRPanel({ user, companies, onClose, onEdit, onUpdated }: {
   const [emergency, setEmergency] = useState(user.emergency_contact ?? '');
   const [empType, setEmpType]     = useState(user.employment_type ?? 'full_time');
   const [startDate, setStartDate] = useState(user.start_date ?? '');
+  const [endDate, setEndDate]     = useState(user.end_date ?? '');
   const [companyId, setCompanyId] = useState(user.company_id != null ? String(user.company_id) : '');
   const [isActive, setIsActive]   = useState(user.is_active);
 
@@ -234,6 +269,7 @@ function HRPanel({ user, companies, onClose, onEdit, onUpdated }: {
     setEmergency(user.emergency_contact ?? '');
     setEmpType(user.employment_type ?? 'full_time');
     setStartDate(user.start_date ?? '');
+    setEndDate(user.end_date ?? '');
     setCompanyId(user.company_id != null ? String(user.company_id) : '');
     setIsActive(user.is_active);
   }, [user]);
@@ -335,11 +371,26 @@ function HRPanel({ user, companies, onClose, onEdit, onUpdated }: {
                 <input type="checkbox" checked={isActive} onChange={async e => {
                   const v = e.target.checked;
                   setIsActive(v);
-                  await patch({ is_active: v });
+                  if (v) {
+                    setEndDate('');
+                    await patch({ is_active: true, end_date: null });
+                  } else {
+                    const stop = endDate || new Date().toISOString().slice(0, 10);
+                    setEndDate(stop);
+                    await patch({ is_active: false, end_date: stop });
+                  }
                 }} style={{ width: 'auto' }} />
                 <span style={{ fontSize: 11, color: 'var(--t2)' }}>{isActive ? 'Aktiv' : 'Inaktiv'}</span>
               </label>
             </div>
+            {!isActive && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0, width: 80 }}>Stopdato</span>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                  onBlur={() => void patch({ end_date: endDate || null })}
+                  style={{ fontSize: 11, flex: 1 }} />
+              </div>
+            )}
           </div>
         </div>
       </div>

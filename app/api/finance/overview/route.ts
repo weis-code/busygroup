@@ -132,6 +132,7 @@ export async function GET(req: NextRequest) {
     FROM users
     WHERE (is_part_time = FALSE OR is_part_time IS NULL)
       AND role IN ('ADMIN', 'MANAGER', 'SELLER')
+      AND is_active = TRUE
   `;
 
   const costsMap: Record<string, number> = {};

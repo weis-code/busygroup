@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json() as {
     start_date?: string | null; phone?: string | null; address?: string | null;
     emergency_contact?: string | null; employment_type?: string | null;
-    company_id?: number | null; is_active?: boolean;
+    company_id?: number | null; is_active?: boolean; end_date?: string | null;
   };
 
   const [updated] = await sql`
@@ -22,9 +22,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       emergency_contact = ${body.emergency_contact !== undefined ? (body.emergency_contact ?? null) : sql`emergency_contact`},
       employment_type   = ${body.employment_type !== undefined ? (body.employment_type ?? 'full_time') : sql`employment_type`},
       company_id        = ${body.company_id !== undefined ? (body.company_id ?? null) : sql`company_id`},
-      is_active         = ${body.is_active !== undefined ? body.is_active : sql`is_active`}
+      is_active         = ${body.is_active !== undefined ? body.is_active : sql`is_active`},
+      end_date          = ${body.end_date !== undefined ? (body.end_date ?? null) : sql`end_date`}
     WHERE id = ${params.id}
-    RETURNING id, name, email, role, company_id, start_date::text, phone, address,
+    RETURNING id, name, email, role, company_id, start_date::text, end_date::text, phone, address,
               emergency_contact, employment_type, is_active, is_part_time AS part_time
   `;
   if (!updated) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
