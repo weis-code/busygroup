@@ -77,12 +77,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   }
 
-  const extractedText = await extractText(buffer, contentType, file.name);
+  const rawText = await extractText(buffer, contentType, file.name);
+  // Postgres text columns reject NUL bytes outright — pdf-parse regularly yields them
+  // from malformed PDFs, which would otherwise crash the insert below.
+  const extractedText = rawText ? rawText.replace(new RegExp(String.fromCharCode(0), 'g'), '') : rawText;
 
-  const [doc] = await sql`
-    INSERT INTO task_documents (task_id, filename, storage_key, content_type, extracted_text, uploaded_by)
-    VALUES (${id}, ${file.name}, ${storedKey}, ${contentType}, ${extractedText}, ${session.id})
-    RETURNING id, filename, content_type, created_at
-  `;
+  let doc;
+  try {
+    [doc] = await sql`
+      INSERT INTO task_documents (task_id, filename, storage_key, content_type, extracted_text, uploaded_by)
+      VALUES (${id}, ${file.name}, ${storedKey}, ${contentType}, ${extractedText}, ${session.id})
+      RETURNING id, filename, content_type, created_at
+    `;
+  } catch (err) {
+    console.error('[tasks/documents] insert failed:', err);
+    return NextResponse.json({ error: 'Kunne ikke gemme dokumentet' }, { status: 500 });
+  }
   return NextResponse.json({ ...doc, has_text: extractedText !== null }, { status: 201 });
 }
