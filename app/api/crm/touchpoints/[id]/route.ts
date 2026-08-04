@@ -16,6 +16,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     title, type, direction, body: noteBody, outcome, duration_minutes,
     next_action, next_action_date, next_action_done, extra,
   } = body;
+  // Personal CRM: everyone below ADMIN may only edit their own touchpoints.
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
 
   const [row] = await sql`
     UPDATE crm_touchpoints SET
@@ -29,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       next_action_date = CASE WHEN ${next_action_date !== undefined} THEN ${next_action_date ?? null} ELSE next_action_date END,
       next_action_done = CASE WHEN ${next_action_done !== undefined} THEN ${next_action_done === true} ELSE next_action_done END,
       extra            = COALESCE(${extra != null ? JSON.stringify(extra) : null}::jsonb, extra)
-    WHERE id = ${Number(id)}
+    WHERE id = ${Number(id)} ${ownerFilter}
     RETURNING *
   `;
 
@@ -44,6 +46,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   const { id } = await params;
-  await sql`DELETE FROM crm_touchpoints WHERE id = ${Number(id)}`;
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
+  const [row] = await sql`DELETE FROM crm_touchpoints WHERE id = ${Number(id)} ${ownerFilter} RETURNING id`;
+  if (!row) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

@@ -11,11 +11,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND c.owner_id = ${session.id}`;
   const [contact] = await sql`
     SELECT c.*, u.name AS owner_name
     FROM crm_contacts c
     LEFT JOIN users u ON u.id::text = c.owner_id
-    WHERE c.id = ${Number(id)} AND c.owner_id = ${session.id}
+    WHERE c.id = ${Number(id)} ${ownerFilter}
   `;
   if (!contact) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
 
@@ -50,6 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const { name, title, company_name, email, phone, linkedin, notes, country, industry, website } = await req.json();
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
 
   const [contact] = await sql`
     UPDATE crm_contacts SET
@@ -63,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       country      = COALESCE(${(country as string) ?? null}, country),
       industry     = COALESCE(${industry?.trim() ?? null}, industry),
       website      = COALESCE(${website?.trim() ?? null}, website)
-    WHERE id = ${Number(id)} AND owner_id = ${session.id}
+    WHERE id = ${Number(id)} ${ownerFilter}
     RETURNING *
   `;
 

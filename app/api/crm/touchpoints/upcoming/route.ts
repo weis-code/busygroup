@@ -14,6 +14,9 @@ export async function GET(req: NextRequest) {
   const weekEnd = new Date();
   weekEnd.setDate(weekEnd.getDate() + 7);
   const weekEndStr = weekEnd.toISOString().slice(0, 10);
+  // Personal CRM: everyone below ADMIN only sees their own upcoming actions.
+  // The owner (ADMIN) sees everyone's, consistent with /api/crm/deals.
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND t.owner_id = ${session.id}`;
 
   const rows = await sql`
     SELECT t.id, t.type, t.next_action, t.next_action_date::text,
@@ -28,6 +31,7 @@ export async function GET(req: NextRequest) {
     WHERE t.next_action IS NOT NULL
       AND t.next_action_done = FALSE
       AND t.next_action_date IS NOT NULL
+      ${ownerFilter}
     ORDER BY t.next_action_date ASC
     LIMIT 100
   `;

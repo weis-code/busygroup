@@ -13,6 +13,9 @@ export async function GET(req: NextRequest) {
   const q        = req.nextUrl.searchParams.get('q') ?? '';
   const country  = req.nextUrl.searchParams.get('country');
   const industry = req.nextUrl.searchParams.get('industry');
+  // Personal CRM: everyone below ADMIN only sees the contacts they own. The
+  // owner (ADMIN) sees everyone's, consistent with /api/crm/deals.
+  const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND c.owner_id = ${session.id}`;
 
   const contacts = await sql`
     SELECT c.*, u.name AS owner_name,
@@ -23,10 +26,10 @@ export async function GET(req: NextRequest) {
     LEFT JOIN crm_deals d ON d.contact_id = c.id AND d.status = 'open'
     LEFT JOIN crm_touchpoints tp ON tp.contact_id = c.id
       OR tp.deal_id IN (SELECT id FROM crm_deals WHERE contact_id = c.id)
-    WHERE c.owner_id = ${session.id}
-      AND (${q} = '' OR c.name ILIKE ${'%' + q + '%'} OR c.company_name ILIKE ${'%' + q + '%'})
+    WHERE (${q} = '' OR c.name ILIKE ${'%' + q + '%'} OR c.company_name ILIKE ${'%' + q + '%'})
       AND (${country ?? ''} = '' OR c.country = ${country ?? ''})
       AND (${industry ?? ''} = '' OR c.industry = ${industry ?? ''})
+      ${ownerFilter}
     GROUP BY c.id, u.name
     ORDER BY c.created_at DESC
     LIMIT 200

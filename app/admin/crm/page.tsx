@@ -289,7 +289,7 @@ function SortableStageRow({ stage, onRename, onColorChange, onProbabilityChange,
   stage: Stage; onRename: (id: number, label: string) => void;
   onColorChange: (id: number, color: string) => void;
   onProbabilityChange: (id: number, prob: number) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, moveToStageId?: number) => void;
   allStages: Stage[];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: stage.id });
@@ -348,7 +348,7 @@ function SortableStageRow({ stage, onRename, onColorChange, onProbabilityChange,
             <option value="">Flyt deals til…</option>
             {allStages.filter(s => s.id !== stage.id).map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
-          <button type="button" onClick={() => onDelete(stage.id)} style={{ color: 'var(--re)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>✓</button>
+          <button type="button" onClick={() => onDelete(stage.id, moveToId ? Number(moveToId) : undefined)} style={{ color: 'var(--re)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>✓</button>
           <button type="button" onClick={() => setShowDeleteConf(false)} style={{ color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11 }}>✕</button>
         </div>
       )}
@@ -398,8 +398,12 @@ function StageEditorModal({ stages: initStages, onClose, onSaved }: {
     setStages(ss => ss.map(s => s.id === id ? { ...s, probability } : s));
   }
 
-  async function deleteStage(id: number) {
-    await fetch(`/api/crm/stages/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+  async function deleteStage(id: number, moveToStageId?: number) {
+    await fetch(`/api/crm/stages/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(moveToStageId ? { move_deals_to_stage_id: moveToStageId } : {}),
+    });
     setStages(ss => ss.filter(s => s.id !== id));
   }
 
@@ -1295,6 +1299,10 @@ export default function CrmPipelinePage() {
   const lostDeals   = deals.filter(d => d.stage === (lostStage?.key ?? 'tabt'));
   const openDeals   = deals.filter(d => d.stage !== (wonStage?.key ?? 'vundet') && d.stage !== (lostStage?.key ?? 'tabt'));
   const wonTotal    = wonDeals.reduce((s, d) => s + Number(d.value ?? 0), 0);
+  // Deals whose stage key matches none of the visible columns (e.g. a stage that was
+  // deleted, or — for ADMIN's cross-owner view — another user's custom stage key).
+  // Without this they'd silently disappear from the board while still existing in the DB.
+  const unmatchedDeals = openDeals.filter(d => !openStages.find(s => s.key === d.stage));
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -1368,6 +1376,22 @@ export default function CrmPipelinePage() {
               </div>
             );
           })}
+
+          {/* Fallback column: deals whose stage doesn't match any known column */}
+          {!loading && unmatchedDeals.length > 0 && (
+            <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--t3)' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Andet</span>
+                <span style={{ fontSize: 10, color: 'var(--t3)', background: 'var(--s2)', padding: '1px 6px', borderRadius: 100 }}>{unmatchedDeals.length}</span>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {unmatchedDeals.map(deal => (
+                  <DealCard key={deal.id} deal={deal} stages={stages} selected={selectedDeal?.id === deal.id} onClick={() => setSelectedDeal(selectedDeal?.id === deal.id ? null : deal)} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Won + Lost columns side by side, collapsed by default */}
           {!loading && (wonStage || lostStage) && (
