@@ -838,13 +838,14 @@ export async function register() {
         id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         task_id        UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         filename       TEXT NOT NULL,
-        storage_key    TEXT NOT NULL,
+        storage_key    TEXT NULL,
         content_type   TEXT,
         extracted_text TEXT,
         uploaded_by    UUID REFERENCES users(id) ON DELETE SET NULL,
         created_at     TIMESTAMPTZ DEFAULT NOW()
       )
     `;
+    await sql2`ALTER TABLE task_documents ALTER COLUMN storage_key DROP NOT NULL`;
     await sql2`CREATE INDEX IF NOT EXISTS task_documents_task_idx ON task_documents(task_id)`;
   } catch (err) { console.error('[NLS] task_documents failed:', err); }
 
@@ -861,6 +862,24 @@ export async function register() {
     `;
     await sql2`CREATE INDEX IF NOT EXISTS task_chat_messages_task_user_idx ON task_chat_messages(task_id, user_id)`;
   } catch (err) { console.error('[NLS] task_chat_messages failed:', err); }
+
+  try {
+    await sql2`
+      CREATE TABLE IF NOT EXISTS task_assistant_questions (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        task_id     UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+        seller_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        question    TEXT NOT NULL,
+        answer      TEXT,
+        status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','answered')),
+        answered_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at  TIMESTAMPTZ DEFAULT NOW(),
+        answered_at TIMESTAMPTZ
+      )
+    `;
+    await sql2`CREATE INDEX IF NOT EXISTS task_assistant_questions_task_idx ON task_assistant_questions(task_id)`;
+    await sql2`CREATE INDEX IF NOT EXISTS task_assistant_questions_status_idx ON task_assistant_questions(status)`;
+  } catch (err) { console.error('[NLS] task_assistant_questions failed:', err); }
 
   try {
     await sql2`

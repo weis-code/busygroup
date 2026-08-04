@@ -2,6 +2,10 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 
 const bucket = process.env.STORAGE_BUCKET;
 
+export function isStorageConfigured(): boolean {
+  return !!(process.env.STORAGE_ENDPOINT && bucket && process.env.STORAGE_ACCESS_KEY_ID && process.env.STORAGE_SECRET_ACCESS_KEY);
+}
+
 function client() {
   if (!process.env.STORAGE_ENDPOINT || !bucket || !process.env.STORAGE_ACCESS_KEY_ID || !process.env.STORAGE_SECRET_ACCESS_KEY) {
     throw new Error('Storage not configured — set STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY_ID, STORAGE_SECRET_ACCESS_KEY');

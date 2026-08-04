@@ -49,6 +49,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ? docs.map(d => `--- ${d.filename} ---\n${String(d.extracted_text).slice(0, MAX_DOC_CHARS)}`).join('\n\n')
     : 'Ingen dokumenter uploadet endnu for denne opgave.';
 
+  const answeredQuestions = await sql`
+    SELECT question, answer FROM task_assistant_questions
+    WHERE task_id = ${id} AND status = 'answered'
+    ORDER BY answered_at ASC
+  `;
+  const faqContext = answeredQuestions.length > 0
+    ? answeredQuestions.map(q => `Q: ${q.question}\nA: ${q.answer}`).join('\n\n')
+    : null;
+
   const history = await sql`
     SELECT role, content FROM task_chat_messages
     WHERE task_id = ${id} AND user_id = ${session.id}
@@ -64,7 +73,7 @@ Beskrivelse: ${task.description ?? 'Ingen beskrivelse'}
 Kompensationsmodel: ${task.compensation_model}
 
 Uploadede dokumenter:
-${docContext}`;
+${docContext}${faqContext ? `\n\nTidligere spørgsmål besvaret af admin (brug disse svar hvis relevante):\n${faqContext}` : ''}`;
 
   await sql`INSERT INTO task_chat_messages (task_id, user_id, role, content) VALUES (${id}, ${session.id}, 'user', ${message.trim()})`;
 

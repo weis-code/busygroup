@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { sessionFromRequest } from '@/lib/auth';
 import { userCanAccessTask } from '@/lib/tasks';
-import { uploadObject } from '@/lib/storage';
+import { uploadObject, isStorageConfigured } from '@/lib/storage';
 import sql from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = sessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan uploade dokumenter' }, { status: 403 });
   const { id } = await params;
   if (!(await userCanAccessTask(session, id))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -64,18 +65,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const contentType = file.type || 'application/octet-stream';
   const storageKey = `task-documents/${id}/${randomUUID()}-${file.name}`;
 
-  try {
-    await uploadObject(storageKey, buffer, contentType);
-  } catch (err) {
-    console.error('[tasks/documents] upload failed:', err);
-    return NextResponse.json({ error: 'Upload til storage fejlede — tjek storage-konfiguration' }, { status: 500 });
+  // Storage is used purely for archiving the original file — the assistant only needs
+  // the extracted text below, so a storage outage/missing config shouldn't block uploads.
+  let storedKey: string | null = null;
+  if (isStorageConfigured()) {
+    try {
+      await uploadObject(storageKey, buffer, contentType);
+      storedKey = storageKey;
+    } catch (err) {
+      console.error('[tasks/documents] upload to storage failed, continuing without archived file:', err);
+    }
   }
 
   const extractedText = await extractText(buffer, contentType, file.name);
 
   const [doc] = await sql`
     INSERT INTO task_documents (task_id, filename, storage_key, content_type, extracted_text, uploaded_by)
-    VALUES (${id}, ${file.name}, ${storageKey}, ${contentType}, ${extractedText}, ${session.id})
+    VALUES (${id}, ${file.name}, ${storedKey}, ${contentType}, ${extractedText}, ${session.id})
     RETURNING id, filename, content_type, created_at
   `;
   return NextResponse.json({ ...doc, has_text: extractedText !== null }, { status: 201 });

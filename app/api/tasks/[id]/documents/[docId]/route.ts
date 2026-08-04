@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string; docId: string }> }) {
   const session = sessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'ADMIN') return NextResponse.json({ error: 'Kun admin kan slette dokumenter' }, { status: 403 });
   const { id, docId } = await params;
   if (!(await userCanAccessTask(session, id))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
