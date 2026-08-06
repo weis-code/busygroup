@@ -741,7 +741,7 @@ function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onS
   onClose: () => void; onStageChange: (stage: string) => void; onUpdated: () => void;
 }) {
   const [touchpoints, setTouchpoints] = useState<Touchpoint[]>([]);
-  const [products, setProducts]       = useState<DealProduct[]>(deal.products ?? []);
+  const [products, setProducts]       = useState<DealProduct[]>(Array.isArray(deal.products) ? deal.products : []);
   const [loading, setLoading]         = useState(true);
   const [lostReason, setLostReason]   = useState('');
   const [showLostPrompt, setShowLostPrompt] = useState(false);
@@ -939,6 +939,11 @@ function DealCard({ deal, stages, selected, onClick, isWon, isLost }: {
   const na        = deal.next_action_entry;
   const naOverdue = na && isOverdue(na.next_action_date);
   const borderColor = isWon ? 'var(--gr)' : isLost ? 'var(--re)' : stageInfo?.color ?? 'var(--t3)';
+  // deal.products can come back as the raw crm_deals.products column (a plain
+  // string[] of product names, written by the shared Meridian CRM) instead of
+  // the { id, name, price, type }[] this card expects — guard against both
+  // shapes and anything that isn't an array at all.
+  const products: (DealProduct | string)[] = Array.isArray(deal.products) ? deal.products : [];
 
   return (
     <div onClick={onClick} style={{ background: 'var(--s2)', border: `1px solid ${selected ? 'var(--bl)' : 'var(--bd)'}`, borderRadius: 9, padding: '11px 13px', marginBottom: 8, cursor: 'pointer', borderLeft: `3px solid ${borderColor}`, opacity: (isWon || isLost) ? 0.75 : 1, transition: 'border-color 0.15s' }}>
@@ -955,11 +960,11 @@ function DealCard({ deal, stages, selected, onClick, isWon, isLost }: {
         {deal.portfolio_company_name && (
           <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--s3)', color: 'var(--t2)', fontWeight: 600 }}>{deal.portfolio_company_name}</span>
         )}
-        {(deal.products ?? []).slice(0, 2).map(p => (
-          <span key={p.id} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'var(--pu2)', color: 'var(--pu)', fontWeight: 600 }}>{p.name}</span>
+        {products.slice(0, 2).map((p, i) => (
+          <span key={typeof p === 'string' ? p : p.id ?? i} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 100, background: 'var(--pu2)', color: 'var(--pu)', fontWeight: 600 }}>{typeof p === 'string' ? p : p.name}</span>
         ))}
-        {(deal.products?.length ?? 0) > 2 && (
-          <span style={{ fontSize: 10, color: 'var(--t3)' }}>+{(deal.products?.length ?? 0) - 2}</span>
+        {products.length > 2 && (
+          <span style={{ fontSize: 10, color: 'var(--t3)' }}>+{products.length - 2}</span>
         )}
       </div>
 
