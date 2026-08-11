@@ -37,11 +37,6 @@ interface Touchpoint {
   next_action: string | null; next_action_date: string | null; next_action_done: boolean;
   extra: Record<string, unknown>; owner_name: string; created_at: string;
 }
-interface UpcomingItem {
-  id: number; type: string; next_action: string; next_action_date: string;
-  deal_id: number; deal_title: string; contact_name: string | null;
-}
-interface Upcoming { overdue: UpcomingItem[]; today: UpcomingItem[]; thisWeek: UpcomingItem[]; later: UpcomingItem[] }
 interface PortfolioCompany { id: number; name: string }
 interface CrmProduct { id: number; name: string; price: number | null; type: string }
 
@@ -736,9 +731,9 @@ function TouchpointEntry({ t, onRefresh }: { t: Touchpoint; onRefresh: () => voi
 }
 
 /* ── Deal Panel ─────────────────────────────────────── */
-function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onStageChange, onUpdated }: {
+function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onStageChange, onUpdated, onDeleted }: {
   deal: Deal; stages: Stage[]; ownProducts: CrmProduct[]; portfolioCompanies: PortfolioCompany[];
-  onClose: () => void; onStageChange: (stage: string) => void; onUpdated: () => void;
+  onClose: () => void; onStageChange: (stage: string) => void; onUpdated: () => void; onDeleted: () => void;
 }) {
   const [touchpoints, setTouchpoints] = useState<Touchpoint[]>([]);
   const [products, setProducts]       = useState<DealProduct[]>(Array.isArray(deal.products) ? deal.products : []);
@@ -747,6 +742,8 @@ function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onS
   const [showLostPrompt, setShowLostPrompt] = useState(false);
   const [editing, setEditing]         = useState(false);
   const [editSaving, setEditSaving]   = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting]       = useState(false);
   const [editForm, setEditForm]       = useState({
     title: deal.title, prospect_name: deal.prospect_name ?? '',
     prospect_company: deal.prospect_company ?? '', prospect_phone: deal.prospect_phone ?? '',
@@ -755,6 +752,14 @@ function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onS
   });
 
   function setEF(k: keyof typeof editForm, v: string) { setEditForm(f => ({ ...f, [k]: v })); }
+
+  async function deleteDeal() {
+    setDeleting(true);
+    const res = await fetch(`/api/crm/deals/${deal.id}`, { method: 'DELETE' });
+    setDeleting(false);
+    if (!res.ok) { alert('Kunne ikke slette leadet (kun admin kan slette).'); return; }
+    onDeleted();
+  }
 
   async function saveEdit() {
     setEditSaving(true);
@@ -860,9 +865,20 @@ function DealPanel({ deal, stages, ownProducts, portfolioCompanies, onClose, onS
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                <button onClick={() => setEditing(true)} style={{ height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 11, padding: '0 10px', border: '1px solid var(--bd)', cursor: 'pointer' }}>Rediger</button>
-                <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bd)', flexShrink: 0 }}>×</button>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                {showDeleteConfirm ? (
+                  <>
+                    <span style={{ fontSize: 11, color: 'var(--re)' }}>Slet permanent?</span>
+                    <button onClick={deleteDeal} disabled={deleting} style={{ height: 28, borderRadius: 7, background: 'var(--re)', color: '#fff', fontSize: 11, padding: '0 10px', border: 'none', cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}>{deleting ? '…' : 'Ja, slet'}</button>
+                    <button onClick={() => setShowDeleteConfirm(false)} style={{ height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 11, padding: '0 10px', border: '1px solid var(--bd)', cursor: 'pointer' }}>Fortryd</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => setShowDeleteConfirm(true)} style={{ height: 28, borderRadius: 7, background: 'none', color: 'var(--re)', fontSize: 11, padding: '0 10px', border: '1px solid var(--bd)', cursor: 'pointer', opacity: 0.8 }}>Slet lead</button>
+                    <button onClick={() => setEditing(true)} style={{ height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 11, padding: '0 10px', border: '1px solid var(--bd)', cursor: 'pointer' }}>Rediger</button>
+                    <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--s2)', color: 'var(--t3)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bd)', flexShrink: 0 }}>×</button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1141,70 +1157,12 @@ function NewDealModal({ stages, ownProducts, portfolioCompanies, onClose, onCrea
   );
 }
 
-/* ── Næste Handlinger ───────────────────────────────── */
-function NaesteHandlingerPanel({ upcoming, onSelectDeal }: { upcoming: Upcoming; onSelectDeal: (id: number) => void }) {
-  const [open, setOpen] = useState(true);
-  const total = upcoming.overdue.length + upcoming.today.length + upcoming.thisWeek.length;
-
-  function renderItem(item: UpcomingItem, urgent = false) {
-    const meta = TYPE_META[item.type] ?? { icon: '•' };
-    return (
-      <button key={item.id} onClick={() => onSelectDeal(item.deal_id)} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', width: '100%', padding: '7px 8px', borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--s2)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
-        <span style={{ fontSize: 14 }}>{meta.icon}</span>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: urgent ? 'var(--re)' : 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.next_action}</div>
-          <div style={{ fontSize: 10, color: 'var(--t3)' }}>{item.deal_title}{item.next_action_date ? ` · ${fmtDate(item.next_action_date)}` : ''}</div>
-        </div>
-      </button>
-    );
-  }
-
-  return (
-    <div style={{ width: 240, flexShrink: 0, background: 'var(--s1)', borderRight: '1px solid var(--bd)', display: 'flex', flexDirection: 'column' }}>
-      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 0, background: 'none', border: 'none', borderBottom: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-        <span>Næste handlinger</span>
-        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {total > 0 && <span style={{ background: upcoming.overdue.length > 0 ? 'var(--re)' : 'var(--or)', color: '#fff', borderRadius: 100, padding: '1px 7px', fontSize: 10, fontWeight: 800 }}>{total}</span>}
-          <span style={{ opacity: 0.5, fontSize: 10 }}>{open ? '▲' : '▼'}</span>
-        </span>
-      </button>
-
-      {open && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '6px' }}>
-          {upcoming.overdue.length > 0 && <>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--re)', letterSpacing: '0.09em', textTransform: 'uppercase', padding: '6px 8px 2px' }}>Overskredet</div>
-            {upcoming.overdue.map(i => renderItem(i, true))}
-          </>}
-          {upcoming.today.length > 0 && <>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--ye)', letterSpacing: '0.09em', textTransform: 'uppercase', padding: '6px 8px 2px' }}>I dag</div>
-            {upcoming.today.map(i => renderItem(i))}
-          </>}
-          {upcoming.thisWeek.length > 0 && <>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase', padding: '6px 8px 2px' }}>Denne uge</div>
-            {upcoming.thisWeek.map(i => renderItem(i))}
-          </>}
-          {upcoming.later.length > 0 && <>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '0.09em', textTransform: 'uppercase', padding: '6px 8px 2px' }}>Senere</div>
-            {upcoming.later.map(i => renderItem(i))}
-          </>}
-          {total === 0 && upcoming.later.length === 0 && (
-            <div style={{ color: 'var(--t4)', fontSize: 11, padding: '16px 8px', textAlign: 'center' }}>Ingen planlagte handlinger</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Main Page ─────────────────────────────────────── */
 export default function CrmPipelinePage() {
   const [deals, setDeals]           = useState<Deal[]>([]);
   const [stages, setStages]         = useState<Stage[]>([]);
   const [ownProducts, setOwnProducts] = useState<CrmProduct[]>([]);
   const [portfolioCompanies, setPortfolioCompanies] = useState<PortfolioCompany[]>([]);
-  const [upcoming, setUpcoming]     = useState<Upcoming>({ overdue: [], today: [], thisWeek: [], later: [] });
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [showNewDeal, setShowNewDeal]   = useState(false);
   const [showStageEditor, setShowStageEditor] = useState(false);
@@ -1232,12 +1190,6 @@ export default function CrmPipelinePage() {
       }
     } catch { /* ignore — page stays empty until next reload */ }
   }
-  async function loadUpcoming() {
-    try {
-      const u = await fetch('/api/crm/touchpoints/upcoming').then(r => r.json()) as Upcoming;
-      if (u?.overdue) setUpcoming(u);
-    } catch { /* ignore */ }
-  }
   async function loadStages() {
     try {
       const rows = await fetch('/api/crm/stages').then(r => r.json()) as Stage[];
@@ -1261,7 +1213,7 @@ export default function CrmPipelinePage() {
     setLoading(true);
     try {
       await fetch('/api/crm/migrate', { method: 'POST' });
-      await Promise.all([loadDeals(), loadUpcoming(), loadStages(), loadProducts(), loadCompanies()]);
+      await Promise.all([loadDeals(), loadStages(), loadProducts(), loadCompanies()]);
     } finally {
       setLoading(false);
     }
@@ -1282,19 +1234,11 @@ export default function CrmPipelinePage() {
     if (stage === 'vundet') setToast('🎉 Deal vundet!');
   }
 
-  async function handleSelectDeal(dealId: number) {
-    const existing = deals.find(d => d.id === dealId);
-    if (existing) { setSelectedDeal(existing); return; }
-    const data = await fetch(`/api/crm/deals/${dealId}`).then(r => r.json()) as { deal: Deal };
-    if (data.deal) setSelectedDeal(data.deal);
-  }
-
   function handleDealCreated(deal: Deal) {
     setDeals(ds => [deal, ...ds]);
     setShowNewDeal(false);
     setSelectedDeal(deal);
     setToast('Lead oprettet');
-    loadUpcoming();
   }
 
   const openStages  = stages.filter(s => !s.is_won && !s.is_lost);
@@ -1312,8 +1256,6 @@ export default function CrmPipelinePage() {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {toast && <Toast msg={toast} onDone={() => setToast('')} />}
-
-      <NaesteHandlingerPanel upcoming={upcoming} onSelectDeal={handleSelectDeal} />
 
       {/* Pipeline */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1458,6 +1400,7 @@ export default function CrmPipelinePage() {
           onClose={() => setSelectedDeal(null)}
           onStageChange={handleStageChange}
           onUpdated={loadDeals}
+          onDeleted={() => { setSelectedDeal(null); setToast('Lead slettet'); loadDeals(); }}
         />
       )}
 
