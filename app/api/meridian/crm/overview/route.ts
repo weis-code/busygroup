@@ -62,12 +62,13 @@ export async function GET(req: NextRequest) {
   `;
 
   const nextActions = await sql`
-    SELECT d.id AS lead_id, d.prospect_company AS company_name, t.next_action, t.next_action_date, t.type
+    SELECT d.id AS lead_id, d.prospect_company AS company_name, t.next_action, t.next_action_date::text, t.type
     FROM crm_touchpoints t
     JOIN crm_deals d ON d.id = t.deal_id
     WHERE d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
       AND t.next_action_date IS NOT NULL
       AND t.next_action IS NOT NULL
+      AND t.next_action_done = FALSE
       ${ownerFilterT}
     ORDER BY t.next_action_date ASC
     LIMIT 20

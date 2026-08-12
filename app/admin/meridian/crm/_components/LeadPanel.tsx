@@ -83,6 +83,15 @@ export default function LeadPanel({ leadId, stages, onClose, onUpdate }: Props) 
     await loadLead();
   }
 
+  async function markActionDone(id: number) {
+    await fetch(`/api/meridian/crm/activities/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ next_action_done: true }),
+    });
+    await loadLead();
+    onUpdate();
+  }
+
   if (!lead) return (
     <div style={{ position: 'fixed', right: 0, top: 46, bottom: 0, width: 460, background: 'var(--s1)', borderLeft: '1px solid var(--bd)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>
       Indlæser…
@@ -195,9 +204,20 @@ export default function LeadPanel({ leadId, stages, onClose, onUpdate }: Props) 
                 </div>
                 {a.outcome && <span style={{ fontSize: 10, padding: '2px 6px', background: 'var(--s3)', borderRadius: 4, color: 'var(--t2)', marginBottom: 3, display: 'inline-block' }}>{a.outcome}</span>}
                 {a.body && <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 2, lineHeight: 1.5 }}>{a.body}</div>}
-                {a.next_action && (
-                  <div style={{ fontSize: 11, marginTop: 4, color: isOverdue(a.next_action_date) ? 'var(--re)' : 'var(--ye)', fontWeight: 500 }}>
-                    📅 {a.next_action}{a.next_action_date ? ` · ${fmtDate(a.next_action_date)}` : ''}
+                {a.next_action && !a.next_action_done && (
+                  <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: isOverdue(a.next_action_date) ? 'var(--re)' : 'var(--ye)', fontWeight: 500 }}>
+                      📅 {a.next_action}{a.next_action_date ? ` · ${fmtDate(a.next_action_date)}` : ''}
+                    </span>
+                    <button onClick={() => void markActionDone(a.id)}
+                      style={{ fontSize: 10, color: 'var(--gr)', background: 'var(--gr2)', border: 'none', borderRadius: 100, padding: '2px 8px', fontWeight: 600, cursor: 'pointer' }}>
+                      ✓ Udført
+                    </button>
+                  </div>
+                )}
+                {a.next_action && a.next_action_done && (
+                  <div style={{ fontSize: 11, marginTop: 4, color: 'var(--t3)', textDecoration: 'line-through' }}>
+                    {a.next_action}
                   </div>
                 )}
               </div>

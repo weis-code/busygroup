@@ -14,7 +14,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json() as {
     type?: string; direction?: string; title?: string; body?: string;
-    outcome?: string; next_action?: string; next_action_date?: string | null; occurred_at?: string;
+    outcome?: string; next_action?: string; next_action_date?: string | null;
+    next_action_done?: boolean; occurred_at?: string;
   };
 
   const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND d.owner_id = ${session.id}`;
@@ -26,6 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       body             = COALESCE(${body.body      ?? null}, body),
       outcome          = COALESCE(${body.outcome   ?? null}, outcome),
       next_action      = COALESCE(${body.next_action ?? null}, next_action),
+      next_action_done = CASE WHEN ${body.next_action_done !== undefined} THEN ${body.next_action_done === true} ELSE next_action_done END,
       occurred_at      = COALESCE(${body.occurred_at ?? null}, occurred_at)
     WHERE t.id = ${Number(id)}
       AND EXISTS (
@@ -34,12 +36,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           ${ownerFilter}
       )
     RETURNING id, owner_id, deal_id AS lead_id, type, direction, title, body,
-              outcome, next_action, next_action_date, occurred_at, created_at
+              outcome, next_action, next_action_date::text, next_action_done, occurred_at, created_at
   `;
   if (!updated) return notFound();
 
   if ('next_action_date' in body) {
-    await sql`UPDATE crm_touchpoints SET next_action_date = ${body.next_action_date ?? null} WHERE id = ${Number(id)}`;
+    const nextActionDate = body.next_action_date?.trim() ? body.next_action_date : null;
+    await sql`UPDATE crm_touchpoints SET next_action_date = ${nextActionDate} WHERE id = ${Number(id)}`;
+    updated.next_action_date = nextActionDate;
   }
   return NextResponse.json(updated);
 }

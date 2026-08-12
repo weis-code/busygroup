@@ -22,7 +22,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       d.expected_close AS expected_close_date, d.probability,
       d.won_at, d.lost_at, d.lost_reason, d.notes, d.created_at, d.updated_at,
       s.label AS stage_name, s.color AS stage_color,
-      COALESCE(s.is_won, false) AS is_won, COALESCE(s.is_lost, false) AS is_lost
+      COALESCE(s.is_won, false) AS is_won, COALESCE(s.is_lost, false) AS is_lost,
+      (
+        SELECT t.next_action || ' · ' || TO_CHAR(t.next_action_date, 'DD. Mon.')
+        FROM crm_touchpoints t
+        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL AND t.next_action_done = FALSE
+        ORDER BY t.next_action_date ASC
+        LIMIT 1
+      ) AS next_action_label,
+      (
+        SELECT t.next_action_date::text
+        FROM crm_touchpoints t
+        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL AND t.next_action_done = FALSE
+        ORDER BY t.next_action_date ASC
+        LIMIT 1
+      ) AS next_action_date
     FROM crm_deals d
     LEFT JOIN crm_pipeline_stages s ON s.id = d.stage_id
     WHERE d.id = ${Number(id)} AND d.workspace_id = (SELECT id FROM companies WHERE slug = 'meridian')
@@ -32,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const activities = await sql`
     SELECT id, owner_id, deal_id AS lead_id, type, direction, title, body, outcome,
-           next_action, next_action_date, occurred_at, created_at
+           next_action, next_action_date::text, next_action_done, occurred_at, created_at
     FROM crm_touchpoints
     WHERE deal_id = ${Number(id)}
     ORDER BY occurred_at DESC, created_at DESC

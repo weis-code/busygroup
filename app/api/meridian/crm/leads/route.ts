@@ -46,14 +46,14 @@ export async function GET(req: NextRequest) {
       (
         SELECT t.next_action || ' · ' || TO_CHAR(t.next_action_date, 'DD. Mon.')
         FROM crm_touchpoints t
-        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL
+        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL AND t.next_action_done = FALSE
         ORDER BY t.next_action_date ASC
         LIMIT 1
       ) AS next_action_label,
       (
-        SELECT t.next_action_date
+        SELECT t.next_action_date::text
         FROM crm_touchpoints t
-        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL
+        WHERE t.deal_id = d.id AND t.next_action_date IS NOT NULL AND t.next_action_done = FALSE
         ORDER BY t.next_action_date ASC
         LIMIT 1
       ) AS next_action_date

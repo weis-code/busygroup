@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const activities = await sql`
     SELECT t.id, t.owner_id, t.deal_id AS lead_id, t.type, t.direction, t.title, t.body,
-           t.outcome, t.next_action, t.next_action_date, t.occurred_at, t.created_at,
+           t.outcome, t.next_action, t.next_action_date::text, t.next_action_done, t.occurred_at, t.created_at,
            d.prospect_company AS company_name
     FROM crm_touchpoints t
     JOIN crm_deals d ON d.id = t.deal_id
@@ -50,6 +50,10 @@ export async function POST(req: NextRequest) {
   `;
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
 
+  // Empty-string next_action_date must become NULL — an empty string in a
+  // DATE column crashes the driver.
+  const nextActionDate = body.next_action_date?.trim() ? body.next_action_date : null;
+
   const [activity] = await sql`
     INSERT INTO crm_touchpoints
       (owner_id, deal_id, type, direction, title, body, outcome, next_action, next_action_date, occurred_at)
@@ -57,11 +61,11 @@ export async function POST(req: NextRequest) {
       ${session.id}, ${body.lead_id}, ${body.type},
       ${body.direction ?? 'outbound'}, ${body.title ?? null},
       ${body.body ?? null}, ${body.outcome ?? null},
-      ${body.next_action ?? null}, ${body.next_action_date ?? null},
+      ${body.next_action ?? null}, ${nextActionDate},
       COALESCE(${body.occurred_at ?? null}::timestamptz, NOW())
     )
     RETURNING id, owner_id, deal_id AS lead_id, type, direction, title, body,
-              outcome, next_action, next_action_date, occurred_at, created_at
+              outcome, next_action, next_action_date::text, next_action_done, occurred_at, created_at
   `;
   return NextResponse.json(activity, { status: 201 });
 }

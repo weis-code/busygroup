@@ -23,7 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!deal) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
 
   const touchpoints = await sql`
-    SELECT t.*, u.name AS owner_name
+    SELECT t.id, t.owner_id, t.deal_id, t.contact_id, t.type, t.direction, t.title, t.body,
+           t.outcome, t.duration_minutes, t.next_action, t.next_action_date::text, t.next_action_done,
+           t.extra, t.created_at, t.occurred_at, u.name AS owner_name
     FROM crm_touchpoints t
     LEFT JOIN users u ON u.id::text = t.owner_id
     WHERE t.deal_id = ${Number(id)}

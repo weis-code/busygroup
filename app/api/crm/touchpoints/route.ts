@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
 
   if (dealId) {
     const rows = await sql`
-      SELECT t.*, u.name AS owner_name
+      SELECT t.id, t.owner_id, t.deal_id, t.contact_id, t.type, t.direction, t.title, t.body,
+             t.outcome, t.duration_minutes, t.next_action, t.next_action_date::text, t.next_action_done,
+             t.extra, t.created_at, t.occurred_at, u.name AS owner_name
       FROM crm_touchpoints t
       LEFT JOIN users u ON u.id::text = t.owner_id
       WHERE t.deal_id = ${Number(dealId)}
@@ -42,7 +44,9 @@ export async function GET(req: NextRequest) {
 
   if (contactId) {
     const rows = await sql`
-      SELECT t.*, u.name AS owner_name, d.title AS deal_title
+      SELECT t.id, t.owner_id, t.deal_id, t.contact_id, t.type, t.direction, t.title, t.body,
+             t.outcome, t.duration_minutes, t.next_action, t.next_action_date::text, t.next_action_done,
+             t.extra, t.created_at, t.occurred_at, u.name AS owner_name, d.title AS deal_title
       FROM crm_touchpoints t
       LEFT JOIN users u ON u.id::text = t.owner_id
       LEFT JOIN crm_deals d ON d.id = t.deal_id
@@ -75,6 +79,9 @@ export async function POST(req: NextRequest) {
   }
 
   const resolvedTitle = (title?.trim() || autoTitle(type, direction ?? null, outcome ?? null));
+  // Empty-string next_action_date must become NULL — an empty string in a
+  // DATE column crashes the driver.
+  const nextActionDate = next_action_date?.trim() ? next_action_date : null;
 
   const [row] = await sql`
     INSERT INTO crm_touchpoints (
@@ -91,10 +98,11 @@ export async function POST(req: NextRequest) {
       ${outcome ?? null},
       ${duration_minutes ? Number(duration_minutes) : null},
       ${next_action?.trim() ?? null},
-      ${next_action_date ?? null},
+      ${nextActionDate},
       ${JSON.stringify(extra ?? {})}
     )
-    RETURNING *
+    RETURNING id, owner_id, deal_id, contact_id, type, direction, title, body, outcome,
+              duration_minutes, next_action, next_action_date::text, next_action_done, extra, created_at, occurred_at
   `;
 
   return NextResponse.json(row, { status: 201 });

@@ -18,6 +18,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } = body;
   // Personal CRM: everyone below ADMIN may only edit their own touchpoints.
   const ownerFilter = session.role === 'ADMIN' ? sql`` : sql`AND owner_id = ${session.id}`;
+  // Empty-string next_action_date must become NULL — an empty string in a
+  // DATE column crashes the driver.
+  const nextActionDate = typeof next_action_date === 'string' && !next_action_date.trim() ? null : next_action_date;
 
   const [row] = await sql`
     UPDATE crm_touchpoints SET
@@ -28,11 +31,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       outcome          = COALESCE(${(outcome as string) ?? null}, outcome),
       duration_minutes = COALESCE(${duration_minutes != null ? Number(duration_minutes) : null}, duration_minutes),
       next_action      = CASE WHEN ${next_action !== undefined} THEN ${next_action?.trim() ?? null} ELSE next_action END,
-      next_action_date = CASE WHEN ${next_action_date !== undefined} THEN ${next_action_date ?? null} ELSE next_action_date END,
+      next_action_date = CASE WHEN ${nextActionDate !== undefined} THEN ${nextActionDate ?? null} ELSE next_action_date END,
       next_action_done = CASE WHEN ${next_action_done !== undefined} THEN ${next_action_done === true} ELSE next_action_done END,
       extra            = COALESCE(${extra != null ? JSON.stringify(extra) : null}::jsonb, extra)
     WHERE id = ${Number(id)} ${ownerFilter}
-    RETURNING *
+    RETURNING id, owner_id, deal_id, contact_id, type, direction, title, body, outcome,
+              duration_minutes, next_action, next_action_date::text, next_action_done, extra, created_at, occurred_at
   `;
 
   if (!row) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });

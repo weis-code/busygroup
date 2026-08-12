@@ -19,7 +19,7 @@ export interface Lead {
 export interface Activity {
   id: number; owner_id: string; lead_id: number; type: string; direction: string;
   title: string | null; body: string | null; outcome: string | null;
-  next_action: string | null; next_action_date: string | null;
+  next_action: string | null; next_action_date: string | null; next_action_done: boolean;
   occurred_at: string; created_at: string;
   company_name?: string;
 }
