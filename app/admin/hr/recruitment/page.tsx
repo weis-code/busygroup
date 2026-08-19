@@ -145,7 +145,6 @@ export default function HRRecruitmentPage() {
       {selected && (
         <CandidatePanel
           candidate={selected}
-          companies={companies}
           users={users}
           onClose={() => { setSelected(null); setSelectedId(null); }}
           onUpdated={refreshSelected}

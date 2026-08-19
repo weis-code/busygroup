@@ -3,15 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   STAGES, FUNNEL_STAGES, INTERVIEW_FORMATS, stageConfig, sourceLabel,
-  fmtDateLong, fmtDateShort, fmtDatetime, daysUntil, timeAgo, initials, avatarColor,
+  fmtDateLong, fmtDateShort, daysUntil, timeAgo, initials, avatarColor,
 } from '@/lib/recruitment';
-import type { CandidateDetail, Comment, ChecklistItem, Company, UserOption, ChecklistTemplate } from './types';
+import type { CandidateDetail, Comment, ChecklistItem, UserOption, ChecklistTemplate } from './types';
 
 const SAMTALE_STAGES = FUNNEL_STAGES.slice(FUNNEL_STAGES.indexOf('samtale_booket'));
 
-export default function CandidatePanel({ candidate, companies, users, onClose, onUpdated, onDeleted, onEdit, onToast }: {
+export default function CandidatePanel({ candidate, users, onClose, onUpdated, onDeleted, onEdit, onToast }: {
   candidate: CandidateDetail;
-  companies: Company[];
   users: UserOption[];
   onClose: () => void;
   onUpdated: () => Promise<void>;
