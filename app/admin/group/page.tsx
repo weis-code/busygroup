@@ -265,7 +265,7 @@ export default function GroupPage() {
                   <div>
                     <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 3 }}>Aktive kandidater</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>
-                      {candidates.filter(c => !['hired', 'stopped'].includes(c.stage)).length}
+                      {candidates.filter(c => !['ansat', 'intet_svar', 'stoppet'].includes(c.stage)).length}
                     </div>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>

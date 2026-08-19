@@ -643,6 +643,94 @@ export async function register() {
     `;
   } catch (err) { console.error('[NLS] hr_candidates tables failed:', err); }
 
+  try {
+    // Recruitment system v2 — extend hr_candidates with source/assignment/outcome tracking
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS source TEXT`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS salary_expectation TEXT`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS location TEXT`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS interview_notes TEXT`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS interview_format TEXT`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS rejection_reason TEXT`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS hired_at TIMESTAMPTZ NULL`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS stopped_at TIMESTAMPTZ NULL`;
+    await sql`ALTER TABLE hr_candidates ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES users(id) NULL`;
+
+    // Remap old pipeline stage keys to the new fixed 9-stage pipeline (idempotent —
+    // only touches rows still sitting on a pre-v2 key).
+    await sql`
+      UPDATE hr_candidates SET stage = CASE stage
+        WHEN 'applied'           THEN 'ansøgt'
+        WHEN 'no_response'       THEN 'intet_svar'
+        WHEN 'interview_booked'  THEN 'samtale_booket'
+        WHEN 'follow_up'         THEN 'opfølgning'
+        WHEN 'hired'             THEN 'ansat'
+        WHEN 'stopped'           THEN 'stoppet'
+        ELSE stage
+      END
+      WHERE stage IN ('applied', 'no_response', 'interview_booked', 'follow_up', 'hired', 'stopped')
+    `;
+    await sql`ALTER TABLE hr_candidates ALTER COLUMN stage SET DEFAULT 'ansøgt'`;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS recruitment_checklist_templates (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        company_id INTEGER REFERENCES companies(id) NULL,
+        created_by UUID REFERENCES users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS recruitment_checklist_items (
+        id SERIAL PRIMARY KEY,
+        template_id INTEGER REFERENCES recruitment_checklist_templates(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT,
+        position INTEGER NOT NULL DEFAULT 0,
+        days_before_start INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS recruitment_candidate_checklist (
+        id SERIAL PRIMARY KEY,
+        candidate_id INTEGER REFERENCES hr_candidates(id) ON DELETE CASCADE,
+        template_item_id INTEGER REFERENCES recruitment_checklist_items(id) ON DELETE SET NULL NULL,
+        title TEXT NOT NULL,
+        is_completed BOOLEAN DEFAULT false,
+        completed_at TIMESTAMPTZ NULL,
+        completed_by UUID REFERENCES users(id) NULL,
+        due_date DATE NULL,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS recruitment_candidate_checklist_candidate_idx ON recruitment_candidate_checklist(candidate_id)`;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS recruitment_stage_history (
+        id SERIAL PRIMARY KEY,
+        candidate_id INTEGER REFERENCES hr_candidates(id) ON DELETE CASCADE,
+        from_stage TEXT,
+        to_stage TEXT NOT NULL,
+        changed_by UUID REFERENCES users(id),
+        changed_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`CREATE INDEX IF NOT EXISTS recruitment_stage_history_candidate_idx ON recruitment_stage_history(candidate_id)`;
+
+    // Backfill: every pre-v2 candidate needs at least one history row so
+    // days-in-stage/analytics work correctly for candidates created before this migration.
+    await sql`
+      INSERT INTO recruitment_stage_history (candidate_id, from_stage, to_stage, changed_by, changed_at)
+      SELECT c.id, NULL, c.stage, c.created_by, COALESCE(c.applied_at::timestamptz, c.created_at)
+      FROM hr_candidates c
+      WHERE NOT EXISTS (SELECT 1 FROM recruitment_stage_history h WHERE h.candidate_id = c.id)
+    `;
+  } catch (err) { console.error('[NLS] recruitment system v2 migration failed:', err); }
+
   // Base platform tables — re-attempted in isolation so a failure earlier in the main
   // block doesn't leave these tables uncreated on subsequent restarts.
   const { default: sql2 } = await import('./lib/db');
