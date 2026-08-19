@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Navn og stilling kræves' }, { status: 400 });
   }
 
-  const [candidate] = await sql.begin(async tx => {
+  const [candidate] = await sql.begin(async txRaw => {
+    const tx = txRaw as unknown as typeof sql;
     const [c] = await tx`
       INSERT INTO hr_candidates
         (full_name, email, phone, linkedin, applying_for, company_id,

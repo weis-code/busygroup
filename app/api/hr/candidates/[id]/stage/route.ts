@@ -18,7 +18,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!current) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
   if (current.stage === stage) return NextResponse.json({ id: params.id, stage });
 
-  const [updated] = await sql.begin(async tx => {
+  const [updated] = await sql.begin(async txRaw => {
+    const tx = txRaw as unknown as typeof sql;
     const [u] = await tx`
       UPDATE hr_candidates SET
         stage = ${stage},

@@ -9,7 +9,8 @@ async function ensureDefaultTemplate(userId: string) {
   const [{ count }] = await sql`SELECT COUNT(*)::int AS count FROM recruitment_checklist_templates`;
   if (count > 0) return;
 
-  await sql.begin(async tx => {
+  await sql.begin(async txRaw => {
+    const tx = txRaw as unknown as typeof sql;
     const [template] = await tx`
       INSERT INTO recruitment_checklist_templates (name, company_id, created_by)
       VALUES (${DEFAULT_CHECKLIST_TEMPLATE_NAME}, NULL, ${userId})
