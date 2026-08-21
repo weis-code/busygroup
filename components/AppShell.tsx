@@ -79,6 +79,7 @@ const UNIFIED_BOTTOM_NAV: { href: string; label: string; icon: React.ReactNode }
 const sellerNav: NavEntry[] = [
   { href: '/dashboard',             label: 'Overblik',      icon: <GridIcon /> },
   { href: '/dashboard/daily',       label: 'Dagligt mål',   icon: <TargetIcon /> },
+  { href: '/dashboard/crm',         label: 'Min pipeline',  icon: <CrmIcon /> },
   { href: '/dashboard/sales',       label: 'Mine salg',     icon: <SalesIcon /> },
   { href: '/dashboard/sitrep',      label: 'Sitrep',        icon: <NoteIcon /> },
   { href: '/dashboard/absence',     label: 'Fravær',        icon: <CalendarIcon /> },

@@ -7,11 +7,18 @@ export const dynamic = 'force-dynamic';
 // Add a product to a deal
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = sessionFromRequest(req);
-  if (!session || session.role === 'SELLER') {
+  if (!session) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { id } = await params;
+
+  // Personal CRM: everyone below ADMIN may only touch products on deals they own.
+  if (session.role !== 'ADMIN') {
+    const [owned] = await sql`SELECT id FROM crm_deals WHERE id = ${Number(id)} AND owner_id = ${session.id}`;
+    if (!owned) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
+  }
+
   const { product_id, name, price, type } = await req.json();
 
   // If product_id provided, snapshot from products table

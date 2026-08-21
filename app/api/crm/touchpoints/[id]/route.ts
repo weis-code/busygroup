@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = sessionFromRequest(req);
-  if (!session || session.role === 'SELLER') {
+  if (!session) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = sessionFromRequest(req);
-  if (!session || session.role === 'SELLER') {
+  if (!session) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

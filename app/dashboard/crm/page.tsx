@@ -2,6 +2,6 @@
 
 import CrmBoard from '@/components/crm/CrmBoard';
 
-export default function CrmPipelinePage() {
+export default function SellerCrmPage() {
   return <CrmBoard />;
 }

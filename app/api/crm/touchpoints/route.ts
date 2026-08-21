@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = sessionFromRequest(req);
-  if (!session || session.role === 'SELLER') {
+  if (!session) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -76,6 +76,12 @@ export async function POST(req: NextRequest) {
   if (!deal_id) return NextResponse.json({ error: 'deal_id kræves' }, { status: 400 });
   if (!type || !VALID_TYPES.includes(type)) {
     return NextResponse.json({ error: 'Ugyldig type' }, { status: 400 });
+  }
+
+  // Personal CRM: everyone below ADMIN may only log activity on deals they own.
+  if (session.role !== 'ADMIN') {
+    const [owned] = await sql`SELECT id FROM crm_deals WHERE id = ${Number(deal_id)} AND owner_id = ${session.id}`;
+    if (!owned) return NextResponse.json({ error: 'Ikke fundet' }, { status: 404 });
   }
 
   const resolvedTitle = (title?.trim() || autoTitle(type, direction ?? null, outcome ?? null));
