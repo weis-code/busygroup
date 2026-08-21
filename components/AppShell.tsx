@@ -47,6 +47,7 @@ const COMPANY_GROUPS: CompanyGroup[] = [
       { href: '/admin/followups',        label: 'Follow-ups',        icon: <FollowIcon /> },
       { href: '/admin/presence',         label: 'Tilstedeværelse',   icon: <UserCheckIcon /> },
       { href: '/admin/daily',            label: 'Daglige mål',       icon: <BarIcon /> },
+      { href: '/dashboard/daily',        label: 'Mit dagligt mål',   icon: <TargetIcon /> },
       { href: '/admin/sellers',          label: 'Sælgere',           icon: <TeamIcon /> },
       { href: '/admin/sales',            label: 'Mine salg',         icon: <SalesIcon /> },
       { href: '/admin/revenue',          label: 'Revenue',           icon: <BarIcon /> },

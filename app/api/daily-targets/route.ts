@@ -11,16 +11,16 @@ export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get('date') || new Date().toISOString().slice(0, 10);
 
   const [dt] = await sql`
-    SELECT call_goal, sales_goal, calls_actual, contacts_actual, meetings_booked_actual, meetings_held_actual
+    SELECT call_goal, sales_goal, calls_actual, contacts_actual, meetings_booked_actual, meetings_held_actual, sales_actual
     FROM daily_targets
     WHERE user_id = ${session.id} AND date = ${date}
   `;
 
-  const [salesActual] = await sql`
-    SELECT COUNT(*)::int AS sales_today
-    FROM sales
-    WHERE user_id = ${session.id} AND date = ${date}
-  `;
+  // Sellers get a live count from real sales; everyone else (e.g. an
+  // opted-in admin) types their own number in via the admin daily-targets editor.
+  const salesToday = session.role === 'SELLER'
+    ? (await sql`SELECT COUNT(*)::int AS sales_today FROM sales WHERE user_id = ${session.id} AND date = ${date}`)[0].sales_today
+    : (dt?.sales_actual ?? 0);
 
   const [absence] = await sql`
     SELECT type FROM absences
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     contacts_today: dt?.contacts_actual ?? 0,
     booked_today: dt?.meetings_booked_actual ?? 0,
     held_today: dt?.meetings_held_actual ?? 0,
-    sales_today: salesActual.sales_today,
+    sales_today: salesToday,
     is_absent: !!absence,
     absence_type: absence?.type ?? null,
   });

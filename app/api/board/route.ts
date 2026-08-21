@@ -23,12 +23,17 @@ export async function GET() {
       COALESCE(dt.sales_goal, 0)::int      AS sales_goal,
       COALESCE(dt.calls_actual, 0)::int    AS calls_today,
       COALESCE(dt.contacts_actual, 0)::int AS contacts_today,
-      COALESCE(COUNT(DISTINCT s.id), 0)::int AS sales_today
+      -- Sellers get a live count from real sales; everyone else (e.g. an
+      -- opted-in admin) types their own number in, stored on daily_targets.
+      CASE WHEN u.role = 'SELLER'
+           THEN COALESCE(COUNT(DISTINCT s.id), 0)::int
+           ELSE COALESCE(dt.sales_actual, 0)::int
+      END                                   AS sales_today
     FROM users u
     LEFT JOIN daily_targets dt ON dt.user_id = u.id AND dt.date = ${today}
     LEFT JOIN sales s ON s.user_id = u.id AND s.date = ${today}
-    WHERE u.role = 'SELLER' AND u.is_active = TRUE
-    GROUP BY u.id, u.name, dt.call_goal, dt.sales_goal, dt.calls_actual, dt.contacts_actual
+    WHERE (u.role = 'SELLER' OR u.on_daily_board = TRUE) AND u.is_active = TRUE
+    GROUP BY u.id, u.name, u.role, dt.call_goal, dt.sales_goal, dt.calls_actual, dt.contacts_actual, dt.sales_actual
     ORDER BY sales_today DESC, calls_today DESC, u.name
   `;
 

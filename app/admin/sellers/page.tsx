@@ -2,7 +2,7 @@
 
 import { useEffect, useState, FormEvent } from 'react';
 
-interface User { id: string; email: string; name: string; role: string; is_part_time: boolean; created_at: string }
+interface User { id: string; email: string; name: string; role: string; is_part_time: boolean; on_daily_board: boolean; created_at: string }
 
 interface DayRow  { date: string; calls: number; contacts: number; call_goal: number; sales_goal: number; sales: number }
 interface SaleRow { id: string; date: string; cvr: string | null; company_name: string | null; deal_size: number | null; status: string; task_name: string; display_mode: string; compensation_model: string; package_name: string | null }
@@ -38,6 +38,7 @@ export default function SellersPage() {
   const [password, setPassword] = useState('');
   const [role, setRole]         = useState('SELLER');
   const [isPartTime, setIsPartTime] = useState(false);
+  const [onDailyBoard, setOnDailyBoard] = useState(false);
 
   const [detail, setDetail]         = useState<SellerDetail | null>(null);
   const [detailUser, setDetailUser] = useState<User | null>(null);
@@ -53,6 +54,7 @@ export default function SellersPage() {
   const [editEmail, setEditEmail]             = useState('');
   const [editRole, setEditRole]               = useState('');
   const [editIsPartTime, setEditIsPartTime]   = useState(false);
+  const [editOnDailyBoard, setEditOnDailyBoard] = useState(false);
   const [editNewPassword, setEditNewPassword] = useState('');
   const [editLoading, setEditLoading]         = useState(false);
   const [editError, setEditError]             = useState('');
@@ -83,7 +85,7 @@ export default function SellersPage() {
     setLoadingDetail(false);
   }
 
-  function reset() { setEmail(''); setName(''); setPassword(''); setRole('SELLER'); setIsPartTime(false); setError(''); }
+  function reset() { setEmail(''); setName(''); setPassword(''); setRole('SELLER'); setIsPartTime(false); setOnDailyBoard(false); setError(''); }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -92,7 +94,7 @@ export default function SellersPage() {
     try {
       const res = await fetch('/api/admin/sellers', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password, role, is_part_time: isPartTime }),
+        body: JSON.stringify({ email, name, password, role, is_part_time: isPartTime, on_daily_board: onDailyBoard }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Fejl'); return; }
@@ -163,7 +165,7 @@ export default function SellersPage() {
   function openEditUser(u: User, e: React.MouseEvent) {
     e.stopPropagation();
     setEditUser(u); setEditName(u.name); setEditEmail(u.email); setEditRole(u.role);
-    setEditIsPartTime(u.is_part_time); setEditNewPassword(''); setEditError('');
+    setEditIsPartTime(u.is_part_time); setEditOnDailyBoard(u.on_daily_board); setEditNewPassword(''); setEditError('');
   }
 
   async function submitEditUser(e: FormEvent) {
@@ -173,7 +175,7 @@ export default function SellersPage() {
     try {
       const res = await fetch(`/api/admin/sellers/${editUser.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editName, email: editEmail, role: editRole, is_part_time: editIsPartTime, ...(editNewPassword ? { new_password: editNewPassword } : {}) }),
+        body: JSON.stringify({ name: editName, email: editEmail, role: editRole, is_part_time: editIsPartTime, on_daily_board: editOnDailyBoard, ...(editNewPassword ? { new_password: editNewPassword } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) { setEditError(data.error || 'Fejl'); return; }
@@ -221,6 +223,7 @@ export default function SellersPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, fontWeight: 700, background: ROLE_BG[u.role], color: ROLE_CLR[u.role] }}>{u.role}</span>
                     {u.is_part_time && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 700, background: 'var(--pu2)', color: 'var(--pu)', border: '1px solid var(--pu)' }}>DELTID</span>}
+                    {u.role !== 'SELLER' && u.on_daily_board && <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 700, background: 'var(--bl2)', color: 'var(--bl)', border: '1px solid var(--bl)' }}>DAGLIGT BOARD</span>}
                   </div>
                 </td>
                 <td style={{ color: 'var(--t3)' }}>{new Date(u.created_at).toLocaleDateString('da-DK')}</td>
@@ -374,6 +377,15 @@ export default function SellersPage() {
                   <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 2 }}>Tæller ikke med i Omsætning pr. FTE</div>
                 </div>
               </label>
+              {editRole !== 'SELLER' && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', background: editOnDailyBoard ? 'var(--bl2)' : 'var(--s2)', borderRadius: 7, border: `1px solid ${editOnDailyBoard ? 'var(--bl)' : 'var(--bd)'}` }}>
+                  <input type="checkbox" checked={editOnDailyBoard} onChange={e => setEditOnDailyBoard(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--bl)' }} />
+                  <div>
+                    <div style={{ fontSize: 13, color: editOnDailyBoard ? 'var(--bl)' : 'var(--t1)', fontWeight: editOnDailyBoard ? 600 : 400 }}>Med på dagligt board</div>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 2 }}>Får et dagligt mål og vises på boarddaglig ligesom en sælger</div>
+                  </div>
+                </label>
+              )}
               {editError && <div className="alert-error">{editError}</div>}
               <div className="modal-footer">
                 <button type="button" onClick={() => setEditUser(null)} className="btn btn-ghost" style={{ flex: 1 }}>Annuller</button>
@@ -419,6 +431,15 @@ export default function SellersPage() {
                   <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 2 }}>Tæller ikke med i Omsætning pr. FTE</div>
                 </div>
               </label>
+              {role !== 'SELLER' && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', background: onDailyBoard ? 'var(--bl2)' : 'var(--s2)', borderRadius: 7, border: `1px solid ${onDailyBoard ? 'var(--bl)' : 'var(--bd)'}` }}>
+                  <input type="checkbox" checked={onDailyBoard} onChange={e => setOnDailyBoard(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--bl)' }} />
+                  <div>
+                    <div style={{ fontSize: 13, color: onDailyBoard ? 'var(--bl)' : 'var(--t1)', fontWeight: onDailyBoard ? 600 : 400 }}>Med på dagligt board</div>
+                    <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 2 }}>Får et dagligt mål og vises på boarddaglig ligesom en sælger</div>
+                  </div>
+                </label>
+              )}
               {error && <div className="alert-error">{error}</div>}
               <div className="modal-footer">
                 <button type="button" onClick={() => setOpen(false)} className="btn btn-ghost" style={{ flex: 1 }}>Annuller</button>

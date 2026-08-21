@@ -7,7 +7,7 @@ const ABSENCE_CLR: Record<string, string>   = { VACATION: 'var(--bl)', SICK: 'va
 const ABSENCE_BG: Record<string, string>    = { VACATION: 'var(--bl2)', SICK: 'var(--re2)', OTHER: 'var(--ye2)' };
 
 interface SellerRow {
-  id: string; name: string;
+  id: string; name: string; role: string;
   call_goal: number; sales_goal: number;
   calls_actual: number; contacts_actual: number;
   meetings_booked_actual: number; meetings_held_actual: number;
@@ -86,7 +86,13 @@ export default function AdminDailyPage() {
     setRows(prev => prev.map(r => r.id === userId ? updated : r));
     await fetch('/api/admin/daily-targets', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, date, call_goal: updated.call_goal, sales_goal: updated.sales_goal, calls_actual: updated.calls_actual, contacts_actual: updated.contacts_actual, meetings_booked_actual: updated.meetings_booked_actual, meetings_held_actual: updated.meetings_held_actual }),
+      body: JSON.stringify({
+        user_id: userId, date, call_goal: updated.call_goal, sales_goal: updated.sales_goal,
+        calls_actual: updated.calls_actual, contacts_actual: updated.contacts_actual,
+        meetings_booked_actual: updated.meetings_booked_actual, meetings_held_actual: updated.meetings_held_actual,
+        // Non-sellers (e.g. an opted-in admin) type their own sales count in — sellers' is derived live from real sales, so don't overwrite it
+        ...(updated.role !== 'SELLER' ? { sales_actual: updated.sales_today } : {}),
+      }),
     });
   }
 
@@ -148,7 +154,11 @@ export default function AdminDailyPage() {
               <div style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 500 }}>Salg</div>
               <div style={{ display: 'flex', justifyContent: 'center' }}><NumInput value={row.sales_goal} onSave={v => save(row.id, 'sales_goal', v)} /></div>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--gr)', fontVariantNumeric: 'tabular-nums' }}>{row.sales_today}</span>
+                {row.role === 'SELLER' ? (
+                  <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--gr)', fontVariantNumeric: 'tabular-nums' }}>{row.sales_today}</span>
+                ) : (
+                  <NumInput value={row.sales_today} onSave={v => save(row.id, 'sales_today', v)} />
+                )}
               </div>
               <StatusBar value={row.sales_today} goal={row.sales_goal} accent="var(--gr)" />
             </div>

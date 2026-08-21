@@ -166,6 +166,8 @@ export async function register() {
 
   try {
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_part_time BOOLEAN NOT NULL DEFAULT FALSE`;
+    // Lets a non-seller (typically ADMIN) opt in to appearing on the daily board/goal editor alongside sellers
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS on_daily_board BOOLEAN NOT NULL DEFAULT FALSE`;
 
     // Ensure role check constraint includes all roles (safe to run on every boot)
     await sql`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check`;
@@ -178,6 +180,8 @@ export async function register() {
     await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS contacts_actual INTEGER NOT NULL DEFAULT 0`;
     await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS meetings_booked_actual INTEGER NOT NULL DEFAULT 0`;
     await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS meetings_held_actual INTEGER NOT NULL DEFAULT 0`;
+    // Manual sales count for non-sellers on the daily board (e.g. an opted-in admin) — sellers keep using the live count from the `sales` table
+    await sql`ALTER TABLE daily_targets ADD COLUMN IF NOT EXISTS sales_actual INTEGER NOT NULL DEFAULT 0`;
     await sql`ALTER TABLE sales ADD COLUMN IF NOT EXISTS cvr TEXT`;
     await sql`ALTER TABLE sales ADD COLUMN IF NOT EXISTS company_name TEXT`;
     await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS units_label TEXT NOT NULL DEFAULT 'Antal'`;

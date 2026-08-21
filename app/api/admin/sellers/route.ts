@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   if (!session || session.role === 'SELLER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const users = await sql`
-    SELECT u.id, u.email, u.name, u.role, u.is_part_time AS part_time, u.created_at,
+    SELECT u.id, u.email, u.name, u.role, u.is_part_time AS part_time, u.on_daily_board, u.created_at,
            c.name AS company_name, c.slug AS company_slug
     FROM users u
     LEFT JOIN companies c ON c.id = u.company_id
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const session = sessionFromRequest(req);
   if (!session || session.role === 'SELLER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { email, name, password, role, is_part_time, part_time, company_slug } = await req.json();
+  const { email, name, password, role, is_part_time, part_time, on_daily_board, company_slug } = await req.json();
   if (!email || !name || !password) {
     return NextResponse.json({ error: 'Email, navn og kodeord kræves' }, { status: 400 });
   }
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   const validRoles = ['ADMIN', 'MANAGER', 'SELLER'];
   const userRole = validRoles.includes(role) ? role : 'SELLER';
   const isPartTime = !!(is_part_time ?? part_time);
+  const onDailyBoard = !!on_daily_board;
 
   const hash = await bcrypt.hash(password, 12);
 
@@ -41,9 +42,9 @@ export async function POST(req: NextRequest) {
   }
 
   const [user] = await sql`
-    INSERT INTO users (email, name, password_hash, role, is_part_time, company_id)
-    VALUES (${email.toLowerCase().trim()}, ${name}, ${hash}, ${userRole}, ${isPartTime}, ${companyId})
-    RETURNING id, email, name, role, is_part_time AS part_time, created_at
+    INSERT INTO users (email, name, password_hash, role, is_part_time, on_daily_board, company_id)
+    VALUES (${email.toLowerCase().trim()}, ${name}, ${hash}, ${userRole}, ${isPartTime}, ${onDailyBoard}, ${companyId})
+    RETURNING id, email, name, role, is_part_time AS part_time, on_daily_board, created_at
   `;
 
   return NextResponse.json(user, { status: 201 });
